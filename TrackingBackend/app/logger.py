@@ -10,7 +10,7 @@ def setup_logger() -> None:
     # TODO: should probably load this from config or have it be set with a parameter
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
-        "%(levelname)s || %(threadName)s --> %(name)s<[%(module)s, %(funcName)s(), %(lineno)d]> :: %(message)s"
+        "%(levelname)s || %(threadName)s[%(thread)d] --> %(name)s<[%(module)s, %(funcName)s(), %(lineno)d]> :: %(message)s"
     )
     # Create the Handler for logging data to console
     console_handler = StreamHandler(sys.stdout)
