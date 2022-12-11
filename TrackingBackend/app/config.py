@@ -46,7 +46,7 @@ class EyeTrackConfig(BaseModel):
     algorithm: AlgorithmConfig = AlgorithmConfig()
 
     def save(self, file: str = "tracker-config.json") -> None:
-        with open(file, "w+") as settings_file:
+        with open(file, "w+", encoding="utf8") as settings_file:
             json.dump(obj=self.dict(), fp=settings_file, indent=4)
 
     @staticmethod
@@ -56,7 +56,7 @@ class EyeTrackConfig(BaseModel):
                 logger.info("No settings file found, using base settings")
                 EyeTrackConfig().save()
                 return EyeTrackConfig()
-            with open(file, "r") as config_file:
+            with open(file, "r", encoding="utf8") as config_file:
                 config = EyeTrackConfig(**json.load(config_file))
                 if EyeTrackConfig().version != config.version:
                     logger.warning("Config version mismatch regenerating file")
