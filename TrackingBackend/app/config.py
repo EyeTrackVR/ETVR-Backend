@@ -1,6 +1,6 @@
 import json
 import os.path
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError, validate_model
 from .logger import get_logger
 logger = get_logger()
 
@@ -39,7 +39,7 @@ class CameraConfig(BaseModel):
 
 
 class EyeTrackConfig(BaseModel):
-    version: int = 2  # increment this if anything is added, removed or renamed
+    version: int = 2
     osc: OSCConfig = OSCConfig()
     left_eye: CameraConfig = CameraConfig()
     right_eye: CameraConfig = CameraConfig()
@@ -49,28 +49,35 @@ class EyeTrackConfig(BaseModel):
         with open(file, "w+", encoding="utf8") as settings_file:
             json.dump(obj=self.dict(), fp=settings_file, indent=4)
 
-    @staticmethod
-    def load(file: str = "tracker-config.json"):
+    def load(self, file: str = "tracker-config.json") -> None:
+        if not os.path.exists(file):
+            logger.info("No config file found, using base settings")
+            self.save()  # save just so we have something to fallback on
+        else:
+            try:
+                # since we are loading a full config it is fine for us to just update the entire dict because we assume
+                # that the data is valid, if there are extra or missing fields in the config by default pydantic will
+                # fill them in with default values.
+                # if we want to "update" parts of the config at runtime we should use `setattr` so we can retain
+                # previous values and only update values that have been "requested" to be changed
+                self.__dict__.update(self.parse_file(file))
+                self.validate(self)
+            except (ValidationError, Exception):
+                logger.error("Invalid Data found in config, replacing with default values")
+
+    def update(self, data) -> None:
         try:
-            if not os.path.exists(file):
-                logger.info("No settings file found, using base settings")
-                EyeTrackConfig().save()
-                return EyeTrackConfig()
-            with open(file, "r", encoding="utf8") as config_file:
-                config = EyeTrackConfig(**json.load(config_file))
-                if EyeTrackConfig().version != config.version:
-                    logger.warning("Config version mismatch regenerating file")
-                    config_file.close()  # close file so we don't get permission errors
-                    os.remove(file)
-                    EyeTrackConfig().save()
-                    return EyeTrackConfig()
-                else:
-                    return config
-        except json.JSONDecodeError:  # if this happens the config is most likely corrupt
-            logger.error("Cannot open config file assuming it is corrupt, regenerating")
-            os.remove(file)
-            EyeTrackConfig().save()
-            return EyeTrackConfig()
+            values, fields, error = validate_model(self.__class__, data)
+            if error:
+                raise error
+            for name in fields:
+                value = values[name]
+                logger.debug("set object data -- %s => %s", name, value)
+                setattr(self, name, value)
+            # Once all new values are set save just incase we crash somewhere
+            self.save()
+        except (ValidationError, Exception):
+            logger.exception("Failed to update config with new values!")
 
     def return_config(self) -> dict:
-        return self.__dict__
+        return self.dict()

@@ -6,7 +6,18 @@ import cv2
 import time
 setup_logger()
 
-config = EyeTrackConfig().load()
+config = EyeTrackConfig()
+config.load()
+print(config.dict())
+config.update({
+    'version': 3,
+    'osc': {
+        'address': 'localhost',
+        'sync_blink': True
+    }
+})
+print(config.dict())
+config.save()
 image_queue = queue.Queue()
 cam = Camera(config.left_eye, image_queue)
 cam.start()
