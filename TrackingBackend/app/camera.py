@@ -1,9 +1,10 @@
 from .logger import get_logger
 from .config import CameraConfig
 import cv2
-import queue
+from queue import Queue, Empty
 import threading
 from enum import Enum
+
 logger = get_logger()
 
 
@@ -14,27 +15,36 @@ class CameraState(Enum):
 
 
 class Camera:
-    def __init__(self, config: CameraConfig, image_queue: queue.Queue):
-        self.config = config
-        self.camera_state = CameraState.DISCONNECTED
-        self.current_capture_source = self.config.capture_source
+    def __init__(self, config: CameraConfig, image_queue: Queue):
+        self.config: CameraConfig = config
+        self.camera_state: CameraState = CameraState.DISCONNECTED
+        self.current_capture_source: str = self.config.capture_source
         self.camera: cv2.VideoCapture = None
         # Threading stuff
         self.cancellation_event: threading.Event = threading.Event()
-        self.thread: threading.Thread = threading.Thread()  # cant be set to None because we call methods on it
-        self.image_queue: queue.Queue = image_queue
+        self.thread: threading.Thread = threading.Thread()
+        self.image_queue: Queue = image_queue
+
+    def __del__(self):
+        if not self.thread.is_alive():
+            self.stop()
+
+    def is_alive(self) -> bool:
+        return self.thread.is_alive()
+
+    def get_status(self) -> CameraState:
+        return self.camera_state
 
     def start(self) -> None:
         # don't start a thread if one already exists
         if self.thread.is_alive():
-            logger.debug(f"Thread requested to start but is already running")
+            logger.debug("Thread requested to start but is already running")
             return
 
         logger.info("Starting Capture thread")
         # clear cancellation event incase thread was stopped in the past
         self.cancellation_event.clear()
         # We need to recreate the thread because it is not possible to start a thread that has already been stopped
-        # MultiProcessing might have a way to do this in a better way????
         self.thread = threading.Thread(target=self.__run, name="Capture")
         self.thread.start()
 
@@ -50,18 +60,19 @@ class Camera:
         self.camera.release()
         # If the thread fails to stop, start yelling at the top of your lungs and happy debugging!
         if self.thread.is_alive():
-            logger.error(f"Failed to stop Capture thread!!!!!!!!")
+            logger.error("Failed to stop Capture thread!!!!!!!!")
 
     def restart(self) -> None:
         self.stop()
         self.start()
 
+    # this is the entry point that should contain all logic
     def __run(self) -> None:
         while True:
             if self.cancellation_event.is_set():
                 return
-            # If things aren't open, retry until they are. Don't let read requests come in any earlier
-            # than this, otherwise we can deadlock ourselves.
+            # If things aren't open, retry until they are. Don't let read requests come in any earlier than this,
+            # otherwise we can deadlock ourselves.
             if self.config.capture_source != "":
                 if self.camera_state == CameraState.DISCONNECTED or self.current_capture_source != self.config.capture_source:
                     self.connect_camera()
@@ -90,6 +101,9 @@ class Camera:
         # return for a very long time essentially soft lock the thread for around 30 seconds each time it is called
         # as far as I can tell our code is fine and that this is most likely a bug within OpenCV itself...
         # A dirty hack to fix this might be to just ping the host to see if it is alive before retrieving a new frame
+        # A more reasonable solution might be to spawn a new thread with the sole purpose of retrieving the frame
+        # doing this will allow us to set a timeout for fetching the frame, so we don't soft-lock the main capture thread
+        # but that's a problem for someone else in the future because I get nightmares whenever I look at this capture code
         try:
             ret, frame = self.camera.read()
             if not ret:
@@ -110,4 +124,7 @@ class Camera:
         qsize = self.image_queue.qsize()
         if qsize > 1:
             logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
-        self.image_queue.put(frame, frame_number, fps)
+        try:
+            self.image_queue.put(frame, frame_number, fps)
+        except (Exception, Empty):
+            logger.exception("Failed to push to camera capture queue!")
