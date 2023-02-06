@@ -19,14 +19,15 @@ class Camera:
         self.config: CameraConfig = config
         self.camera_state: CameraState = CameraState.DISCONNECTED
         self.current_capture_source: str = self.config.capture_source
-        self.camera: cv2.VideoCapture = None
+        self.camera: cv2.VideoCapture = cv2.VideoCapture()
         # Threading stuff
         self.cancellation_event: threading.Event = threading.Event()
         self.thread: threading.Thread = threading.Thread()
         self.image_queue: Queue = image_queue
+        logger.debug("Initialized Camera object")
 
     def __del__(self):
-        if not self.thread.is_alive():
+        if self.thread.is_alive():
             self.stop()
 
     def is_alive(self) -> bool:
@@ -82,19 +83,21 @@ class Camera:
                 self.camera_state = CameraState.DISCONNECTED
 
     def connect_camera(self) -> None:
+        # https://github.com/opencv/opencv/issues/23207
         try:
             self.camera_state = CameraState.CONNECTING
             self.current_capture_source = self.config.capture_source
-            self.camera = cv2.VideoCapture(self.current_capture_source)
             self.camera.setExceptionMode(True)
+            # self.camera.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 1000)
+            self.camera.open(self.current_capture_source)
             if self.camera.isOpened():
                 self.camera_state = CameraState.CONNECTED
                 logger.info("Camera connected!")
-                return
-            self.camera_state = CameraState.DISCONNECTED
-            logger.info(f"Capture source {self.current_capture_source} not found, retrying")
+            else:
+                raise cv2.error
         except (cv2.error, Exception):
-            logger.exception("Something is very broken")
+            self.camera_state = CameraState.DISCONNECTED
+            logger.exception(f"Capture source {self.current_capture_source} not found, retrying")
 
     def get_camera_image(self) -> None:
         # Be warned this is fucked beyond comprehension, if the capture source is dropped `self.camera.read()` wont
