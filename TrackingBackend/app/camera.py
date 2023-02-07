@@ -4,7 +4,10 @@ import cv2
 from queue import Queue, Empty
 import threading
 from enum import Enum
+import os
 
+# may or may not be needed, but it's here just in case
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "timeout;1000"
 logger = get_logger()
 
 
@@ -67,7 +70,6 @@ class Camera:
         self.stop()
         self.start()
 
-    # this is the entry point that should contain all logic
     def __run(self) -> None:
         while True:
             if self.cancellation_event.is_set():
@@ -83,13 +85,16 @@ class Camera:
                 self.camera_state = CameraState.DISCONNECTED
 
     def connect_camera(self) -> None:
+        self.camera_state = CameraState.CONNECTING
+        self.current_capture_source = self.config.capture_source
         # https://github.com/opencv/opencv/issues/23207
         try:
-            self.camera_state = CameraState.CONNECTING
-            self.current_capture_source = self.config.capture_source
             self.camera.setExceptionMode(True)
-            # self.camera.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 1000)
-            self.camera.open(self.current_capture_source)
+            # for some reason explcitly setting the backend allows functions to actually throw exceptions and 
+            # return from timeouts. this is a very dirty hack so we dont deadlock ourselves when a camera isnt immediately found.
+            # although this doesnt really fix the problem with `get_camera_image()` it does make it so that we can at least
+            # detect when a camera is disconnected and reconnect to it.
+            self.camera.open(self.current_capture_source, cv2.CAP_FFMPEG)
             if self.camera.isOpened():
                 self.camera_state = CameraState.CONNECTED
                 logger.info("Camera connected!")
@@ -97,7 +102,7 @@ class Camera:
                 raise cv2.error
         except (cv2.error, Exception):
             self.camera_state = CameraState.DISCONNECTED
-            logger.exception(f"Capture source {self.current_capture_source} not found, retrying")
+            logger.info(f"Capture source {self.current_capture_source} not found, retrying")
 
     def get_camera_image(self) -> None:
         # Be warned this is fucked beyond comprehension, if the capture source is dropped `self.camera.read()` wont
@@ -111,7 +116,7 @@ class Camera:
             ret, frame = self.camera.read()
             if not ret:
                 self.camera.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                logger.exception("Capture source problem, assuming camera disconnected, waiting for reconnect.")
+                logger.warning("Capture source problem, assuming camera disconnected, waiting for reconnect.")
                 self.camera_state = CameraState.DISCONNECTED
                 return
             frame_number = self.camera.get(cv2.CAP_PROP_POS_FRAMES)
@@ -119,7 +124,7 @@ class Camera:
             self.push_image_to_queue(frame, frame_number, fps)
         except (cv2.error, Exception):
             self.camera_state = CameraState.DISCONNECTED
-            logger.exception("Failed to retrieve or push frame to queue")
+            logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
 
     def push_image_to_queue(self, frame, frame_number, fps) -> None:
         # If there's backpressure, just yell. We really shouldn't have this unless we start getting
