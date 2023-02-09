@@ -1,8 +1,9 @@
 from logging import StreamHandler
-from enum import Enum
 import logging
 import inspect
 import sys
+from .types import LogLevel
+from enum import Enum
 
 
 def setup_logger() -> None:
@@ -19,7 +20,12 @@ def setup_logger() -> None:
     logger.addHandler(console_handler)
 
 
-def get_logger() -> logging.getLogger():
+def set_log_level(level: LogLevel) -> None:
+    logger = logging.getLogger()
+    logger.setLevel(level.value)
+
+
+def get_logger() -> logging.getLogger:
     # get calling module
     frm = inspect.stack()[1]
     caller_module = inspect.getmodule(frm[0]).__name__

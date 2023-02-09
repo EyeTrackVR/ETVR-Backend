@@ -1,20 +1,14 @@
 from .logger import get_logger
 from .config import CameraConfig
+from .types import CameraState
 import cv2
 from queue import Queue, Empty
 import threading
-from enum import Enum
 import os
 
 # may or may not be needed, but it's here just in case
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "timeout;1000"
 logger = get_logger()
-
-
-class CameraState(Enum):
-    DISCONNECTED = 0
-    CONNECTED = 1
-    CONNECTING = 2
 
 
 class Camera:
@@ -60,7 +54,8 @@ class Camera:
 
         logger.info("Stopping Capture thread")
         self.cancellation_event.set()
-        self.thread.join(timeout=5)
+        # refer to comment in `get_camera_image()` for why we wait for so long
+        self.thread.join(timeout=35)
         self.camera.release()
         # If the thread fails to stop, start yelling at the top of your lungs and happy debugging!
         if self.thread.is_alive():
@@ -77,6 +72,7 @@ class Camera:
             # If things aren't open, retry until they are. Don't let read requests come in any earlier than this,
             # otherwise we can deadlock ourselves.
             if self.config.capture_source != "":
+                # if the camera is disconnected or the capture source has changed, reconnect
                 if self.camera_state == CameraState.DISCONNECTED or self.current_capture_source != self.config.capture_source:
                     self.connect_camera()
                 else:
@@ -90,7 +86,7 @@ class Camera:
         # https://github.com/opencv/opencv/issues/23207
         try:
             self.camera.setExceptionMode(True)
-            # for some reason explcitly setting the backend allows functions to actually throw exceptions and 
+            # for some reason explcitly setting the backend allows functions to actually throw exceptions and
             # return from timeouts. this is a very dirty hack so we dont deadlock ourselves when a camera isnt immediately found.
             # although this doesnt really fix the problem with `get_camera_image()` it does make it so that we can at least
             # detect when a camera is disconnected and reconnect to it.

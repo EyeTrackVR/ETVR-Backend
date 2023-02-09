@@ -1,24 +1,24 @@
 from .logger import get_logger
 from .camera import Camera
 from .config import EyeTrackConfig
-from enum import Enum
+from .types import EyeID, EyeData
 import queue
+
 logger = get_logger()
 
 
-class EyeID(Enum):
-    LEFT = 0
-    RIGHT = 1
-
-
 class Tracker:
-    def __init__(self, eye_id: EyeID, config: EyeTrackConfig):
+    def __init__(self, eye_id: EyeID, config: EyeTrackConfig, osc_queue: queue.Queue[EyeData]):
         self.eye_id = eye_id
         self.config = config
-        self.eye_config = (self.config.left_eye, self.config.right_eye)[bool(self.eye_id)]
+        self.osc_queue = osc_queue
+        self.eye_config = (self.config.left_eye, self.config.right_eye)[bool(self.eye_id)]  # god i love python
         # Camera stuff
         self.image_queue: queue.Queue = queue.Queue()
         self.camera = Camera(self.eye_config, self.image_queue)
+
+    def __del__(self):
+        self.stop()
 
     def start(self) -> None:
         self.camera.start()
