@@ -12,7 +12,7 @@ class Tracker:
         self.eye_id = eye_id
         self.config = config
         self.osc_queue = osc_queue
-        self.eye_config = (self.config.left_eye, self.config.right_eye)[bool(self.eye_id)]  # god i love python
+        self.eye_config = (self.config.left_eye, self.config.right_eye)[bool(self.eye_id.value)]  # god i love python
         # Camera stuff
         self.image_queue: queue.Queue = queue.Queue()
         self.camera = Camera(self.eye_config, self.image_queue)
