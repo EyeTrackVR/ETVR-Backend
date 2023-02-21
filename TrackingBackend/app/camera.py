@@ -1,6 +1,6 @@
 from .logger import get_logger
 from .config import CameraConfig
-from .types import CameraState
+from .types import CameraState, EyeID
 import cv2
 from queue import Queue, Empty
 import threading
@@ -12,8 +12,9 @@ logger = get_logger()
 
 
 class Camera:
-    def __init__(self, config: CameraConfig, image_queue: Queue):
+    def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: Queue):
         self.config: CameraConfig = config
+        self.eye_id: EyeID = eye_id
         self.camera_state: CameraState = CameraState.DISCONNECTED
         self.current_capture_source: str = self.config.capture_source
         self.camera: cv2.VideoCapture = cv2.VideoCapture()
@@ -36,14 +37,14 @@ class Camera:
     def start(self) -> None:
         # don't start a thread if one already exists
         if self.thread.is_alive():
-            logger.debug("Thread requested to start but is already running")
+            logger.debug(f"Thread `{self.thread.name}` requested to start but is already running")
             return
 
-        logger.info("Starting Capture thread")
+        logger.info(f"Starting thread `Capture {str(self.eye_id.name).capitalize()}`")
         # clear cancellation event incase thread was stopped in the past
         self.cancellation_event.clear()
         # We need to recreate the thread because it is not possible to start a thread that has already been stopped
-        self.thread = threading.Thread(target=self.__run, name="Capture")
+        self.thread = threading.Thread(target=self.__run, name=f"Capture {str(self.eye_id.name).capitalize()}")
         self.thread.start()
 
     def stop(self) -> None:
@@ -52,14 +53,14 @@ class Camera:
             logger.debug("Request to kill dead thread was made!")
             return
 
-        logger.info("Stopping Capture thread")
+        logger.info(f"Stopping thread `{str(self.eye_id.name).capitalize()}`")
         self.cancellation_event.set()
         # refer to comment in `get_camera_image()` for why we wait for so long
         self.thread.join(timeout=35)
         self.camera.release()
         # If the thread fails to stop, start yelling at the top of your lungs and happy debugging!
         if self.thread.is_alive():
-            logger.error("Failed to stop Capture thread!!!!!!!!")
+            logger.error(f"Failed to stop thread `{str(self.eye_id.name).capitalize()}`!!!!!!!!")
 
     def restart(self) -> None:
         self.stop()
@@ -123,8 +124,7 @@ class Camera:
             logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
 
     def push_image_to_queue(self, frame, frame_number, fps) -> None:
-        # If there's backpressure, just yell. We really shouldn't have this unless we start getting
-        # some sort of capture event conflict though.
+        # If there's backpressure, just yell. We really shouldn't have this unless the algorithm errors out
         qsize = self.image_queue.qsize()
         if qsize > 1:
             logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
