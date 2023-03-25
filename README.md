@@ -10,12 +10,13 @@ This app uses a `vscode devcontainer` to run in a Docker container. This is the 
 
 - Docker or Docker Desktop (windows - running on WSL2 backend)
 - VSCode
+- VSCode Dev Containers extension
 
 ## Running the app
 
 1. Open the project in VSCode
 2. Open the command palette (Ctrl+Shift+P)
-3. Select `Remote-Containers: Reopen in Container`
+3. Select `Dev-Containers: Reopen in Container`
 4. Open the command palette again
 5. Select `Python: Run Python File in Terminal`
 6. Select `main.py`
