@@ -18,6 +18,7 @@ pye3d = "^0.3.1.post1"
 pydantic = "^1.10.2"
 fastapi = "^0.89.1"
 uvicorn = "^0.20.0"
+zeroconf = "^0.38.4"
 
 [tool.poetry.group.dev.dependencies]
 pyinstaller = "^5.6.2"
