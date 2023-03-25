@@ -9,12 +9,15 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
 
-# Install pip requirements
-COPY pyproject.toml .
-RUN python -m pip install poetry && poetry install
-
 WORKDIR /app
 COPY . /app
+
+ADD scripts/setup.sh /app/setup.sh
+
+# Install pip requirements
+COPY pyproject.toml .
+RUN  chmod +x setup.sh && ./setup.sh
+
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
@@ -22,4 +25,4 @@ RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /
 USER appuser
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "-k", "uvicorn.workers.UvicornWorker", "TrackingBackend.main:app"]
+CMD ["make", "uvicorn.workers.UvicornWorker", "TrackingBackend.main:app"]
