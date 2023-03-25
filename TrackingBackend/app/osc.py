@@ -30,12 +30,15 @@ class VRChatOSC:
     def start(self) -> None:
         # don't start a thread if one already exists
         if self.thread.is_alive():
-            logger.debug("Thread requested to start but is already running")
+            logger.debug(f"Thread `{self.thread.name}` requested to start but is already running")
             return
 
         logger.info("Starting OSC thread")
         # clear cancellation event incase thread was stopped in the past
         self.cancellation_event.clear()
+        logger.info(f"OSC Sender serving on {self.config.address}:{self.config.sending_port}")
+        # We might need to recreate the client because it may or may not be able to use new settings, will need to test
+        # self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
         # We need to recreate the thread because it is not possible to start a thread that has already been stopped
         self.thread = threading.Thread(target=self.__run, name="OSC")
         self.thread.start()
@@ -62,6 +65,11 @@ class VRChatOSC:
             if self.cancellation_event.is_set():
                 return
 
+            try:
+                eye_data: EyeData = self.msg_queue.get(block=True, timeout=0.1)
+            except queue.Empty:
+                continue
+
 
 class VRChatOSCReceiver:
     def __init__(self, config: EyeTrackConfig):
@@ -85,22 +93,24 @@ class VRChatOSCReceiver:
         pass
 
     def toggle_sync_blink(self, address, osc_value) -> None:
-        pass
+        self.config.sync_blink = not self.config.sync_blink
 
     def map_events(self) -> None:
         self.dispatcher.map(self.config.recalibrate_address, self.recalibrate_eyes)
         self.dispatcher.map(self.config.recenter_address, self.recenter_eyes)
-        self.dispatcher.map("/sync_blink", self.toggle_sync_blink)
+        self.dispatcher.map(self.config.sync_blink_address, self.toggle_sync_blink)
 
     def start(self) -> None:
         # don't start a thread if one already exists
         if self.thread.is_alive():
-            logger.debug("Thread requested to start but is already running")
+            logger.debug(f"Thread `{self.thread.name}` requested to start but is already running")
             return
 
         logger.info("Starting OSC receiver thread")
         # we redefine the OSC server here just incase the address or port changed
+        self.server.socket.close()  # close the old socket so we don't get a "address already in use" error
         self.server = ThreadingOSCUDPServer((self.config.address, self.config.receiver_port), self.dispatcher)
+        logger.info(f"OSC receiver listening on {self.config.address}:{self.config.receiver_port}")
         self.map_events()
         self.thread = threading.Thread(target=self.server.serve_forever, name="OSC Receiver")
         self.thread.start()

@@ -23,6 +23,7 @@ class OSCConfig(BaseModel):
     receiver_port: int = 9001
     recenter_address: str = "/avatar/parameters/etvr_recenter"
     recalibrate_address: str = "/avatar/parameters/etvr_recalibrate"
+    sync_blink_address: str = "/avatar/parameters/etvr_sync_blink"
 
 
 class CameraConfig(BaseModel):
@@ -39,6 +40,7 @@ class CameraConfig(BaseModel):
     roi_h: int = 0
 
 
+# Might be worth making this a singleton so we dont need to pass the main config instance around everywhere
 class EyeTrackConfig(BaseModel):
     version: int = 2
     osc: OSCConfig = OSCConfig()
