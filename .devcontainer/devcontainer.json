@@ -16,6 +16,21 @@
 			"version": "3.11"
 		}
 	},
+	"customizations": {
+		"vscode": {
+			"settings": {},
+			"extensions": [
+				"streetsidesoftware.code-spell-checker",
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"ms-azuretools.vscode-docker",
+				"wayou.vscode-todo-highlight",
+				"gruntfuggly.todo-tree",
+				"eamodio.gitlens",
+				"github.vscode-pull-request-github"
+			]
+		}
+	},
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
