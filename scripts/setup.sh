@@ -6,7 +6,9 @@
 if ! command -v make &> /dev/null
 then
     echo "make could not be found, installing it now"
-    apt-get install make
+    apt update
+    apt install build-essential -y --no-install-recommends
+    apt install make
 fi
 
 # check if poetry is installed and if not install it
@@ -14,6 +16,6 @@ fi
 if ! command -v poetry &> /dev/null
 then
     echo "poetry could not be found, installing it now"
-    apt-get install poetry
+    python -m pip install poetry
 fi
 
