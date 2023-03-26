@@ -17,15 +17,15 @@ This app uses a `vscode devcontainer` to run in a Docker container. This is the 
 1. Open the project in VSCode
 2. Open the command palette (Ctrl+Shift+P)
 3. Select `Dev-Containers: Reopen in Container`
-4. Open the command palette again
-5. Select `Python: Run Python File in Terminal`
-6. Select `main.py`
+4. Wait for container to finish building (first time only) Open a terminal (Ctrl+Shift+`)
+5. Run `make` to run the app
+
 
 ## Running the app outside of the container
 
 ### Install dependencies
 
-**Note**: Make sure `make` is installed on your system.
+> **Note**: Make sure `make` is installed on your system.
 
 1. Open the project in VSCode
 2. Open a terminal (Ctrl+Shift+`)
