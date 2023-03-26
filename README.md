@@ -25,12 +25,14 @@ This app uses a `vscode devcontainer` to run in a Docker container. This is the 
 
 ### Install dependencies
 
+**Note**: Make sure `make` is installed on your system.
+
 1. Open the project in VSCode
 2. Open a terminal (Ctrl+Shift+`)
-3. Run `poetry install`
+3. Run `make install`
 
 ### Run the app
 
 1. Open the project in VSCode
-2. Open the command palette (Ctrl+Shift+P)
-3. Select `Python: Run Python File in Terminal`
+2. Open a terminal (Ctrl+Shift+`)
+3. Run `make` to run the app
