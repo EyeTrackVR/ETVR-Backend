@@ -30,11 +30,18 @@ class ETVR:
 
     def add_routes(self) -> None:
         logger.debug("Adding routes to ETVR")
+        # config stuff
         self.router.add_api_route("/etvr/config", self.config.update, methods=["POST"])
         self.router.add_api_route("/etvr/config", self.config.return_config, methods=["GET"])
+        # general stuff
         self.router.add_api_route("/etvr/start", self.start, methods=["GET"])
         self.router.add_api_route("/etvr/stop", self.stop, methods=["GET"])
         self.router.add_api_route("/etvr/restart", self.restart, methods=["GET"])
+        # camera stuff
+        self.router.add_api_route("/etvr/camera_l/status", self.tracker_left.camera.get_status, methods=["GET"])
+        self.router.add_api_route("/etvr/camera_r/status", self.tracker_right.camera.get_status, methods=["GET"])
+        self.router.add_api_route("/etvr/camera_l", self.tracker_left.visualizer.video_feed, methods=["GET"])
+        self.router.add_api_route("/etvr/camera_r", self.tracker_right.visualizer.video_feed, methods=["GET"])
 
     def start(self) -> None:
         logger.debug("Starting ETVR")

@@ -2,6 +2,7 @@ from .logger import get_logger
 from .camera import Camera
 from .config import EyeTrackConfig
 from .types import EyeID, EyeData
+from .visualizer import Visualizer
 import queue
 
 logger = get_logger()
@@ -16,6 +17,7 @@ class Tracker:
         # Camera stuff
         self.image_queue: queue.Queue = queue.Queue()
         self.camera = Camera(self.eye_config, self.eye_id, self.image_queue)
+        self.visualizer = Visualizer(self.image_queue, True)  # TODO: change to False when done testing and algos get implemented
 
     def __del__(self):
         self.stop()
