@@ -5,4 +5,5 @@
 *.cfg
 dist/
 build/
+tracker-config.json
 TrackingBackend/tracker-config.json

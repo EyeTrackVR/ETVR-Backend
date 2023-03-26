@@ -2,6 +2,7 @@ import json
 import os.path
 from pydantic import BaseModel, ValidationError, validate_model
 from .logger import get_logger
+from fastapi import Request
 
 logger = get_logger()
 
@@ -68,7 +69,8 @@ class EyeTrackConfig(BaseModel):
             except (ValidationError, Exception):
                 logger.error("Invalid Data found in config, replacing with default values")
 
-    def update(self, data) -> None:
+    async def update(self, request: Request) -> None:
+        data = await request.json()
         try:
             values, fields, error = validate_model(self.__class__, data)
             if error:
