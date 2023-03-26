@@ -27,7 +27,8 @@
 				"wayou.vscode-todo-highlight",
 				"gruntfuggly.todo-tree",
 				"eamodio.gitlens",
-				"github.vscode-pull-request-github"
+				"github.vscode-pull-request-github",
+				"rangav.vscode-thunder-client"
 			]
 		}
 	},
