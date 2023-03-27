@@ -15,8 +15,17 @@ class AlgorithmConfig(BaseModel):
     blob_maxsize: float = 25
 
 
+class OSCConfigEndpoints(BaseModel):
+    eyes_y: str = "/avatar/parameters/EyesY"
+    left_eye_x: str = "/avatar/parameters/LeftEyeX"
+    right_eye_x: str = "/avatar/parameters/RightEyeX"
+    left_eyelid_squeeze: str = "/avatar/parameters/LeftEyeLidExpandedSqueeze"
+    right_eyelid_squeeze: str = "/avatar/parameters/RightEyeLidExpandedSqueeze"
+
+
 class OSCConfig(BaseModel):
     address: str = "127.0.0.1"
+    mirror_eyes: bool = False
     sync_blink: bool = False
     enable_sending: bool = True
     sending_port: int = 9000
@@ -25,6 +34,7 @@ class OSCConfig(BaseModel):
     recenter_address: str = "/avatar/parameters/etvr_recenter"
     recalibrate_address: str = "/avatar/parameters/etvr_recalibrate"
     sync_blink_address: str = "/avatar/parameters/etvr_sync_blink"
+    osc_endpoints: OSCConfigEndpoints = OSCConfigEndpoints()
 
 
 class CameraConfig(BaseModel):
