@@ -2,7 +2,7 @@ from .logger import get_logger
 from .config import CameraConfig
 from .types import CameraState, EyeID
 import cv2
-from queue import Queue, Empty
+import queue
 import threading
 import os
 
@@ -12,7 +12,7 @@ logger = get_logger()
 
 
 class Camera:
-    def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: Queue):
+    def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: queue.Queue):
         self.config: CameraConfig = config
         self.eye_id: EyeID = eye_id
         self.camera_state: CameraState = CameraState.DISCONNECTED
@@ -21,7 +21,7 @@ class Camera:
         # Threading stuff
         self.cancellation_event: threading.Event = threading.Event()
         self.thread: threading.Thread = threading.Thread()
-        self.image_queue: Queue = image_queue
+        self.image_queue: queue.Queue = image_queue
         logger.debug("Initialized Camera object")
 
     def __del__(self):
@@ -53,14 +53,14 @@ class Camera:
             logger.debug("Request to kill dead thread was made!")
             return
 
-        logger.info(f"Stopping thread `{str(self.eye_id.name).capitalize()}`")
+        logger.info(f"Stopping thread `{self.thread.name}`")
         self.cancellation_event.set()
         # refer to comment in `get_camera_image()` for why we wait for so long
         self.thread.join(timeout=35)
         self.camera.release()
         # If the thread fails to stop, start yelling at the top of your lungs and happy debugging!
         if self.thread.is_alive():
-            logger.error(f"Failed to stop thread `{str(self.eye_id.name).capitalize()}`!!!!!!!!")
+            logger.error(f"Failed to stop thread `{self.thread.name}`!!!!!!!!")
 
     def restart(self) -> None:
         self.stop()
@@ -130,5 +130,5 @@ class Camera:
             logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
         try:
             self.image_queue.put(frame, frame_number, fps)
-        except (Exception, Empty):
+        except (Exception, queue.Empty):
             logger.exception("Failed to push to camera capture queue!")
