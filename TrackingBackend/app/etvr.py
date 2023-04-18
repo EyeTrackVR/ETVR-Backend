@@ -25,7 +25,6 @@ class ETVR:
         self.router: APIRouter = APIRouter()
 
     def __del__(self):
-        logger.debug("Deleting ETVR")
         self.stop()
 
     def add_routes(self) -> None:
@@ -44,19 +43,19 @@ class ETVR:
         self.router.add_api_route("/etvr/camera_r", self.tracker_right.visualizer.video_feed, methods=["GET"])
 
     def start(self) -> None:
-        logger.debug("Starting ETVR")
+        logger.debug("Starting...")
         self.tracker_left.start()
         self.tracker_right.start()
-        logger.debug("ETVR started")
+        self.osc_sender.start()
+        self.osc_receiver.start()
 
     def stop(self) -> None:
-        logger.debug("Stopping ETVR")
+        logger.debug("Stopping...")
         self.tracker_left.stop()
         self.tracker_right.stop()
-        logger.debug("ETVR stopped")
+        self.osc_sender.stop()
+        self.osc_receiver.stop()
 
     def restart(self) -> None:
-        logger.debug("Restarting ETVR")
         self.stop()
         self.start()
-        logger.debug("ETVR restarted")
