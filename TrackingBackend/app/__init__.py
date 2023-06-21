@@ -4,3 +4,4 @@ from .camera import Camera, CameraState
 from .tracker import Tracker, EyeID
 from .osc import VRChatOSC, VRChatOSCReceiver
 from .types import EyeData, EyeID, LogLevel
+from .eye_processor import EyeProcessor
