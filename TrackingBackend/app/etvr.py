@@ -1,4 +1,4 @@
-import queue
+from multiprocessing import Queue
 from .camera import Camera
 from .config import EyeTrackConfig, CameraConfig, OSCConfig
 from .logger import get_logger
@@ -9,13 +9,14 @@ from .types import EyeID, EyeData
 
 logger = get_logger()
 
-
+# might be temporary, not sure if we are gonna use something else for IPC
+# TODO: talk to Zanzy / lorrow about this!
 class ETVR:
     def __init__(self):
         self.config: EyeTrackConfig = EyeTrackConfig()
         self.config.load()
         # OSC stuff
-        self.osc_queue: queue.Queue[EyeData] = queue.Queue()
+        self.osc_queue: Queue[EyeData] = Queue()
         self.osc_sender: VRChatOSC = VRChatOSC(self.config, self.osc_queue)
         self.osc_receiver: VRChatOSCReceiver = VRChatOSCReceiver(self.config)
         # Trackers
@@ -39,8 +40,6 @@ class ETVR:
         # camera stuff
         self.router.add_api_route("/etvr/camera_l/status", self.tracker_left.camera.get_status, methods=["GET"])
         self.router.add_api_route("/etvr/camera_r/status", self.tracker_right.camera.get_status, methods=["GET"])
-        self.router.add_api_route("/etvr/camera_l", self.tracker_left.visualizer.video_feed, methods=["GET"])
-        self.router.add_api_route("/etvr/camera_r", self.tracker_right.visualizer.video_feed, methods=["GET"])
 
     def start(self) -> None:
         logger.debug("Starting...")

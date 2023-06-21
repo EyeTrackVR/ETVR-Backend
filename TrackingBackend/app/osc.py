@@ -1,8 +1,9 @@
+from __future__ import annotations
 from .config import EyeTrackConfig, OSCConfig
 from .logger import get_logger
 from .types import EyeData, EyeID
-import queue
-import threading
+import multiprocessing
+from multiprocessing import Queue
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.udp_client import SimpleUDPClient
 from pythonosc.osc_server import ThreadingOSCUDPServer
@@ -11,50 +12,42 @@ logger = get_logger()
 
 
 class VRChatOSC:
-    def __init__(self, config: EyeTrackConfig, msg_queue: queue.Queue[EyeData]):
+    def __init__(self, config: EyeTrackConfig, msg_queue: Queue[EyeData]):
         self.main_config = config
         self.config = config.osc
         self.msg_queue = msg_queue
         self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
-        # Threading stuff
-        self.cancellation_event: threading.Event = threading.Event()
-        self.thread: threading.Thread = threading.Thread()
+        self.process: multiprocessing.Process = multiprocessing.Process()
 
     def __del__(self):
-        if self.thread.is_alive():
+        if self.process.is_alive():
             self.stop()
 
     def is_alive(self) -> bool:
-        return self.thread.is_alive()
+        return self.process.is_alive()
 
     def start(self) -> None:
         # don't start a thread if one already exists
-        if self.thread.is_alive():
-            logger.debug(f"Thread `{self.thread.name}` requested to start but is already running")
+        if self.process.is_alive():
+            logger.debug(f"Process `{self.process.name}` requested to start but is already running")
             return
 
-        logger.info("Starting OSC thread")
-        # clear cancellation event incase thread was stopped in the past
-        self.cancellation_event.clear()
+        logger.info("Starting OSC process")
         logger.info(f"OSC Sender serving on {self.config.address}:{self.config.sending_port}")
         # We might need to recreate the client because it may or may not be able to use new settings, will need to test
         # self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
         # We need to recreate the thread because it is not possible to start a thread that has already been stopped
-        self.thread = threading.Thread(target=self.__run, name="OSC")
-        self.thread.start()
+        self.process = multiprocessing.Process(target=self.__run, name="OSC")
+        self.process.start()
 
     def stop(self) -> None:
         # can't kill a non-existent thread
-        if not self.thread.is_alive():
-            logger.debug("Request to kill dead thread was made!")
+        if not self.process.is_alive():
+            logger.debug("Request to kill dead process was made!")
             return
 
-        logger.info("Stopping OSC thread")
-        self.cancellation_event.set()
-        self.thread.join(timeout=5)
-        # If the thread fails to stop, start yelling at the top of your lungs and happy debugging!
-        if self.thread.is_alive():
-            logger.error("Failed to stop OSC thread!!!!!!!!")
+        logger.info("Stopping OSC process")
+        self.process.kill()
 
     def restart(self) -> None:
         self.stop()
@@ -62,12 +55,9 @@ class VRChatOSC:
 
     def __run(self) -> None:
         while True:
-            if self.cancellation_event.is_set():
-                return
-
             try:
                 eye_data: EyeData = self.msg_queue.get(block=True, timeout=0.1)
-            except queue.Empty:
+            except Exception:
                 continue
 
             if self.config.mirror_eyes:
@@ -88,6 +78,8 @@ class VRChatOSC:
                 self.client.send_message(self.config.osc_endpoints.right_eyelid_squeeze, eye_data.blink)
 
 
+import threading
+# FIXME: this should be completely rewritten
 class VRChatOSCReceiver:
     def __init__(self, config: EyeTrackConfig):
         self.main_config = config

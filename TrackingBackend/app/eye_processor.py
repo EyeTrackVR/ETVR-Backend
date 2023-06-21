@@ -1,64 +1,70 @@
-import threading
-import queue
+from __future__ import annotations
+import multiprocessing
+import cv2
+from multiprocessing import Queue
 from .config import AlgorithmConfig
 from .types import EyeID
 from .logger import get_logger
+import numpy as np
 
 logger = get_logger()
 
 
 class EyeProcessor:
-    def __init__(self, image_queue: queue.Queue, config: AlgorithmConfig, eye_id: EyeID):
-        self.image_queue: queue.Queue = image_queue
+    def __init__(self, image_queue: Queue[np.ndarray], config: AlgorithmConfig, eye_id: EyeID):
+        self.image_queue: Queue = image_queue
         self.config: AlgorithmConfig = config
         self.eye_id: EyeID = eye_id
         # Threading stuff
-        self.cancellation_event: threading.Event = threading.Event()
-        self.thread: threading.Thread = threading.Thread()
+        self.process: multiprocessing.Process = multiprocessing.Process()
+        # setup all our algorithms, might be a good idea to use a map instead of multiple variables
+        from app.algorithms import Blob, HSF, HSRAC, Ransac  # import here to avoid circular imports
+        self.blob = Blob(self)
+        self.hsf = HSF(self)
+        self.hsrac = HSRAC(self)
+        self.ransac = Ransac(self)
+        
 
     def __del__(self):
-        if self.thread.is_alive():
+        if self.process.is_alive():
             self.stop()
 
     def is_alive(self) -> bool:
-        return self.thread.is_alive()
+        return self.process.is_alive()
     
     def start(self) -> None:
-        # don't start a thread if one already exists
-        if self.thread.is_alive():
-            logger.debug(f"Thread `{self.thread.name}` requested to start but is already running")
+        # don't start a process if one already exists
+        if self.process.is_alive():
+            logger.debug(f"Process `{self.process.name}` requested to start but is already running")
             return
 
-        logger.info(f"Starting thread `EyeProcessor {str(self.eye_id.name).capitalize()}`")
-        # clear cancellation event incase thread was stopped in the past
-        self.cancellation_event.clear()
-        # We need to recreate the thread because it is not possible to start a thread that has already been stopped
-        self.thread = threading.Thread(target=self.__run, name=f"EyeProcessor {str(self.eye_id.name).capitalize()}")
-        self.thread.start()
+        logger.info(f"Starting `EyeProcessor {str(self.eye_id.name).capitalize()}`")
+        # We need to recreate the process because it is not possible to start a process that has already been stopped
+        self.process = multiprocessing.Process(target=self._run, name=f"EyeProcessor {str(self.eye_id.name).capitalize()}")
+        self.process.start()
 
     def stop(self) -> None:
-        # can't kill a non-existent thread
-        if not self.thread.is_alive():
-            logger.debug("Request to kill dead thread was made!")
+        # can't kill a non-existent process
+        if not self.process.is_alive():
+            logger.debug("Request to kill dead process was made!")
             return
 
-        logger.info(f"Stopping thread `{self.thread.name}`")
-        self.cancellation_event.set()
-        self.thread.join(timeout=5)
-        # If the thread fails to stop, start yelling at the top of your lungs and happy debugging!
-        if self.thread.is_alive():
-            logger.error(f"Failed to stop thread `{self.thread.name}`!!!!!!!!")
+        logger.info(f"Stopping thread `{self.process.name}`")
+        self.process.kill()
 
     def restart(self) -> None:
         self.stop()
         self.start()
 
-    def __run(self) -> None:
+    def _run(self) -> None:
         while True:
-            if self.cancellation_event.is_set():
-                return
-        
             try:
-                current_frame = self.image_queue.get(block=True, timeout=0.1)
-            except queue.Empty:
+                current_frame = self.image_queue.get()
+                cv2.imshow(f"{self.process.name}", current_frame)
+                cv2.waitKey(1)
+                # convert to grayscale, we don't need color
+                current_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
+            except Exception:
                 continue
+
+            self.blob.run(current_frame)

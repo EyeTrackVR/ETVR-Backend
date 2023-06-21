@@ -6,6 +6,7 @@ from .types import LogLevel
 from enum import Enum
 
 
+# TODO: make this work across processes
 def setup_logger() -> None:
     logger = logging.getLogger()
     # TODO: should probably load this from config or have it be set with a parameter
@@ -25,11 +26,11 @@ def set_log_level(level: LogLevel) -> None:
     logger.setLevel(level.value)
 
 
-def get_logger() -> logging.getLogger:
+def get_logger() -> logging.Logger:
     # get calling module
-    frm = inspect.stack()[1]
-    caller_module = inspect.getmodule(frm[0]).__name__
+    frm: inspect.FrameInfo = inspect.stack()[1]
+    caller_module = inspect.getmodule(frm[0])
     # create logger for caller module
-    logger = logging.getLogger(caller_module)
+    logger = logging.getLogger(caller_module.__name__)
     logger.debug("Initialized logger for %s", caller_module)
     return logger

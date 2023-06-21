@@ -1,9 +1,11 @@
+from __future__ import annotations
 from .logger import get_logger
 from .config import CameraConfig
 from .types import CameraState, EyeID
+from multiprocessing import Queue
+import multiprocessing
+import numpy as np
 import cv2
-import queue
-import threading
 import os
 
 # may or may not be needed, but it's here just in case
@@ -12,64 +14,55 @@ logger = get_logger()
 
 
 class Camera:
-    def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: queue.Queue):
+    def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: Queue[np.ndarray]):
         self.config: CameraConfig = config
         self.eye_id: EyeID = eye_id
         self.camera_state: CameraState = CameraState.DISCONNECTED
         self.current_capture_source: str = self.config.capture_source
-        self.camera: cv2.VideoCapture = cv2.VideoCapture()
-        # Threading stuff
-        self.cancellation_event: threading.Event = threading.Event()
-        self.thread: threading.Thread = threading.Thread()
-        self.image_queue: queue.Queue = image_queue
+        # we are using None as a placeholder for the camera object because we can't create it until we are in the process
+        # otherwise we make multiprocessing sad :(
+        self.camera: cv2.VideoCapture = None
+        self.process: multiprocessing.Process = multiprocessing.Process()
+        self.image_queue: Queue = image_queue
         logger.debug("Initialized Camera object")
 
     def __del__(self):
-        if self.thread.is_alive():
+        if self.process.is_alive():
             self.stop()
 
     def is_alive(self) -> bool:
-        return self.thread.is_alive()
+        return self.process.is_alive()
 
     def get_status(self) -> CameraState:
         return self.camera_state
 
     def start(self) -> None:
-        # don't start a thread if one already exists
-        if self.thread.is_alive():
-            logger.debug(f"Thread `{self.thread.name}` requested to start but is already running")
+        # don't start a process if one already exists
+        if self.process.is_alive():
+            logger.debug(f"Process `{self.process.name}` requested to start but is already running")
             return
 
-        logger.info(f"Starting thread `Capture {str(self.eye_id.name).capitalize()}`")
-        # clear cancellation event incase thread was stopped in the past
-        self.cancellation_event.clear()
-        # We need to recreate the thread because it is not possible to start a thread that has already been stopped
-        self.thread = threading.Thread(target=self.__run, name=f"Capture {str(self.eye_id.name).capitalize()}")
-        self.thread.start()
+        logger.info(f"Starting `Capture {str(self.eye_id.name).capitalize()}`")
+        # We need to recreate the process because it is not possible to start a process that has already been stopped
+        self.process = multiprocessing.Process(target=self._run, name=f"Capture {str(self.eye_id.name).capitalize()}")
+        self.process.start()
 
     def stop(self) -> None:
-        # can't kill a non-existent thread
-        if not self.thread.is_alive():
-            logger.debug("Request to kill dead thread was made!")
+        # can't kill a non-existent process
+        if not self.process.is_alive():
+            logger.debug("Request to kill process thread was made!")
             return
 
-        logger.info(f"Stopping thread `{self.thread.name}`")
-        self.cancellation_event.set()
-        # refer to comment in `get_camera_image()` for why we wait for so long
-        self.thread.join(timeout=35)
-        self.camera.release()
-        # If the thread fails to stop, start yelling at the top of your lungs and happy debugging!
-        if self.thread.is_alive():
-            logger.error(f"Failed to stop thread `{self.thread.name}`!!!!!!!!")
+        logger.info(f"Stopping `{self.process.name}`")
+        self.process.kill()
 
     def restart(self) -> None:
         self.stop()
         self.start()
 
-    def __run(self) -> None:
+    def _run(self) -> None:
+        self.camera = cv2.VideoCapture()
         while True:
-            if self.cancellation_event.is_set():
-                return
             # If things aren't open, retry until they are. Don't let read requests come in any earlier than this,
             # otherwise we can deadlock ourselves.
             if self.config.capture_source != "":
@@ -127,8 +120,9 @@ class Camera:
         # If there's backpressure, just yell. We really shouldn't have this unless the algorithm errors out
         qsize = self.image_queue.qsize()
         if qsize > 1:
-            logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
+            # logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
+            pass
         try:
-            self.image_queue.put(frame, frame_number, fps)
-        except (Exception, queue.Empty):
+            self.image_queue.put(frame)
+        except (Exception):
             logger.exception("Failed to push to camera capture queue!")

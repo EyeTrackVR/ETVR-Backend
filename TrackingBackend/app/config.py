@@ -6,13 +6,14 @@ from fastapi import Request
 
 logger = get_logger()
 
+class BlobConfig(BaseModel):
+    threshold: int = 65
+    minsize: int = 10
+    maxsize: int = 25
+
 
 class AlgorithmConfig(BaseModel):
-    speed_coefficient: float = 0.9
-    min_cutoff: float = 0.0004
-    blob_fallback: bool = True
-    blob_minsize: float = 10
-    blob_maxsize: float = 25
+    blob: BlobConfig = BlobConfig()
 
 
 class OSCConfigEndpoints(BaseModel):
@@ -54,6 +55,7 @@ class CameraConfig(BaseModel):
 # Might be worth making this a singleton so we dont need to pass the main config instance around everywhere
 class EyeTrackConfig(BaseModel):
     version: int = 2
+    debug: bool = True  # For future use
     osc: OSCConfig = OSCConfig()
     left_eye: CameraConfig = CameraConfig()
     right_eye: CameraConfig = CameraConfig()
