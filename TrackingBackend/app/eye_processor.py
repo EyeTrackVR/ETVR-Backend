@@ -49,7 +49,7 @@ class EyeProcessor:
             logger.debug("Request to kill dead process was made!")
             return
 
-        logger.info(f"Stopping thread `{self.process.name}`")
+        logger.info(f"Stopping process `{self.process.name}`")
         self.process.kill()
 
     def restart(self) -> None:
