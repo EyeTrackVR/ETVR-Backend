@@ -37,7 +37,7 @@ class VRChatOSC:
         # We might need to recreate the client because it may or may not be able to use new settings, will need to test
         # self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
         # We need to recreate the thread because it is not possible to start a thread that has already been stopped
-        self.process = multiprocessing.Process(target=self.__run, name="OSC")
+        self.process = multiprocessing.Process(target=self._run, name="OSC")
         self.process.start()
 
     def stop(self) -> None:
@@ -53,7 +53,7 @@ class VRChatOSC:
         self.stop()
         self.start()
 
-    def __run(self) -> None:
+    def _run(self) -> None:
         while True:
             try:
                 eye_data: EyeData = self.msg_queue.get(block=True, timeout=0.1)
