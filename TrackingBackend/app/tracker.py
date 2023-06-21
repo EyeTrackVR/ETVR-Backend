@@ -4,14 +4,14 @@ from .camera import Camera
 from .config import EyeTrackConfig
 from .eye_processor import EyeProcessor
 from multiprocessing import Queue
-from .types import EyeID
+from .types import EyeID, EyeData
 import numpy as np
 
 logger = get_logger()
 
 
 class Tracker:
-    def __init__(self, eye_id: EyeID, config: EyeTrackConfig, osc_queue: Queue):
+    def __init__(self, eye_id: EyeID, config: EyeTrackConfig, osc_queue: Queue[EyeData]):
         self.eye_id = eye_id
         self.config = config
         self.osc_queue = osc_queue

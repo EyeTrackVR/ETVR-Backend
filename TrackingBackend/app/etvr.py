@@ -1,6 +1,5 @@
 from multiprocessing import Queue
-from .camera import Camera
-from .config import EyeTrackConfig, CameraConfig, OSCConfig
+from .config import EyeTrackConfig
 from .logger import get_logger
 from .tracker import Tracker
 from .osc import VRChatOSCReceiver, VRChatOSC
