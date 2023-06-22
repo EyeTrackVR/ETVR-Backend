@@ -1,5 +1,7 @@
 from __future__ import annotations
+from collections.abc import Callable, Iterable, Mapping
 import multiprocessing
+from typing import Any
 import cv2
 from .config import AlgorithmConfig
 from .types import EyeID, EyeData
@@ -21,7 +23,8 @@ class EyeProcessor:
         self.config: AlgorithmConfig = config
         self.eye_id: EyeID = eye_id
         from app.algorithms import Blob, HSF, HSRAC, Ransac  # import here to avoid circular imports
-        # setup all our algorithms, might be a good idea to use a array to store them
+        # all the algorithms are copied into the new process, instead of being shared, isnt a big deal
+        # plus since they are coppied it is faster to access them since we dont need to serialize them
         self.hsf: HSF = HSF(self)
         self.blob: Blob = Blob(self)
         self.hsrac: HSRAC = HSRAC(self)
@@ -64,7 +67,6 @@ class EyeProcessor:
             try:
                 current_frame = self.image_queue.get()
                 cv2.imshow(f"{self.process.name}", current_frame)
-                cv2.waitKey(1)
                 # convert to grayscale, we don't need color
                 current_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
             except Exception:
