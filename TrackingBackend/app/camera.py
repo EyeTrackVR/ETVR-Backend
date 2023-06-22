@@ -2,9 +2,7 @@ from __future__ import annotations
 from .logger import get_logger
 from .config import CameraConfig
 from .types import CameraState, EyeID
-from multiprocessing import Queue
 import multiprocessing
-import numpy as np
 import cv2
 import os
 
@@ -12,18 +10,32 @@ import os
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "timeout;1000"
 logger = get_logger()
 
+# FIXME:
+#----------------------------------------------------------------------------------------------------------------------------
+# currently the only problem here is that we arent sharing memory between processes
+# when starting the camera process, it creates a copy off all the variables in the current process, including class members
+# this means that when we change the config in the main process, the camera process doesn't see the changes
+# and if we change camera_state in the camera process, the main process doesn't see the changes either
+# luckily most of the important data (osc stuff, camera data, eye position, etc...) can be shared using a multiprocessing.Queue, 
+# so we don't need to worry about that because the multiprocessing.Queue object is shared between processes
+# however, we do need to worry about the config and class variables as they are not using a Queue and are not shared
+# one solution would be to use a shared memory object, but that would require a lot of refactoring
+# another solution would be to use a manager object, but that would also require a decent amount of refactoring
+# the easiest solution would be to just use multiprocessing.Value and multiprocessing.Array objects
+# this problem also exists to some degree in osc.py and eye_tracker.py
+#----------------------------------------------------------------------------------------------------------------------------
 
 class Camera:
-    def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: Queue[np.ndarray]):
-        self.config: CameraConfig = config
+    def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: multiprocessing.Queue[cv2.Mat]):
         self.eye_id: EyeID = eye_id
-        self.camera_state: CameraState = CameraState.DISCONNECTED
+        self.config: CameraConfig = config
+        self.camera_state = CameraState.DISCONNECTED
         self.current_capture_source: str = self.config.capture_source
+        self.process: multiprocessing.Process = multiprocessing.Process()
         # we are using None as a placeholder for the camera object because we can't create it until we are in the process
         # otherwise we make multiprocessing sad :(
         self.camera: cv2.VideoCapture = None
-        self.process: multiprocessing.Process = multiprocessing.Process()
-        self.image_queue: Queue = image_queue
+        self.image_queue: multiprocessing.Queue[cv2.Mat] = image_queue
         logger.debug("Initialized Camera object")
 
     def __del__(self):
@@ -50,10 +62,10 @@ class Camera:
     def stop(self) -> None:
         # can't kill a non-existent process
         if not self.process.is_alive():
-            logger.debug("Request to kill process thread was made!")
+            logger.debug("Request to kill dead process thread was made!")
             return
 
-        logger.info(f"Stopping `{self.process.name}`")
+        logger.info(f"Stopping process `{self.process.name}`")
         self.process.kill()
 
     def restart(self) -> None:
@@ -78,6 +90,7 @@ class Camera:
         self.camera_state = CameraState.CONNECTING
         self.current_capture_source = self.config.capture_source
         # https://github.com/opencv/opencv/issues/23207
+        # https://github.com/opencv/opencv-python/issues/788
         try:
             self.camera.setExceptionMode(True)
             # for some reason explcitly setting the backend allows functions to actually throw exceptions and
@@ -109,20 +122,21 @@ class Camera:
                 logger.warning("Capture source problem, assuming camera disconnected, waiting for reconnect.")
                 self.camera_state = CameraState.DISCONNECTED
                 return
-            frame_number = self.camera.get(cv2.CAP_PROP_POS_FRAMES)
-            fps = self.camera.get(cv2.CAP_PROP_FPS)
+            # https://stackoverflow.com/questions/33573312/non-integer-frame-numbers-in-opencv
+            frame_number: float = self.camera.get(cv2.CAP_PROP_POS_FRAMES)
+            fps: float = self.camera.get(cv2.CAP_PROP_FPS)
             self.push_image_to_queue(frame, frame_number, fps)
         except (cv2.error, Exception):
             self.camera_state = CameraState.DISCONNECTED
             logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
 
-    def push_image_to_queue(self, frame, frame_number, fps) -> None:
-        # If there's backpressure, just yell. We really shouldn't have this unless the algorithm errors out
-        qsize = self.image_queue.qsize()
+    def push_image_to_queue(self, frame: cv2.Mat, frame_number: float, fps: float) -> None:
+        qsize: int = self.image_queue.qsize()
         if qsize > 1:
             # logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
             pass
         try:
             self.image_queue.put(frame)
+            # self.image_queue.put((frame, frame_number, fps)) 
         except (Exception):
             logger.exception("Failed to push to camera capture queue!")

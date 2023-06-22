@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 import os.path
 from pydantic import BaseModel, ValidationError, validate_model
@@ -65,7 +66,7 @@ class EyeTrackConfig(BaseModel):
         with open(file, "w+", encoding="utf8") as settings_file:
             json.dump(obj=self.dict(), fp=settings_file, indent=4)
 
-    def load(self, file: str = "tracker-config.json") -> None:
+    def load(self, file: str = "tracker-config.json") -> EyeTrackConfig:
         if not os.path.exists(file):
             logger.info("No config file found, using base settings")
             self.save()  # save just so we have something to fallback on
@@ -78,9 +79,11 @@ class EyeTrackConfig(BaseModel):
                 # previous values and only update values that have been "requested" to be changed
                 self.__dict__.update(self.parse_file(file))
                 self.validate(self)
+                self.save()  # if fields are missing or invalid save so we have a valid config
             except (ValidationError, Exception):
                 logger.error("Invalid Data found in config, replacing with default values")
-
+        return self
+ 
     async def update(self, request: Request) -> None:
         data = await request.json()
         try:

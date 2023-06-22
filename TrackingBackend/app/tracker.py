@@ -5,7 +5,7 @@ from .config import EyeTrackConfig
 from .eye_processor import EyeProcessor
 from multiprocessing import Queue
 from .types import EyeID, EyeData
-import numpy as np
+import cv2
 
 logger = get_logger()
 
@@ -17,10 +17,10 @@ class Tracker:
         self.osc_queue = osc_queue
         self.eye_config = (self.config.left_eye, self.config.right_eye)[bool(self.eye_id.value)]  # god i love python
         # Camera stuff
-        self.image_queue: Queue[np.ndarray] = Queue()
+        self.image_queue: Queue[cv2.Mat] = Queue()
         self.camera = Camera(self.eye_config, self.eye_id, self.image_queue)
         # EyeProcessor stuff
-        self.eye_processor = EyeProcessor(self.image_queue, self.config.algorithm, self.eye_id)
+        self.eye_processor = EyeProcessor(self.image_queue, self.osc_queue, self.config.algorithm, self.eye_id)
 
     def __del__(self):
         self.stop()

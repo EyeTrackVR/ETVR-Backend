@@ -3,7 +3,6 @@ from .config import EyeTrackConfig, OSCConfig
 from .logger import get_logger
 from .types import EyeData, EyeID
 import multiprocessing
-from multiprocessing import Queue
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.udp_client import SimpleUDPClient
 from pythonosc.osc_server import ThreadingOSCUDPServer
@@ -11,11 +10,12 @@ from pythonosc.osc_server import ThreadingOSCUDPServer
 logger = get_logger()
 
 
+# FIXME: refer to camera.py
 class VRChatOSC:
-    def __init__(self, config: EyeTrackConfig, msg_queue: Queue[EyeData]):
-        self.main_config = config
-        self.config = config.osc
-        self.msg_queue = msg_queue
+    def __init__(self, config: EyeTrackConfig, osc_queue: multiprocessing.Queue[EyeData]):
+        self.osc_queue: multiprocessing.Queue[EyeData] = osc_queue
+        self.main_config: EyeTrackConfig = config
+        self.config: OSCConfig = config.osc
         self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
         self.process: multiprocessing.Process = multiprocessing.Process()
 
@@ -36,7 +36,6 @@ class VRChatOSC:
         logger.info(f"OSC Sender serving on {self.config.address}:{self.config.sending_port}")
         # We might need to recreate the client because it may or may not be able to use new settings, will need to test
         # self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
-        # We need to recreate the thread because it is not possible to start a thread that has already been stopped
         self.process = multiprocessing.Process(target=self._run, name="OSC")
         self.process.start()
 
@@ -56,7 +55,7 @@ class VRChatOSC:
     def _run(self) -> None:
         while True:
             try:
-                eye_data: EyeData = self.msg_queue.get(block=True, timeout=0.1)
+                eye_data: EyeData = self.osc_queue.get(block=True, timeout=0.1)
             except Exception:
                 continue
 
@@ -82,7 +81,7 @@ import threading
 # FIXME: this should be completely rewritten
 class VRChatOSCReceiver:
     def __init__(self, config: EyeTrackConfig):
-        self.main_config = config
+        self.main_config: EyeTrackConfig = config
         self.config: OSCConfig = config.osc
         self.dispatcher: Dispatcher = Dispatcher()
         self.server: ThreadingOSCUDPServer = ThreadingOSCUDPServer((self.config.address, self.config.receiver_port), self.dispatcher)

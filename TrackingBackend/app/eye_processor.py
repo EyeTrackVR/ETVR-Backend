@@ -1,28 +1,31 @@
 from __future__ import annotations
 import multiprocessing
 import cv2
-from multiprocessing import Queue
 from .config import AlgorithmConfig
-from .types import EyeID
+from .types import EyeID, EyeData
 from .logger import get_logger
-import numpy as np
+import cv2
 
 logger = get_logger()
 
 
+# FIXME: refer to camera.py
 class EyeProcessor:
-    def __init__(self, image_queue: Queue[np.ndarray], config: AlgorithmConfig, eye_id: EyeID):
-        self.image_queue: Queue = image_queue
+    def __init__(self, 
+                image_queue: multiprocessing.Queue[cv2.Mat], 
+                osc_queue: multiprocessing.Queue[EyeData], 
+                config: AlgorithmConfig, eye_id: EyeID):
+        self.process: multiprocessing.Process = multiprocessing.Process()
+        self.image_queue: multiprocessing.Queue[cv2.Mat] = image_queue
+        self.osc_queue: multiprocessing.Queue[EyeData] = osc_queue
         self.config: AlgorithmConfig = config
         self.eye_id: EyeID = eye_id
-        # Threading stuff
-        self.process: multiprocessing.Process = multiprocessing.Process()
-        # setup all our algorithms, might be a good idea to use a map instead of multiple variables
         from app.algorithms import Blob, HSF, HSRAC, Ransac  # import here to avoid circular imports
-        self.blob = Blob(self)
-        self.hsf = HSF(self)
-        self.hsrac = HSRAC(self)
-        self.ransac = Ransac(self)
+        # setup all our algorithms, might be a good idea to use a array to store them
+        self.hsf: HSF = HSF(self)
+        self.blob: Blob = Blob(self)
+        self.hsrac: HSRAC = HSRAC(self)
+        self.ransac: Ransac = Ransac(self)
         
 
     def __del__(self):
