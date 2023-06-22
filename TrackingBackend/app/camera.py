@@ -22,7 +22,7 @@ logger = get_logger()
 # one solution would be to use a shared memory object, but that would require a lot of refactoring
 # another solution would be to use a manager object, but that would also require a decent amount of refactoring
 # the easiest solution would be to just use multiprocessing.Value and multiprocessing.Array objects
-# this problem also exists to some degree in osc.py and eye_tracker.py
+# this problem also exists to some degree in osc.py and eye_processor.py
 #----------------------------------------------------------------------------------------------------------------------------
 
 class Camera:
