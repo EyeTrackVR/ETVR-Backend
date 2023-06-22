@@ -1,9 +1,7 @@
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------
 # TODO: look at ETVR source and adapt blob stuff better
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------
 import cv2
-import numpy as np
-from app.types import EyeData
 from app.eye_processor import EyeProcessor
 
 
@@ -24,7 +22,7 @@ class Blob:
                 print("No contours found for image")
                 raise RuntimeError("No contours found for image")
         except (cv2.error, Exception):
-            pass
+            return
 
         for cnt in contours:
             (x, y, w, h) = cv2.boundingRect(cnt)
@@ -40,10 +38,9 @@ class Blob:
             cv2.drawContours(frame, [cnt], -1, (0, 255, 0), 3)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
-            cv2.imshow("Blob", frame)
-            cv2.waitKey(1)
 
-            # print(f"Blob found at {cx}, {cy}")
+            print(f"Blob found at {cx}, {cy}")
+            cv2.imshow("Blob", frame)
             return cx, cy
 
         return 0, 0, larger_threshold

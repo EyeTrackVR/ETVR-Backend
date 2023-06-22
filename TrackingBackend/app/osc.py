@@ -10,7 +10,6 @@ from pythonosc.osc_server import ThreadingOSCUDPServer
 logger = get_logger()
 
 
-# FIXME: refer to camera.py
 class VRChatOSC:
     def __init__(self, config: EyeTrackConfig, osc_queue: multiprocessing.Queue[EyeData]):
         self.osc_queue: multiprocessing.Queue[EyeData] = osc_queue
@@ -78,7 +77,7 @@ class VRChatOSC:
 
 
 import threading
-# FIXME: this should be completely rewritten
+# TODO: refactor this
 class VRChatOSCReceiver:
     def __init__(self, config: EyeTrackConfig):
         self.main_config: EyeTrackConfig = config

@@ -10,19 +10,20 @@ import os
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "timeout;1000"
 logger = get_logger()
 
-# FIXME:
+# TODO:
 #----------------------------------------------------------------------------------------------------------------------------
 # currently the only problem here is that we arent sharing memory between processes
-# when starting the camera process, it creates a copy off all the variables in the current process, including class members
+# when starting the camera process, it creates a local copy of all the variables in the current process, including class members
 # this means that when we change the config in the main process, the camera process doesn't see the changes
-# and if we change camera_state in the camera process, the main process doesn't see the changes either
-# luckily most of the important data (osc stuff, camera data, eye position, etc...) can be shared using a multiprocessing.Queue, 
+# and if we change camera_state in the camera process, the main process doesn't see the changes either.
+# luckily most of the important data (osc stuff, camera data, eye position, etc...) can be shared using a multiprocessing.Queue,
 # so we don't need to worry about that because the multiprocessing.Queue object is shared between processes
-# however, we do need to worry about the config and class variables as they are not using a Queue and are not shared
-# one solution would be to use a shared memory object, but that would require a lot of refactoring
-# another solution would be to use a manager object, but that would also require a decent amount of refactoring
-# the easiest solution would be to just use multiprocessing.Value and multiprocessing.Array objects
-# this problem also exists to some degree in osc.py and eye_processor.py
+# however, we might need worry about the config and class variables as they are not using a Queue and are not shared.
+# one solution would be to use a shared memory object, but that would require a lot of refactoring.
+# another solution would be to use a manager object, but that would also require a decent amount of refactoring.
+# the easiest solution would be to just use multiprocessing.Value and multiprocessing.Array objects.
+# this problem also exists to some degree in osc.py and eye_processor.py.
+# the current hacky work around is to restart the process when the config is changed. this is not ideal but it works for now
 #----------------------------------------------------------------------------------------------------------------------------
 
 class Camera:
@@ -133,7 +134,7 @@ class Camera:
     def push_image_to_queue(self, frame: cv2.Mat, frame_number: float, fps: float) -> None:
         qsize: int = self.image_queue.qsize()
         if qsize > 1:
-            # logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
+            logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
             pass
         try:
             self.image_queue.put(frame)

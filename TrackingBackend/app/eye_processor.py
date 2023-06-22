@@ -11,7 +11,6 @@ import cv2
 logger = get_logger()
 
 
-# FIXME: refer to camera.py
 class EyeProcessor:
     def __init__(self, 
                 image_queue: multiprocessing.Queue[cv2.Mat], 
@@ -73,3 +72,5 @@ class EyeProcessor:
                 continue
 
             self.blob.run(current_frame)
+
+            cv2.waitKey(1)
