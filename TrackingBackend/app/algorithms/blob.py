@@ -31,13 +31,12 @@ class Blob:
             # TODO: This should be scaled based on camera resolution.
             # if not self.ep.config.blob.minsize <= h <= self.ep.config.blob.maxsize or not self.ep.config.blob.minsize <= w <= self.ep.config.blob.maxsize:
             #     break
-            
+
             cx = x + int(w / 2)
             cy = y + int(h / 2)
 
             cv2.drawContours(frame, [cnt], -1, (0, 255, 0), 3)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-
 
             print(f"Blob found at {cx}, {cy}")
             cv2.imshow("Blob", frame)

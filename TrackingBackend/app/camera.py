@@ -12,7 +12,7 @@ os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "timeout;1000"
 logger = get_logger()
 
 # TODO:
-#----------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------
 # currently the only problem here is that we arent sharing memory between processes
 # when starting the camera process, it creates a local copy of all the variables in the current process
 # that are not explicitly synced.
@@ -22,7 +22,7 @@ logger = get_logger()
 # the easiest solution would be to just use multiprocessing.Value and multiprocessing.Array objects.
 # this problem also exists in all the other processes.
 # the current hacky work around is to restart the process when the config is changed. this is not ideal but it works for now
-#----------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------
 
 
 class Camera:
@@ -48,7 +48,7 @@ class Camera:
 
     def get_state(self) -> CameraState:
         return CameraState(self.state.get_obj().value)
-    
+
     def set_state(self, state: CameraState) -> None:
         # since we cant sync enums directly, so we sync the value of the enum instead
         self.state.get_obj().value = state.value
@@ -143,6 +143,6 @@ class Camera:
             pass
         try:
             self.image_queue.put(frame)
-            # self.image_queue.put((frame, frame_number, fps)) 
+            # self.image_queue.put((frame, frame_number, fps))
         except (Exception):
             logger.exception("Failed to push to camera capture queue!")

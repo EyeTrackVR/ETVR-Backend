@@ -7,6 +7,7 @@ from fastapi import Request
 
 logger = get_logger()
 
+
 class BlobConfig(BaseModel):
     threshold: int = 65
     minsize: int = 10
@@ -83,7 +84,7 @@ class EyeTrackConfig(BaseModel):
             except (ValidationError, Exception):
                 logger.error("Invalid Data found in config, replacing with default values")
         return self
- 
+
     async def update(self, request: Request) -> None:
         data = await request.json()
         try:

@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse
 
 OFLINE_IMAGE = cv2.imread("assets/CameraOffline.png")
 
+
 class Visualizer:
     def __init__(self, image_queue: Queue, remove_from_queue: bool = False):
         self.image_queue: Queue = image_queue
@@ -26,7 +27,6 @@ class Visualizer:
             yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
             # sleep so we dont block the event loop
             # await asyncio.sleep(0.01)
-
 
     async def video_feed(self):
         return StreamingResponse(self.gen_frame(), media_type="multipart/x-mixed-replace; boundary=frame")

@@ -2,10 +2,12 @@ from __future__ import annotations
 from .config import EyeTrackConfig, OSCConfig
 from .logger import get_logger
 from .types import EyeData, EyeID
+import threading
 import multiprocessing
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.udp_client import SimpleUDPClient
 from pythonosc.osc_server import ThreadingOSCUDPServer
+
 
 logger = get_logger()
 
@@ -65,7 +67,7 @@ class VRChatOSC:
                 self.client.send_message(self.config.osc_endpoints.left_eyelid_squeeze, eye_data.blink)
                 self.client.send_message(self.config.osc_endpoints.right_eyelid_squeeze, eye_data.blink)
                 return
-            
+
             if eye_data.eye_id == EyeID.LEFT:
                 self.client.send_message(self.config.osc_endpoints.eyes_y, eye_data.y)
                 self.client.send_message(self.config.osc_endpoints.left_eye_x, eye_data.x)
@@ -76,7 +78,6 @@ class VRChatOSC:
                 self.client.send_message(self.config.osc_endpoints.right_eyelid_squeeze, eye_data.blink)
 
 
-import threading
 # TODO: refactor this
 class VRChatOSCReceiver:
     def __init__(self, config: EyeTrackConfig):

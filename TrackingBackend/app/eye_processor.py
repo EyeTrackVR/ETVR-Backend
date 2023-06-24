@@ -9,23 +9,26 @@ logger = get_logger()
 
 
 class EyeProcessor:
-    def __init__(self, 
-                image_queue: multiprocessing.Queue[cv2.Mat], 
-                osc_queue: multiprocessing.Queue[EyeData], 
-                config: AlgorithmConfig, eye_id: EyeID):
+    def __init__(
+        self,
+        image_queue: multiprocessing.Queue[cv2.Mat],
+        osc_queue: multiprocessing.Queue[EyeData],
+        config: AlgorithmConfig,
+        eye_id: EyeID,
+    ):
         self.process: multiprocessing.Process = multiprocessing.Process()
         self.image_queue: multiprocessing.Queue[cv2.Mat] = image_queue
         self.osc_queue: multiprocessing.Queue[EyeData] = osc_queue
         self.config: AlgorithmConfig = config
         self.eye_id: EyeID = eye_id
         from app.algorithms import Blob, HSF, HSRAC, Ransac  # import here to avoid circular imports
+
         # all the algorithms are copied into the new process, instead of being shared, isnt a big deal
         # plus since they are coppied it is faster to access them since we dont need to serialize them
         self.hsf: HSF = HSF(self)
         self.blob: Blob = Blob(self)
         self.hsrac: HSRAC = HSRAC(self)
         self.ransac: Ransac = Ransac(self)
-        
 
     def __del__(self):
         if self.process.is_alive():
@@ -33,7 +36,7 @@ class EyeProcessor:
 
     def is_alive(self) -> bool:
         return self.process.is_alive()
-    
+
     def start(self) -> None:
         # don't start a process if one already exists
         if self.process.is_alive():
