@@ -1,12 +1,9 @@
 from __future__ import annotations
-from collections.abc import Callable, Iterable, Mapping
 import multiprocessing
-from typing import Any
 import cv2
 from .config import AlgorithmConfig
 from .types import EyeID, EyeData
 from .logger import get_logger
-import cv2
 
 logger = get_logger()
 
@@ -46,6 +43,7 @@ class EyeProcessor:
         logger.info(f"Starting `EyeProcessor {str(self.eye_id.name).capitalize()}`")
         # We need to recreate the process because it is not possible to start a process that has already been stopped
         self.process = multiprocessing.Process(target=self._run, name=f"EyeProcessor {str(self.eye_id.name).capitalize()}")
+        self.process.daemon = True
         self.process.start()
 
     def stop(self) -> None:
