@@ -3,6 +3,7 @@ from .logger import get_logger
 from .config import CameraConfig
 from .types import CameraState, EyeID
 import multiprocessing
+import ctypes
 import cv2
 import os
 
@@ -13,30 +14,29 @@ logger = get_logger()
 # TODO:
 #----------------------------------------------------------------------------------------------------------------------------
 # currently the only problem here is that we arent sharing memory between processes
-# when starting the camera process, it creates a local copy of all the variables in the current process, including class members
-# this means that when we change the config in the main process, the camera process doesn't see the changes
-# and if we change camera_state in the camera process, the main process doesn't see the changes either.
-# luckily most of the important data (osc stuff, camera data, eye position, etc...) can be shared using a multiprocessing.Queue,
-# so we don't need to worry about that because the multiprocessing.Queue object is shared between processes
-# however, we might need worry about the config and class variables as they are not using a Queue and are not shared.
+# when starting the camera process, it creates a local copy of all the variables in the current process
+# that are not explicitly synced.
+# this means that when we change the config in the main process, the camera process doesn't see the changes.
 # one solution would be to use a shared memory object, but that would require a lot of refactoring.
 # another solution would be to use a manager object, but that would also require a decent amount of refactoring.
 # the easiest solution would be to just use multiprocessing.Value and multiprocessing.Array objects.
-# this problem also exists to some degree in osc.py and eye_processor.py.
+# this problem also exists in all the other processes.
 # the current hacky work around is to restart the process when the config is changed. this is not ideal but it works for now
 #----------------------------------------------------------------------------------------------------------------------------
 
+
 class Camera:
     def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: multiprocessing.Queue[cv2.Mat]):
+        # Synced variables
+        self.image_queue: multiprocessing.Queue[cv2.Mat] = image_queue
+        self.state = multiprocessing.Value(ctypes.c_int, CameraState.DISCONNECTED.value)
+        # Non-synced variables
         self.eye_id: EyeID = eye_id
         self.config: CameraConfig = config
-        self.camera_state = CameraState.DISCONNECTED
         self.current_capture_source: str = self.config.capture_source
         self.process: multiprocessing.Process = multiprocessing.Process()
-        # we are using None as a placeholder for the camera object because we can't create it until we are in the process
-        # otherwise we make multiprocessing sad :(
+        # cv2.VideoCapture is not able to be pickled, so we need to create it in the process
         self.camera: cv2.VideoCapture = None
-        self.image_queue: multiprocessing.Queue[cv2.Mat] = image_queue
         logger.debug("Initialized Camera object")
 
     def __del__(self):
@@ -46,8 +46,12 @@ class Camera:
     def is_alive(self) -> bool:
         return self.process.is_alive()
 
-    def get_status(self) -> CameraState:
-        return self.camera_state
+    def get_state(self) -> CameraState:
+        return CameraState(self.state.get_obj().value)
+    
+    def set_state(self, state: CameraState) -> None:
+        # since we cant sync enums directly, so we sync the value of the enum instead
+        self.state.get_obj().value = state.value
 
     def start(self) -> None:
         # don't start a process if one already exists
@@ -56,8 +60,9 @@ class Camera:
             return
 
         logger.info(f"Starting `Capture {str(self.eye_id.name).capitalize()}`")
-        # We need to recreate the process because it is not possible to start a process that has already been stopped
+        # We need to recreate the process every time we start so we can update non-synced variables
         self.process = multiprocessing.Process(target=self._run, name=f"Capture {str(self.eye_id.name).capitalize()}")
+        self.process.daemon = True
         self.process.start()
 
     def stop(self) -> None:
@@ -80,15 +85,15 @@ class Camera:
             # otherwise we can deadlock ourselves.
             if self.config.capture_source != "":
                 # if the camera is disconnected or the capture source has changed, reconnect
-                if self.camera_state == CameraState.DISCONNECTED or self.current_capture_source != self.config.capture_source:
+                if self.get_state() == CameraState.DISCONNECTED or self.current_capture_source != self.config.capture_source:
                     self.connect_camera()
                 else:
                     self.get_camera_image()
             else:  # no capture source is defined yet, so we wait :3
-                self.camera_state = CameraState.DISCONNECTED
+                self.set_state(CameraState.DISCONNECTED)
 
     def connect_camera(self) -> None:
-        self.camera_state = CameraState.CONNECTING
+        self.set_state(CameraState.CONNECTING)
         self.current_capture_source = self.config.capture_source
         # https://github.com/opencv/opencv/issues/23207
         # https://github.com/opencv/opencv-python/issues/788
@@ -100,12 +105,12 @@ class Camera:
             # detect when a camera is disconnected and reconnect to it.
             self.camera.open(self.current_capture_source, cv2.CAP_FFMPEG)
             if self.camera.isOpened():
-                self.camera_state = CameraState.CONNECTED
+                self.set_state(CameraState.CONNECTED)
                 logger.info("Camera connected!")
             else:
                 raise cv2.error
         except (cv2.error, Exception):
-            self.camera_state = CameraState.DISCONNECTED
+            self.set_state(CameraState.DISCONNECTED)
             logger.info(f"Capture source {self.current_capture_source} not found, retrying")
 
     def get_camera_image(self) -> None:
@@ -121,14 +126,14 @@ class Camera:
             if not ret:
                 self.camera.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 logger.warning("Capture source problem, assuming camera disconnected, waiting for reconnect.")
-                self.camera_state = CameraState.DISCONNECTED
+                self.set_state(CameraState.DISCONNECTED)
                 return
             # https://stackoverflow.com/questions/33573312/non-integer-frame-numbers-in-opencv
             frame_number: float = self.camera.get(cv2.CAP_PROP_POS_FRAMES)
             fps: float = self.camera.get(cv2.CAP_PROP_FPS)
             self.push_image_to_queue(frame, frame_number, fps)
         except (cv2.error, Exception):
-            self.camera_state = CameraState.DISCONNECTED
+            self.set_state(CameraState.DISCONNECTED)
             logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
 
     def push_image_to_queue(self, frame: cv2.Mat, frame_number: float, fps: float) -> None:
