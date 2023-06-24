@@ -3,7 +3,6 @@ import logging
 import inspect
 import sys
 from .types import LogLevel
-from enum import Enum
 
 
 # TODO: make this work across processes

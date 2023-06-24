@@ -1,7 +1,7 @@
-from .logger import get_logger, setup_logger
-from .config import EyeTrackConfig, CameraConfig, OSCConfig
+from .tracker import Tracker
 from .camera import Camera, CameraState
-from .tracker import Tracker, EyeID
-from .osc import VRChatOSC, VRChatOSCReceiver
-from .types import EyeData, EyeID, LogLevel
 from .eye_processor import EyeProcessor
+from .types import EyeData, EyeID, LogLevel
+from .logger import get_logger, setup_logger
+from .osc import VRChatOSC, VRChatOSCReceiver
+from .config import EyeTrackConfig, CameraConfig, OSCConfig
