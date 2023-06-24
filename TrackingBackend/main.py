@@ -1,12 +1,11 @@
-from app.logger import setup_logger
-from fastapi import FastAPI
-from app.etvr import ETVR
 import os
-
 # change working directory to the root of the project
 # i should make this a package so we can use relative imports
 if os.pardir != os.path.dirname(__file__):
     os.chdir(os.path.dirname(__file__))
+from app.logger import setup_logger
+from fastapi import FastAPI
+from app.etvr import ETVR
 
 setup_logger()
 
