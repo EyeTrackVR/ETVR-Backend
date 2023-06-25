@@ -16,15 +16,14 @@ class EyeProcessor:
         config: AlgorithmConfig,
         eye_id: EyeID,
     ):
+        # Synced variables
         self.process: multiprocessing.Process = multiprocessing.Process()
         self.image_queue: multiprocessing.Queue[cv2.Mat] = image_queue
         self.osc_queue: multiprocessing.Queue[EyeData] = osc_queue
+        # Unsynced variables
         self.config: AlgorithmConfig = config
         self.eye_id: EyeID = eye_id
-        from app.algorithms import Blob, HSF, HSRAC, Ransac  # import here to avoid circular imports
-
-        # all the algorithms are copied into the new process, instead of being shared, isnt a big deal
-        # plus since they are coppied it is faster to access them since we dont need to serialize them
+        from app.algorithms import Blob, HSF, HSRAC, Ransac
         self.hsf: HSF = HSF(self)
         self.blob: Blob = Blob(self)
         self.hsrac: HSRAC = HSRAC(self)

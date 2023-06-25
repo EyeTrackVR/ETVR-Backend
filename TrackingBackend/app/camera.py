@@ -30,7 +30,7 @@ class Camera:
         # Synced variables
         self.image_queue: multiprocessing.Queue[cv2.Mat] = image_queue
         self.state = multiprocessing.Value(ctypes.c_int, CameraState.DISCONNECTED.value)
-        # Non-synced variables
+        # Unsynced variables
         self.eye_id: EyeID = eye_id
         self.config: CameraConfig = config
         self.current_capture_source: str = self.config.capture_source
