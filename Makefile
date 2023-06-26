@@ -2,10 +2,10 @@
 .DEFAULT_GOAL := run
 
 stream1:
-	ffmpeg -stream_loop -1 -i TrackingBackend/assets/ETVR_SAMPLE.mp4 -listen 1 -f mp4 -movflags frag_keyframe+empty_moov http://localhost:8080
+	ffmpeg -stream_loop "-1" -i TrackingBackend/assets/ETVR_SAMPLE.mp4 -attempt_recovery 1 -http_persistent 1 -http_seekable 0 -listen 1 -f mp4 -movflags frag_keyframe+empty_moov http://localhost:8080
 
 stream2:
-	ffmpeg -stream_loop -1 -i TrackingBackend/assets/ETVR_SAMPLE.mp4 -listen 1 -f mp4 -movflags frag_keyframe+empty_moov http://localhost:8081
+	ffmpeg -stream_loop "-1" -i TrackingBackend/assets/ETVR_SAMPLE.mp4 -attempt_recovery 1 -http_persistent 1 -http_seekable 0 -listen 1 -f mp4 -movflags frag_keyframe+empty_moov http://localhost:8081
 
 install:
 	poetry install
