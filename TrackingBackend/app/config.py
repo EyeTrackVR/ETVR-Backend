@@ -80,9 +80,10 @@ class EyeTrackConfig(BaseModel):
                 # previous values and only update values that have been "requested" to be changed
                 self.__dict__.update(self.parse_file(file))
                 self.validate(self)
-                self.save()  # if fields are missing or invalid save so we have a valid config
             except (ValidationError, Exception):
-                logger.error("Invalid Data found in config, replacing with default values")
+                logger.exception("Invalid Data found in config, replacing with default values")
+                # if fields are missing or invalid save so we have a valid config
+                self.save()
         return self
 
     async def update(self, request: Request) -> None:
