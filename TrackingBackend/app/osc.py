@@ -38,6 +38,7 @@ class VRChatOSC:
         # We might need to recreate the client because it may or may not be able to use new settings, will need to test
         # self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
         self.process = multiprocessing.Process(target=self._run, name="OSC")
+        self.process.daemon = True
         self.process.start()
 
     def stop(self) -> None:
