@@ -20,8 +20,9 @@ class Tracker:
         # --------------------------------------------------------
         self.eye_id = eye_id
         self.config = config
-        self.camera = Camera(self.eye_config, self.eye_id, self.image_queue)
         self.eye_config = (self.config.left_eye, self.config.right_eye)[bool(self.eye_id.value)]  # god i love python
+        # processes
+        self.camera = Camera(self.eye_config, self.eye_id, self.image_queue)
         self.eye_processor = EyeProcessor(self.image_queue, self.osc_queue, self.config.algorithm, self.eye_id)
 
     def __del__(self):
