@@ -3,13 +3,14 @@
 # -----------------------------------------------------
 import cv2
 from app.eye_processor import EyeProcessor
+from app.types import EyeID, EyeData
 
 
 class Blob:
     def __init__(self, eye_processor: EyeProcessor):
         self.ep = eye_processor
 
-    def run(self, frame):
+    def run(self, frame, eye_id: EyeID) -> EyeData:
         _, larger_threshold = cv2.threshold(frame, (self.ep.config.blob.threshold + 12), 255, cv2.THRESH_BINARY)
 
         try:
@@ -22,7 +23,7 @@ class Blob:
                 print("No contours found for image")
                 raise RuntimeError("No contours found for image")
         except (cv2.error, Exception):
-            return
+            return EyeData(0, 0, 0, eye_id)
 
         for cnt in contours:
             (x, y, w, h) = cv2.boundingRect(cnt)
@@ -40,6 +41,6 @@ class Blob:
 
             print(f"Blob found at {cx}, {cy}")
             cv2.imshow("Blob", frame)
-            return cx, cy
+            return EyeData(cx, cy, 0, eye_id)
 
-        return 0, 0, larger_threshold
+        return EyeData(0, 0, 0, eye_id)

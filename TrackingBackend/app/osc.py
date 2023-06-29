@@ -3,7 +3,8 @@ from .config import EyeTrackConfig, OSCConfig
 from .logger import get_logger
 from .types import EyeData, EyeID
 import threading
-import multiprocessing
+from multiprocessing import Process
+from queue import Queue
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.udp_client import SimpleUDPClient
 from pythonosc.osc_server import ThreadingOSCUDPServer
@@ -13,12 +14,12 @@ logger = get_logger()
 
 
 class VRChatOSC:
-    def __init__(self, config: EyeTrackConfig, osc_queue: multiprocessing.Queue[EyeData]):
-        self.osc_queue: multiprocessing.Queue[EyeData] = osc_queue
+    def __init__(self, config: EyeTrackConfig, osc_queue: Queue[EyeData]):
+        self.osc_queue: Queue[EyeData] = osc_queue
         self.main_config: EyeTrackConfig = config
         self.config: OSCConfig = config.osc
         self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
-        self.process: multiprocessing.Process = multiprocessing.Process()
+        self.process: Process = Process()
 
     def __del__(self):
         if self.process.is_alive():
@@ -37,7 +38,7 @@ class VRChatOSC:
         logger.info(f"OSC Sender serving on {self.config.address}:{self.config.sending_port}")
         # We might need to recreate the client because it may or may not be able to use new settings, will need to test
         # self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
-        self.process = multiprocessing.Process(target=self._run, name="OSC")
+        self.process = Process(target=self._run, name="OSC")
         self.process.daemon = True
         self.process.start()
 

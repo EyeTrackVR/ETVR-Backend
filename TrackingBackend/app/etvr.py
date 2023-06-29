@@ -1,8 +1,9 @@
-import multiprocessing
 from .config import EyeTrackConfig
 from .logger import get_logger
 from .tracker import Tracker
 from .osc import VRChatOSCReceiver, VRChatOSC
+from multiprocessing import Manager
+from queue import Queue
 from fastapi import APIRouter
 from .types import EyeID, EyeData
 
@@ -14,8 +15,10 @@ class ETVR:
     def __init__(self):
         self.config: EyeTrackConfig = EyeTrackConfig()
         self.config.load()
+        # IPC stuff
+        self.manager = Manager()
+        self.osc_queue: Queue[EyeData] = self.manager.Queue()
         # OSC stuff
-        self.osc_queue: multiprocessing.Queue[EyeData] = multiprocessing.Queue()
         self.osc_sender: VRChatOSC = VRChatOSC(self.config, self.osc_queue)
         self.osc_receiver: VRChatOSCReceiver = VRChatOSCReceiver(self.config)
         # Trackers

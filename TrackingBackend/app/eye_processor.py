@@ -1,9 +1,10 @@
 from __future__ import annotations
-import multiprocessing
+from multiprocessing import Process
 import cv2
 from .config import AlgorithmConfig
 from .types import EyeID, EyeData
 from .logger import get_logger
+from queue import Queue
 
 logger = get_logger()
 
@@ -11,19 +12,20 @@ logger = get_logger()
 class EyeProcessor:
     def __init__(
         self,
-        image_queue: multiprocessing.Queue[cv2.Mat],
-        osc_queue: multiprocessing.Queue[EyeData],
+        image_queue: Queue[cv2.Mat],
+        osc_queue: Queue[EyeData],
         config: AlgorithmConfig,
         eye_id: EyeID,
     ):
         # Synced variables
-        self.process: multiprocessing.Process = multiprocessing.Process()
-        self.image_queue: multiprocessing.Queue[cv2.Mat] = image_queue
-        self.osc_queue: multiprocessing.Queue[EyeData] = osc_queue
+        self.process: Process = Process()
+        self.image_queue: Queue[cv2.Mat] = image_queue
+        self.osc_queue = osc_queue
         # Unsynced variables
         self.config: AlgorithmConfig = config
         self.eye_id: EyeID = eye_id
         from app.algorithms import Blob, HSF, HSRAC, Ransac
+
         self.hsf: HSF = HSF(self)
         self.blob: Blob = Blob(self)
         self.hsrac: HSRAC = HSRAC(self)
@@ -44,7 +46,7 @@ class EyeProcessor:
 
         logger.info(f"Starting `EyeProcessor {str(self.eye_id.name).capitalize()}`")
         # We need to recreate the process because it is not possible to start a process that has already been stopped
-        self.process = multiprocessing.Process(target=self._run, name=f"EyeProcessor {str(self.eye_id.name).capitalize()}")
+        self.process = Process(target=self._run, name=f"EyeProcessor {str(self.eye_id.name).capitalize()}")
         self.process.daemon = True
         self.process.start()
 
@@ -62,6 +64,11 @@ class EyeProcessor:
         self.start()
 
     def _run(self) -> None:
+        try:
+            while True:
+                self.image_queue.get_nowait()
+        except Exception:
+            pass
         while True:
             try:
                 current_frame = self.image_queue.get()
@@ -71,6 +78,7 @@ class EyeProcessor:
             except Exception:
                 continue
 
-            self.blob.run(current_frame)
+            result = self.blob.run(current_frame, self.eye_id)
+            self.osc_queue.put(result)
 
             cv2.waitKey(1)

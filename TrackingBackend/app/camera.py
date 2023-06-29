@@ -2,7 +2,8 @@ from __future__ import annotations
 from .logger import get_logger
 from .config import CameraConfig
 from .types import CameraState, EyeID
-import multiprocessing
+from multiprocessing import Process, Value
+from queue import Queue
 import ctypes
 import cv2
 import os
@@ -26,15 +27,15 @@ logger = get_logger()
 
 
 class Camera:
-    def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: multiprocessing.Queue[cv2.Mat]):
+    def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: Queue[cv2.Mat]):
         # Synced variables
-        self.image_queue: multiprocessing.Queue[cv2.Mat] = image_queue
-        self.state = multiprocessing.Value(ctypes.c_int, CameraState.DISCONNECTED.value)
+        self.image_queue: Queue[cv2.Mat] = image_queue
+        self.state = Value(ctypes.c_int, CameraState.DISCONNECTED.value)
         # Unsynced variables
         self.eye_id: EyeID = eye_id
         self.config: CameraConfig = config
         self.current_capture_source: str = self.config.capture_source
-        self.process: multiprocessing.Process = multiprocessing.Process()
+        self.process: Process = Process()
         # cv2.VideoCapture is not able to be pickled, so we need to create it in the process
         self.camera: cv2.VideoCapture = None
         logger.debug("Initialized Camera object")
@@ -61,7 +62,7 @@ class Camera:
 
         logger.info(f"Starting `Capture {str(self.eye_id.name).capitalize()}`")
         # We need to recreate the process every time we start so we can update non-synced variables
-        self.process = multiprocessing.Process(target=self._run, name=f"Capture {str(self.eye_id.name).capitalize()}")
+        self.process = Process(target=self._run, name=f"Capture {str(self.eye_id.name).capitalize()}")
         self.process.daemon = True
         self.process.start()
 
@@ -79,7 +80,8 @@ class Camera:
         self.start()
 
     def _run(self) -> None:
-        self.camera = cv2.VideoCapture()
+        if self.camera is None:
+            self.camera = cv2.VideoCapture()
         while True:
             # If things aren't open, retry until they are. Don't let read requests come in any earlier than this,
             # otherwise we can deadlock ourselves.
