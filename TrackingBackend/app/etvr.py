@@ -22,8 +22,8 @@ class ETVR:
         self.osc_sender: VRChatOSC = VRChatOSC(self.config, self.osc_queue)
         self.osc_receiver: VRChatOSCReceiver = VRChatOSCReceiver(self.config)
         # Trackers
-        self.tracker_left: Tracker = Tracker(EyeID.LEFT, self.config, self.osc_queue)
-        self.tracker_right: Tracker = Tracker(EyeID.RIGHT, self.config, self.osc_queue)
+        self.tracker_left: Tracker = Tracker(EyeID.LEFT, self.config, self.osc_queue, self.manager)
+        self.tracker_right: Tracker = Tracker(EyeID.RIGHT, self.config, self.osc_queue, self.manager)
         # Object for fastapi routes
         self.router: APIRouter = APIRouter()
 

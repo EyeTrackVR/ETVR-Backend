@@ -1,16 +1,17 @@
 from __future__ import annotations
-from .logger import get_logger
-from .config import CameraConfig
+from app.utils import WorkerProcess
 from .types import CameraState, EyeID
-from multiprocessing import Process, Value
+from multiprocessing import Value
+from .config import CameraConfig
 from queue import Queue
 import ctypes
 import cv2
 import os
 
+
 # may or may not be needed, but it's here just in case
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "timeout;1000"
-logger = get_logger()
+
 
 # TODO:
 # ----------------------------------------------------------------------------------------------------------------------------
@@ -26,8 +27,9 @@ logger = get_logger()
 # ----------------------------------------------------------------------------------------------------------------------------
 
 
-class Camera:
+class Camera(WorkerProcess):
     def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: Queue[cv2.Mat]):
+        super().__init__(name=f"Capture {str(eye_id.name).capitalize()}")
         # Synced variables
         self.image_queue: Queue[cv2.Mat] = image_queue
         self.state = Value(ctypes.c_int, CameraState.DISCONNECTED.value)
@@ -35,17 +37,10 @@ class Camera:
         self.eye_id: EyeID = eye_id
         self.config: CameraConfig = config
         self.current_capture_source: str = self.config.capture_source
-        self.process: Process = Process()
-        # cv2.VideoCapture is not able to be pickled, so we need to create it in the process
         self.camera: cv2.VideoCapture = None
-        logger.debug("Initialized Camera object")
 
     def __del__(self):
-        if self.process.is_alive():
-            self.stop()
-
-    def is_alive(self) -> bool:
-        return self.process.is_alive()
+        super().__del__()
 
     def get_state(self) -> CameraState:
         return CameraState(self.state.get_obj().value)
@@ -54,34 +49,11 @@ class Camera:
         # since we cant sync enums directly, so we sync the value of the enum instead
         self.state.get_obj().value = state.value
 
-    def start(self) -> None:
-        # don't start a process if one already exists
-        if self.process.is_alive():
-            logger.debug(f"Process `{self.process.name}` requested to start but is already running")
-            return
-
-        logger.info(f"Starting `Capture {str(self.eye_id.name).capitalize()}`")
-        # We need to recreate the process every time we start so we can update non-synced variables
-        self.process = Process(target=self._run, name=f"Capture {str(self.eye_id.name).capitalize()}")
-        self.process.daemon = True
-        self.process.start()
-
-    def stop(self) -> None:
-        # can't kill a non-existent process
-        if not self.process.is_alive():
-            logger.debug("Request to kill dead process thread was made!")
-            return
-
-        logger.info(f"Stopping process `{self.process.name}`")
-        self.process.kill()
-
-    def restart(self) -> None:
-        self.stop()
-        self.start()
-
-    def _run(self) -> None:
+    def pre_run(self) -> None:
         if self.camera is None:
             self.camera = cv2.VideoCapture()
+
+    def run(self) -> None:
         while True:
             # If things aren't open, retry until they are. Don't let read requests come in any earlier than this,
             # otherwise we can deadlock ourselves.
@@ -108,12 +80,12 @@ class Camera:
             self.camera.open(self.current_capture_source, cv2.CAP_FFMPEG)
             if self.camera.isOpened():
                 self.set_state(CameraState.CONNECTED)
-                logger.info("Camera connected!")
+                self.logger.info("Camera connected!")
             else:
                 raise cv2.error
         except (cv2.error, Exception):
             self.set_state(CameraState.DISCONNECTED)
-            logger.info(f"Capture source {self.current_capture_source} not found, retrying")
+            self.logger.info(f"Capture source {self.current_capture_source} not found, retrying")
 
     def get_camera_image(self) -> None:
         # Be warned this is fucked beyond comprehension, if the capture source is dropped `self.camera.read()` wont
@@ -127,7 +99,7 @@ class Camera:
             ret, frame = self.camera.read()
             if not ret:
                 self.camera.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                logger.warning("Capture source problem, assuming camera disconnected, waiting for reconnect.")
+                self.logger.warning("Capture source problem, assuming camera disconnected, waiting for reconnect.")
                 self.set_state(CameraState.DISCONNECTED)
                 return
             # https://stackoverflow.com/questions/33573312/non-integer-frame-numbers-in-opencv
@@ -136,15 +108,15 @@ class Camera:
             self.push_image_to_queue(frame, frame_number, fps)
         except (cv2.error, Exception):
             self.set_state(CameraState.DISCONNECTED)
-            logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
+            self.logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
 
     def push_image_to_queue(self, frame: cv2.Mat, frame_number: float, fps: float) -> None:
         qsize: int = self.image_queue.qsize()
         if qsize > 1:
-            logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
+            self.logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
             pass
         try:
             self.image_queue.put(frame)
             # self.image_queue.put((frame, frame_number, fps))
         except (Exception):
-            logger.exception("Failed to push to camera capture queue!")
+            self.logger.exception("Failed to push to camera capture queue!")

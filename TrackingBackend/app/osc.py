@@ -1,10 +1,10 @@
 from __future__ import annotations
 from .config import EyeTrackConfig, OSCConfig
-from .logger import get_logger
+from app.utils import WorkerProcess
 from .types import EyeData, EyeID
-import threading
-from multiprocessing import Process
+from .logger import get_logger
 from queue import Queue
+import threading
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.udp_client import SimpleUDPClient
 from pythonosc.osc_server import ThreadingOSCUDPServer
@@ -13,49 +13,20 @@ from pythonosc.osc_server import ThreadingOSCUDPServer
 logger = get_logger()
 
 
-class VRChatOSC:
+class VRChatOSC(WorkerProcess):
     def __init__(self, config: EyeTrackConfig, osc_queue: Queue[EyeData]):
+        super().__init__(name="VRChat OSC")
+        # Synced variables
         self.osc_queue: Queue[EyeData] = osc_queue
+        # Unsynced variables
         self.main_config: EyeTrackConfig = config
         self.config: OSCConfig = config.osc
         self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
-        self.process: Process = Process()
 
     def __del__(self):
-        if self.process.is_alive():
-            self.stop()
+        super().__del__()
 
-    def is_alive(self) -> bool:
-        return self.process.is_alive()
-
-    def start(self) -> None:
-        # don't start a thread if one already exists
-        if self.process.is_alive():
-            logger.debug(f"Process `{self.process.name}` requested to start but is already running")
-            return
-
-        logger.info("Starting OSC process")
-        logger.info(f"OSC Sender serving on {self.config.address}:{self.config.sending_port}")
-        # We might need to recreate the client because it may or may not be able to use new settings, will need to test
-        # self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
-        self.process = Process(target=self._run, name="OSC")
-        self.process.daemon = True
-        self.process.start()
-
-    def stop(self) -> None:
-        # can't kill a non-existent thread
-        if not self.process.is_alive():
-            logger.debug("Request to kill dead process was made!")
-            return
-
-        logger.info("Stopping OSC process")
-        self.process.kill()
-
-    def restart(self) -> None:
-        self.stop()
-        self.start()
-
-    def _run(self) -> None:
+    def run(self) -> None:
         while True:
             try:
                 eye_data: EyeData = self.osc_queue.get(block=True, timeout=0.1)

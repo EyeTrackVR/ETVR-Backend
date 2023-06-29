@@ -1,15 +1,12 @@
 from __future__ import annotations
-from multiprocessing import Process
-import cv2
 from .config import AlgorithmConfig
+from app.utils import WorkerProcess
 from .types import EyeID, EyeData
-from .logger import get_logger
 from queue import Queue
+import cv2
 
-logger = get_logger()
 
-
-class EyeProcessor:
+class EyeProcessor(WorkerProcess):
     def __init__(
         self,
         image_queue: Queue[cv2.Mat],
@@ -17,8 +14,8 @@ class EyeProcessor:
         config: AlgorithmConfig,
         eye_id: EyeID,
     ):
+        super().__init__(name=f"Eye Processor {str(eye_id.name).capitalize()}")
         # Synced variables
-        self.process: Process = Process()
         self.image_queue: Queue[cv2.Mat] = image_queue
         self.osc_queue = osc_queue
         # Unsynced variables
@@ -32,47 +29,13 @@ class EyeProcessor:
         self.ransac: Ransac = Ransac(self)
 
     def __del__(self):
-        if self.process.is_alive():
-            self.stop()
+        super().__del__()
 
-    def is_alive(self) -> bool:
-        return self.process.is_alive()
-
-    def start(self) -> None:
-        # don't start a process if one already exists
-        if self.process.is_alive():
-            logger.debug(f"Process `{self.process.name}` requested to start but is already running")
-            return
-
-        logger.info(f"Starting `EyeProcessor {str(self.eye_id.name).capitalize()}`")
-        # We need to recreate the process because it is not possible to start a process that has already been stopped
-        self.process = Process(target=self._run, name=f"EyeProcessor {str(self.eye_id.name).capitalize()}")
-        self.process.daemon = True
-        self.process.start()
-
-    def stop(self) -> None:
-        # can't kill a non-existent process
-        if not self.process.is_alive():
-            logger.debug("Request to kill dead process was made!")
-            return
-
-        logger.info(f"Stopping process `{self.process.name}`")
-        self.process.kill()
-
-    def restart(self) -> None:
-        self.stop()
-        self.start()
-
-    def _run(self) -> None:
-        try:
-            while True:
-                self.image_queue.get_nowait()
-        except Exception:
-            pass
+    def run(self) -> None:
         while True:
             try:
                 current_frame = self.image_queue.get()
-                cv2.imshow(f"{self.process.name}", current_frame)
+                cv2.imshow(f"{self.process_name()}", current_frame)
                 # convert to grayscale, we don't need color
                 current_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
             except Exception:

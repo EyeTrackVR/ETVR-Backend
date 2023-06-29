@@ -3,7 +3,7 @@ from .logger import get_logger
 from .camera import Camera
 from .config import EyeTrackConfig
 from .eye_processor import EyeProcessor
-from multiprocessing import Manager
+from multiprocessing.managers import SyncManager
 from queue import Queue
 from .types import EyeID, EyeData
 import cv2
@@ -12,9 +12,9 @@ logger = get_logger()
 
 
 class Tracker:
-    def __init__(self, eye_id: EyeID, config: EyeTrackConfig, osc_queue: Queue[EyeData]):
+    def __init__(self, eye_id: EyeID, config: EyeTrackConfig, osc_queue: Queue[EyeData], manager: SyncManager):
         # IPC stuff
-        self.manager = Manager()
+        self.manager = manager
         self.image_queue: Queue[cv2.Mat] = self.manager.Queue()
         self.osc_queue: Queue[EyeData] = osc_queue
         # --------------------------------------------------------
