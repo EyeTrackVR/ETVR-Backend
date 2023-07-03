@@ -12,13 +12,15 @@ repository = "https://github.com/RedHawk989/EyeTrackVR"
 [tool.poetry.dependencies]
 python = "~3.10.0"
 python-osc = "^1.8.1"
-opencv-python = "^4.6.0.66"
+opencv-python = "^4.8.0.74"
 numpy = "^1.23.5"
 pye3d = "^0.3.1.post1"
 pydantic = "^1.10.2"
 fastapi = "^0.89.1"
 uvicorn = "^0.20.0"
 zeroconf = "^0.38.4"
+coloredlogs = "^15.0.1"
+colorama = "^0.4.6"
 
 [tool.poetry.group.dev.dependencies]
 pyinstaller = "^5.6.2"
@@ -38,10 +40,16 @@ exclude = "(.git|.env|venv|.venv|build|dist|.vscode|.idea|__pycache__|.ruff_cach
 target-version = ["py310","py311"]
 
 [tool.ruff]
+select = [
+    "E",
+    "F",
+    "W",
+    "Q",
+]
 src = ["TrackingBackend", "test"]
 respect-gitignore = true
 target-version = "py310"
-# format = "grouped"
+format = "grouped"
 tab-size = 4
 exclude = [
     "__pycache__",
