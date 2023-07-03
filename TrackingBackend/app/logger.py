@@ -13,6 +13,7 @@ def setup_logger() -> None:
         fmt="%(levelname)s || %(processName)s[%(process)d] --> %(name)s<[%(filename)s:%(lineno)d],%(funcName)s()> :: %(message)s",
     )
 
+
 def set_log_level(level: LogLevel) -> None:
     logger = logging.getLogger()
     logger.setLevel(level.value)
