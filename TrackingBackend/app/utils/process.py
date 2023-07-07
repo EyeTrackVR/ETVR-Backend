@@ -2,6 +2,19 @@ from multiprocessing import Process
 from app.logger import get_logger, setup_logger
 
 
+# TODO:
+# ----------------------------------------------------------------------------------------------------------------------------
+# currently the only problem here is that we arent sharing all memory between processes
+# when starting the a child process, it creates a local copy of all the variables in the current process including class
+# members that are not explicitly synced.
+# this means that when we change the config in the main process, none of the child processes are aware of the change.
+# one solution to this is to use a shared memory object to store the config and have the child processes read from it,
+# we dont need to worry about writing to it because the config is only changed in the main process so we might be able
+# to get away with just syncing the config object's dict.
+# the current hacky work around is to restart the process when the config is changed. this is not ideal but it works for now
+# ----------------------------------------------------------------------------------------------------------------------------
+
+
 # This is a simple wrapper around the multiprocessing.Process class
 # we are using it to abstract some of the more painful parts of multiprocessing
 class WorkerProcess:
@@ -9,6 +22,7 @@ class WorkerProcess:
         self.__name: str = name
         self.__process: Process = Process()
         self.logger = get_logger(self.__module__)
+        self.logger.debug(f"Created process `{self.__name}`")
 
     def __del__(self) -> None:
         if self.is_alive():
@@ -23,20 +37,12 @@ class WorkerProcess:
         else:
             return self.__process.is_alive()
 
-    # This method is called before the process mainloop is run
-    # should be used to set up any resources that the process will need
-    # Keep in mind that this method is called in within the child process
-    def pre_run(self) -> None:
-        pass
-
     def run(self) -> None:
-        assert False, "This method must be overridden in the child class!"
+        raise AssertionError("WorkerProcess.run() must be overridden in child class!")
 
     def _run(self) -> None:
-        # since the logger isnt a shared object we need to recreate it in the child process
-        # so we can have proper formatting
+        # since the logger isnt a shared object so we need to recreate it in the child process
         setup_logger()
-        self.pre_run()
         self.run()
 
     def restart(self) -> None:
@@ -50,17 +56,23 @@ class WorkerProcess:
             return
 
         self.logger.info(f"Starting Process `{self.__name}`")
-        # We need to recreate the process because it is not possible to start a process that has already been stopped
-        self.__process = Process(target=self._run, name=f"{self.__name}")
-        self.__process.daemon = True
-        self.__process.start()
+        # We need to recreate the process because it is not possible to start a process that has already been stopped]
+        try:
+            self.__process = Process(target=self._run, name=f"{self.__name}")
+            self.__process.daemon = True
+            self.__process.start()
+        except (TypeError, Exception):
+            self.logger.exception(f"Failed to start process `{self.__name}`")
 
     def stop(self) -> None:
         # can't kill a non-existent process
         if not self.is_alive():
-            self.logger.debug(f"Request to kill dead process `{self.__name} was made!")
+            self.logger.debug(f"Request to kill dead process `{self.__name}` was made!")
             return
 
-        self.logger.info(f"Stopping process `{self.__name}`")
-        self.__process.kill()
-        self.__process.join()
+        try:
+            self.logger.info(f"Stopping process `{self.__name}`")
+            self.__process.kill()
+            self.__process.join()
+        except (AttributeError, Exception):
+            self.logger.exception(f"Failed to kill process `{self.__name}`")
