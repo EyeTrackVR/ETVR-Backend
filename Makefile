@@ -11,10 +11,22 @@ install:
 	poetry install
 
 run:
-	cd TrackingBackend/ && poetry run uvicorn main:app --reload
+	cd TrackingBackend/ && poetry run uvicorn --factory main:setup_app --reload --port 8000
+
+format:
+	poetry run black TrackingBackend/
+
+lint:
+	poetry run ruff TrackingBackend/
+
+typecheck:
+	poetry run mypy --ignore-missing-imports --check-untyped-defs TrackingBackend/
 
 pyinstaller:
 	poetry run pyinstaller ETVR.spec TrackingBackend/main.py
+
+nuitka:
+	poetry run python -m nuitka --standalone --include-module=cv2 TrackingBackend/main.py
 
 clean:
 	rm tarcker-config.json
