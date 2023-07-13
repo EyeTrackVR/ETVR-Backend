@@ -51,7 +51,6 @@ def main():
             sys.exit(1)
 
     app = setup_app()
-    print("Starting backend on " + host + ":" + str(port))
     uvicorn.run(app=app, host=host, port=port, reload=False)
 
 
