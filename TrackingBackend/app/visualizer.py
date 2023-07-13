@@ -3,7 +3,7 @@ import cv2
 from queue import Queue
 from fastapi.responses import StreamingResponse
 
-OFLINE_IMAGE = cv2.imread("assets/CameraOffline.png")
+OFLINE_IMAGE = cv2.imread("assets/images/CameraOffline.png")
 
 
 class Visualizer:

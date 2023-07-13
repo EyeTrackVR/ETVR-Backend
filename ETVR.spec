@@ -5,10 +5,10 @@ block_cipher = None
 
 
 a = Analysis(
-    ['TrackingBackend\\main.py'],
+    ['TrackingBackend/main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[("TrackingBackend/assets/*", "assets/")],
     hiddenimports=["cv2", "numpy"],
     hookspath=[],
     hooksconfig={},
@@ -37,6 +37,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon="TrackingBackend/assets/images/logo.ico"
 )
 coll = COLLECT(
     exe,
@@ -46,5 +47,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='ETVR',
+    name='',
 )
