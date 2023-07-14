@@ -2,9 +2,10 @@ from __future__ import annotations
 from app.utils import WorkerProcess
 from .types import CameraState, EyeID
 from multiprocessing import Value
-from .config import CameraConfig
+from .config import CameraConfig, EyeTrackConfig
 from queue import Queue
 import ctypes
+import typing
 import cv2
 
 # fmt: off
@@ -25,10 +26,10 @@ class Camera(WorkerProcess):
         self.eye_id: EyeID = eye_id
         self.config: CameraConfig = config
         self.current_capture_source: str = self.config.capture_source
-        self.camera: cv2.VideoCapture = None  # type: ignore
+        self.camera: cv2.VideoCapture = None  # type: ignore[assignment]
 
-    def __del__(self):
-        super().__del__()
+    def on_config_update(self, config: EyeTrackConfig) -> None:
+        self.config = (config.left_eye, config.right_eye)[bool(self.eye_id.value)]
 
     def get_state(self) -> CameraState:
         return CameraState(self.state.get_obj().value)
@@ -56,6 +57,7 @@ class Camera(WorkerProcess):
     def connect_camera(self) -> None:
         self.set_state(CameraState.CONNECTING)
         self.current_capture_source = self.config.capture_source
+        self.logger.info(f"Connecting to capture source {self.current_capture_source}")
         try:
             self.camera.setExceptionMode(True)
             # https://github.com/opencv/opencv/issues/23207
@@ -85,12 +87,11 @@ class Camera(WorkerProcess):
             self.logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
 
     def push_image_to_queue(self, frame: cv2.Mat, frame_number: float, fps: float) -> None:
-        qsize: int = self.image_queue.qsize()
-        if qsize > 1:
-            self.logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
-            pass
         try:
+            qsize: int = self.image_queue.qsize()
+            if qsize > 10:
+                self.logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
+                pass
             self.image_queue.put(frame)
-            # self.image_queue.put((frame, frame_number, fps))
-        except (Exception):
+        except Exception:
             self.logger.exception("Failed to push to camera capture queue!")

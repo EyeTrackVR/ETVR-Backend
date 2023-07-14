@@ -25,9 +25,6 @@ class Tracker:
         self.camera = Camera(self.eye_config, self.eye_id, self.image_queue)
         self.eye_processor = EyeProcessor(self.image_queue, self.osc_queue, self.config.algorithm, self.eye_id)
 
-    def __del__(self):
-        self.stop()
-
     def start(self) -> None:
         self.camera.start()
         self.eye_processor.start()

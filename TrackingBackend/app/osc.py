@@ -19,12 +19,11 @@ class VRChatOSC(WorkerProcess):
         # Synced variables
         self.osc_queue: Queue[EyeData] = osc_queue
         # Unsynced variables
-        self.main_config: EyeTrackConfig = config
-        self.config: OSCConfig = config.osc
-        self.client = SimpleUDPClient(self.config.address, self.config.sending_port)
+        self.config: EyeTrackConfig = config
+        self.client = SimpleUDPClient(self.config.osc.address, self.config.osc.sending_port)
 
-    def __del__(self):
-        super().__del__()
+    def on_config_update(self, config: EyeTrackConfig) -> None:
+        self.config = config
 
     def run(self) -> None:
         while True:
@@ -33,28 +32,29 @@ class VRChatOSC(WorkerProcess):
             except Exception:
                 continue
 
-            if self.config.mirror_eyes:
-                self.client.send_message(self.config.osc_endpoints.eyes_y, eye_data.y)
-                self.client.send_message(self.config.osc_endpoints.left_eye_x, eye_data.x)
-                self.client.send_message(self.config.osc_endpoints.right_eye_x, eye_data.x)
-                self.client.send_message(self.config.osc_endpoints.left_eyelid_squeeze, eye_data.blink)
-                self.client.send_message(self.config.osc_endpoints.right_eyelid_squeeze, eye_data.blink)
+            if self.config.osc.mirror_eyes:
+                self.client.send_message(self.config.osc.endpoints.eyes_y, eye_data.y)
+                self.client.send_message(self.config.osc.endpoints.left_eye_x, eye_data.x)
+                self.client.send_message(self.config.osc.endpoints.right_eye_x, eye_data.x)
+                self.client.send_message(self.config.osc.endpoints.left_eyelid_squeeze, eye_data.blink)
+                self.client.send_message(self.config.osc.endpoints.right_eyelid_squeeze, eye_data.blink)
                 return
 
             if eye_data.eye_id == EyeID.LEFT:
-                self.client.send_message(self.config.osc_endpoints.eyes_y, eye_data.y)
-                self.client.send_message(self.config.osc_endpoints.left_eye_x, eye_data.x)
-                self.client.send_message(self.config.osc_endpoints.left_eyelid_squeeze, eye_data.blink)
+                self.client.send_message(self.config.osc.endpoints.eyes_y, eye_data.y)
+                self.client.send_message(self.config.osc.endpoints.left_eye_x, eye_data.x)
+                self.client.send_message(self.config.osc.endpoints.left_eyelid_squeeze, eye_data.blink)
             elif eye_data.eye_id == EyeID.RIGHT:
-                self.client.send_message(self.config.osc_endpoints.eyes_y, eye_data.y)
-                self.client.send_message(self.config.osc_endpoints.right_eye_x, eye_data.x)
-                self.client.send_message(self.config.osc_endpoints.right_eyelid_squeeze, eye_data.blink)
+                self.client.send_message(self.config.osc.endpoints.eyes_y, eye_data.y)
+                self.client.send_message(self.config.osc.endpoints.right_eye_x, eye_data.x)
+                self.client.send_message(self.config.osc.endpoints.right_eyelid_squeeze, eye_data.blink)
 
 
 # TODO: refactor this
 class VRChatOSCReceiver:
     def __init__(self, config: EyeTrackConfig):
         self.main_config: EyeTrackConfig = config
+        self.endpoints = config.osc.endpoints
         self.config: OSCConfig = config.osc
         self.dispatcher: Dispatcher = Dispatcher()
         self.server: ThreadingOSCUDPServer = ThreadingOSCUDPServer((self.config.address, self.config.receiver_port), self.dispatcher)
@@ -77,9 +77,9 @@ class VRChatOSCReceiver:
         self.config.sync_blink = not self.config.sync_blink
 
     def map_events(self) -> None:
-        self.dispatcher.map(self.config.recalibrate_address, self.recalibrate_eyes)
-        self.dispatcher.map(self.config.recenter_address, self.recenter_eyes)
-        self.dispatcher.map(self.config.sync_blink_address, self.toggle_sync_blink)
+        self.dispatcher.map(self.endpoints.recalibrate, self.recalibrate_eyes)
+        self.dispatcher.map(self.endpoints.recenter, self.recenter_eyes)
+        self.dispatcher.map(self.endpoints.sync_blink, self.toggle_sync_blink)
 
     def start(self) -> None:
         # don't start a thread if one already exists

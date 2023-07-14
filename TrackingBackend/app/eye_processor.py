@@ -1,5 +1,5 @@
 from __future__ import annotations
-from .config import AlgorithmConfig
+from .config import AlgorithmConfig, EyeTrackConfig
 from app.utils import WorkerProcess
 from .types import EyeID, EyeData
 from queue import Queue
@@ -28,8 +28,8 @@ class EyeProcessor(WorkerProcess):
         self.hsrac: HSRAC = HSRAC(self)
         self.ransac: Ransac = Ransac(self)
 
-    def __del__(self):
-        super().__del__()
+    def on_config_update(self, config: EyeTrackConfig) -> None:
+        self.config = config.algorithm
 
     def run(self) -> None:
         while True:

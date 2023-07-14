@@ -9,6 +9,7 @@ from .types import EyeID, EyeData
 
 logger = get_logger()
 
+
 # might be temporary, not sure if we are gonna use something else for IPC
 # TODO: talk to Zanzy / lorrow about this!
 class ETVR:
@@ -26,9 +27,6 @@ class ETVR:
         self.tracker_right: Tracker = Tracker(EyeID.RIGHT, self.config, self.osc_queue, self.manager)
         # Object for fastapi routes
         self.router: APIRouter = APIRouter()
-
-    def __del__(self):
-        self.stop()
 
     def add_routes(self) -> None:
         logger.debug("Adding routes to ETVR")

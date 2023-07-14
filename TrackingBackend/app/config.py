@@ -7,6 +7,8 @@ from fastapi import Request
 
 logger = get_logger()
 
+CONFIG_FILE = "tracker-config.json"
+
 
 class BlobConfig(BaseModel):
     threshold: int = 65
@@ -22,6 +24,9 @@ class OSCConfigEndpoints(BaseModel):
     eyes_y: str = "/avatar/parameters/EyesY"
     left_eye_x: str = "/avatar/parameters/LeftEyeX"
     right_eye_x: str = "/avatar/parameters/RightEyeX"
+    recenter: str = "/avatar/parameters/etvr_recenter"
+    sync_blink: str = "/avatar/parameters/etvr_sync_blink"
+    recalibrate: str = "/avatar/parameters/etvr_recalibrate"
     left_eyelid_squeeze: str = "/avatar/parameters/LeftEyeLidExpandedSqueeze"
     right_eyelid_squeeze: str = "/avatar/parameters/RightEyeLidExpandedSqueeze"
 
@@ -34,10 +39,7 @@ class OSCConfig(BaseModel):
     sending_port: int = 9000
     enable_receiving: bool = True
     receiver_port: int = 9001
-    recenter_address: str = "/avatar/parameters/etvr_recenter"
-    recalibrate_address: str = "/avatar/parameters/etvr_recalibrate"
-    sync_blink_address: str = "/avatar/parameters/etvr_sync_blink"
-    osc_endpoints: OSCConfigEndpoints = OSCConfigEndpoints()
+    endpoints: OSCConfigEndpoints = OSCConfigEndpoints()
 
 
 class CameraConfig(BaseModel):
@@ -54,7 +56,6 @@ class CameraConfig(BaseModel):
     roi_h: int = 0
 
 
-# Might be worth making this a singleton so we dont need to pass the main config instance around everywhere
 class EyeTrackConfig(BaseModel):
     version: int = 2
     debug: bool = True  # For future use
@@ -63,14 +64,14 @@ class EyeTrackConfig(BaseModel):
     right_eye: CameraConfig = CameraConfig()
     algorithm: AlgorithmConfig = AlgorithmConfig()
 
-    def save(self, file: str = "tracker-config.json") -> None:
+    def save(self, file: str = CONFIG_FILE) -> None:
         with open(file, "w+", encoding="utf8") as settings_file:
             json.dump(obj=self.dict(), fp=settings_file, indent=4)
 
-    def load(self, file: str = "tracker-config.json") -> EyeTrackConfig:
+    def load(self, file: str = CONFIG_FILE) -> EyeTrackConfig:
+        # TODO: check if file has lock before loading
         if not os.path.exists(file):
             logger.info("No config file found, using base settings")
-            self.save()  # save just so we have something to fallback on
         else:
             try:
                 # since we are loading a full config it is fine for us to just update the entire dict because we assume
@@ -82,10 +83,11 @@ class EyeTrackConfig(BaseModel):
                 self.validate(self)
             except (ValidationError, Exception):
                 logger.exception("Invalid Data found in config, replacing with default values")
-                # if fields are missing or invalid save so we have a valid config
-                self.save()
+        self.save()
         return self
 
+    # FIXME: if a partial config is sent it will overwrite the entire config with the partial data
+    # and reset any values that were not sent
     async def update(self, request: Request) -> None:
         data = await request.json()
         try:
