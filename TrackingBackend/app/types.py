@@ -27,7 +27,7 @@ class CameraState(Enum):
 
 @dataclass
 class EyeData:
-    x: int
-    y: int
+    x: float
+    y: float
     blink: float
     eye_id: EyeID

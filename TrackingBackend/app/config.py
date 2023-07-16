@@ -69,7 +69,6 @@ class EyeTrackConfig(BaseModel):
             json.dump(obj=self.dict(), fp=settings_file, indent=4)
 
     def load(self, file: str = CONFIG_FILE) -> EyeTrackConfig:
-        # TODO: check if file has lock before loading
         if not os.path.exists(file):
             logger.info("No config file found, using base settings")
         else:
@@ -81,8 +80,13 @@ class EyeTrackConfig(BaseModel):
                 # previous values and only update values that have been "requested" to be changed
                 self.__dict__.update(self.parse_file(file))
                 self.validate(self)
-            except (ValidationError, Exception):
+            except (PermissionError, json.JSONDecodeError):
+                logger.error("Failed to load config, file is locked, Retrying...")
+                # FIXME: we need to check if the file has a lock
+                return self.load()
+            except ValidationError:
                 logger.exception("Invalid Data found in config, replacing with default values")
+
         self.save()
         return self
 

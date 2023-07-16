@@ -10,7 +10,7 @@ class Blob:
     def __init__(self, eye_processor: EyeProcessor):
         self.ep = eye_processor
 
-    def run(self, frame, eye_id: EyeID) -> EyeData:
+    def run(self, frame: cv2.Mat, eye_id: EyeID) -> EyeData:
         _, larger_threshold = cv2.threshold(frame, (self.ep.config.blob.threshold + 12), 255, cv2.THRESH_BINARY)
 
         try:
@@ -39,8 +39,20 @@ class Blob:
             cv2.drawContours(frame, [cnt], -1, (0, 255, 0), 3)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
-            print(f"Blob found at {cx}, {cy}")
-            cv2.imshow("Blob", frame)
-            return EyeData(cx, cy, 0, eye_id)
+            # print(f"Blob found at {cx/frame.shape[0]}, {cy/frame.shape[1]}")
+            tx: float = cx/frame.shape[0]
+            ty: float = cy/frame.shape[1]
 
-        return EyeData(0, 0, 0, eye_id)
+            if tx > 0.5:
+                tx = tx * 2
+            else:
+                tx = ((tx * -2) + 1)
+            if ty > 0.5:
+                ty = ty * 2
+            else:
+                ty = ((ty * -2)) * -1
+
+            cv2.imshow("Blob", frame)
+            return EyeData(ty, tx, 1, eye_id)
+
+        return EyeData(0, 0, 1, eye_id)
