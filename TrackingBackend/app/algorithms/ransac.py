@@ -1,4 +1,4 @@
-from app.eye_processor import EyeProcessor
+from app.processes import EyeProcessor
 
 
 class Ransac:

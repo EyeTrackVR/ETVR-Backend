@@ -1,11 +1,10 @@
 from __future__ import annotations
 from app.utils import WorkerProcess
-from .types import CameraState, EyeID
+from app.types import CameraState, EyeID
 from multiprocessing import Value
-from .config import CameraConfig, EyeTrackConfig
+from app.config import CameraConfig, EyeTrackConfig
 from queue import Queue
 import ctypes
-import typing
 import cv2
 
 # fmt: off

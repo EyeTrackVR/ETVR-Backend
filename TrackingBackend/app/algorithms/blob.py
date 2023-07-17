@@ -2,7 +2,7 @@
 # TODO: look at ETVR source and adapt blob stuff better
 # -----------------------------------------------------
 import cv2
-from app.eye_processor import EyeProcessor
+from app.processes import EyeProcessor
 from app.types import EyeID, EyeData
 
 
@@ -40,13 +40,13 @@ class Blob:
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
             # print(f"Blob found at {cx/frame.shape[0]}, {cy/frame.shape[1]}")
-            tx: float = cx/frame.shape[0]
-            ty: float = cy/frame.shape[1]
+            tx: float = cx / frame.shape[0]
+            ty: float = cy / frame.shape[1]
 
             if tx > 0.5:
                 tx = tx * 2
             else:
-                tx = ((tx * -2) + 1)
+                tx = (tx * -2) + 1
             if ty > 0.5:
                 ty = ty * 2
             else:

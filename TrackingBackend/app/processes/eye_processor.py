@@ -1,7 +1,7 @@
 from __future__ import annotations
-from .config import AlgorithmConfig, EyeTrackConfig
+from app.config import AlgorithmConfig, EyeTrackConfig
 from app.utils import WorkerProcess
-from .types import EyeID, EyeData
+from app.types import EyeData, EyeID
 from queue import Queue
 import cv2
 
@@ -44,4 +44,5 @@ class EyeProcessor(WorkerProcess):
             result = self.blob.run(current_frame, self.eye_id)
             self.osc_queue.put(result)
 
+            # comment this out if you want to get the actual frame rate
             cv2.waitKey(1)

@@ -1,8 +1,7 @@
 from __future__ import annotations
 from .logger import get_logger
-from .camera import Camera
 from .config import EyeTrackConfig
-from .eye_processor import EyeProcessor
+from app.processes import EyeProcessor, Camera
 from multiprocessing.managers import SyncManager
 from queue import Queue
 from .types import EyeID, EyeData

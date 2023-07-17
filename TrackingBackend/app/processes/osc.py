@@ -1,8 +1,8 @@
 from __future__ import annotations
-from .config import EyeTrackConfig, OSCConfig
+from app.config import EyeTrackConfig, OSCConfig
 from app.utils import WorkerProcess
-from .types import EyeData, EyeID
-from .logger import get_logger
+from app.types import EyeData, EyeID
+from app.logger import get_logger
 from queue import Queue
 import threading
 from pythonosc.dispatcher import Dispatcher

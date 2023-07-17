@@ -1,7 +1,7 @@
 from .config import EyeTrackConfig
 from .logger import get_logger
 from .tracker import Tracker
-from .osc import VRChatOSCReceiver, VRChatOSC
+from app.processes import VRChatOSCReceiver, VRChatOSC
 from multiprocessing import Manager
 from queue import Queue
 from fastapi import APIRouter

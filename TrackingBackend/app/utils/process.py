@@ -8,6 +8,7 @@ from os import path
 import time
 import typing
 
+
 # This is a simple wrapper around the multiprocessing.Process class
 # we are using it to abstract some of the more painful parts of multiprocessing
 class WorkerProcess:
