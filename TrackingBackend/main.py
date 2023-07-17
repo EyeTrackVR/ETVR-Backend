@@ -42,7 +42,8 @@ def main():
                 case "--host":
                     host = args[i + 1]
                 case _:
-                    print("Unknown argument " + v)
+                    if v.startswith("-"):
+                        print("Unknown argument " + v)
         except IndexError:
             print("Missing value for argument " + v)
             sys.exit(1)
