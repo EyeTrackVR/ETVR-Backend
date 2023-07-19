@@ -2,13 +2,18 @@ from __future__ import annotations
 import json
 import os.path
 import re
-from pydantic import BaseModel, ValidationError, validate_model, validator
+from pydantic import BaseModel, ValidationError, field_validator
 from .logger import get_logger
-from fastapi import Request
+from fastapi import Request, HTTPException
 
 logger = get_logger()
 
 CONFIG_FILE = "tracker-config.json"
+# https://regex101.com/r/y3wywa/1
+IP_ADDRESS_REGEX = r"""
+                    (\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?::\d{1,5})
+                    ?\b|localhost(?::\d{1,5})?|http:\/\/localhost(?::\d{1,5})?|[\w-]+\.local(?::\d{1,5})?)
+                    """
 
 
 class BlobConfig(BaseModel):
@@ -43,13 +48,13 @@ class OSCConfig(BaseModel):
     vrchat_native_tracking: bool = False
     endpoints: OSCConfigEndpoints = OSCConfigEndpoints()
 
-    @validator("address")
+    @field_validator("address")
     def address_validator(cls, value: str) -> str:
-        if re.match(r"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$", value) is None:
-            raise ValueError(f"Invalid IP Address")
+        if re.match(IP_ADDRESS_REGEX, value) is None:
+            raise ValueError("Invalid IP Address, must be localhost or a valid IPv4 address")
         return value
 
-    @validator("sending_port", "receiver_port")
+    @field_validator("sending_port", "receiver_port")
     def port_validator(cls, value: int) -> int:
         if value < 1 or value > 65535:
             raise ValueError("Port must be between 1 and 65535")
@@ -69,10 +74,17 @@ class CameraConfig(BaseModel):
     roi_w: int = 0
     roi_h: int = 0
 
-    @validator("roi_x", "roi_y", "roi_w", "roi_h")
+    @field_validator("roi_x", "roi_y", "roi_w", "roi_h")
     def roi_validator(cls, value: int) -> int:
         if value < 0:
             raise ValueError("ROI values must be greater than 0")
+        return value
+
+    @field_validator("capture_source")
+    def capture_source_validator(cls, value: str) -> str:
+        if not value == "":
+            if re.match(IP_ADDRESS_REGEX, value) is None:
+                raise ValueError("Invalid IP Address, must be localhost or a valid IPv4 address")
         return value
 
 
@@ -86,16 +98,17 @@ class EyeTrackConfig(BaseModel):
 
     def save(self, file: str = CONFIG_FILE) -> None:
         with open(file, "w+", encoding="utf8") as settings_file:
-            json.dump(obj=self.dict(), fp=settings_file, indent=4)
+            json.dump(obj=self.model_dump(), fp=settings_file, indent=4)
 
     def load(self, file: str = CONFIG_FILE) -> EyeTrackConfig:
         if not os.path.exists(file):
             logger.info("No config file found, using base settings")
         else:
             try:
-                # since we are loading a full config we assume it is valid
-                self.__dict__.update(self.parse_file(file))
-                self.validate(self)
+                with open(file, "r", encoding="utf8") as config:
+                    data = config.read()
+                    # If the config has invalid attributes, pydantic will replace them with default values
+                    self.__dict__.update(self.model_validate_json(data))
             except (PermissionError, json.JSONDecodeError):
                 logger.error("Failed to load config, file is locked, Retrying...")
                 # FIXME: we need to check if the file has a lock
@@ -109,21 +122,22 @@ class EyeTrackConfig(BaseModel):
     async def update(self, request: Request) -> None:
         data = await request.json()
         try:
-            _, _, error = validate_model(self.__class__, data)
-            if error:
-                raise error
-            self.direct_update(data)
+            # make sure all data is valid before we update the config
+            self.model_validate(data)
+            self.update_attributes(data)
             self.save()
-        except (ValidationError, Exception):
-            logger.exception("Failed to update config with new values!")
+        except (ValidationError, Exception) as e:
+            logger.error(f"Failed to update config with new values!\n{e}")
+            if type(e) is ValidationError:
+                raise HTTPException(status_code=400, detail=e.errors(include_url=False, include_context=False))
 
-    def direct_update(self, data: dict, parents: list[str] = []) -> None:
+    def update_attributes(self, data: dict, parents: list[str] = []) -> None:
         for name in data.keys():
             # if the value is a dict it means we need to are updating a nested config
             # so we need to recursively update all the values in the subconfig individually
             # if we don't do this we will overwrite the entire subconfig with default and partial values
             if type(data[name]) is dict:
-                self.direct_update(data[name], parents + [name])
+                self.update_attributes(data[name], parents + [name])
             else:
                 obj = self
                 if len(parents) > 0:
@@ -136,4 +150,4 @@ class EyeTrackConfig(BaseModel):
                     setattr(obj, name, value)
 
     def return_config(self) -> dict:
-        return self.dict()
+        return self.model_dump()
