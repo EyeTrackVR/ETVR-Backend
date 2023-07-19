@@ -10,10 +10,10 @@ logger = get_logger()
 
 CONFIG_FILE = "tracker-config.json"
 # https://regex101.com/r/y3wywa/1
-IP_ADDRESS_REGEX = r"""
-                    (\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?::\d{1,5})
-                    ?\b|localhost(?::\d{1,5})?|http:\/\/localhost(?::\d{1,5})?|[\w-]+\.local(?::\d{1,5})?)
-                    """
+IP_ADDRESS_REGEX = (
+    r"(\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?::\d{1,5})"
+    r"?\b|localhost(?::\d{1,5})?|http:\/\/localhost(?::\d{1,5})?|[\w-]+\.local(?::\d{1,5})?)"
+)
 
 
 class BlobConfig(BaseModel):
