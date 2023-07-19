@@ -29,6 +29,8 @@ class VRChatOSC(WorkerProcess):
         while True:
             try:
                 eye_data: EyeData = self.osc_queue.get(block=True, timeout=0.1)
+                if not self.config.osc.enable_sending:
+                    continue
             except Exception:
                 continue
 
@@ -36,18 +38,18 @@ class VRChatOSC(WorkerProcess):
                 self.client.send_message(self.config.osc.endpoints.eyes_y, float(eye_data.y))
                 self.client.send_message(self.config.osc.endpoints.left_eye_x, float(eye_data.x))
                 self.client.send_message(self.config.osc.endpoints.right_eye_x, float(eye_data.x))
-                self.client.send_message(self.config.osc.endpoints.left_eyelid_squeeze, float(eye_data.blink))
-                self.client.send_message(self.config.osc.endpoints.right_eyelid_squeeze, float(eye_data.blink))
+                self.client.send_message(self.config.osc.endpoints.left_eye_blink, float(eye_data.blink))
+                self.client.send_message(self.config.osc.endpoints.right_eye_blink, float(eye_data.blink))
                 return
 
             if eye_data.eye_id == EyeID.LEFT:
                 self.client.send_message(self.config.osc.endpoints.eyes_y, float(eye_data.y))
                 self.client.send_message(self.config.osc.endpoints.left_eye_x, float(eye_data.x))
-                self.client.send_message(self.config.osc.endpoints.left_eyelid_squeeze, float(eye_data.blink))
+                self.client.send_message(self.config.osc.endpoints.left_eye_blink, float(eye_data.blink))
             elif eye_data.eye_id == EyeID.RIGHT:
                 self.client.send_message(self.config.osc.endpoints.eyes_y, float(eye_data.y))
                 self.client.send_message(self.config.osc.endpoints.right_eye_x, float(eye_data.x))
-                self.client.send_message(self.config.osc.endpoints.right_eyelid_squeeze, float(eye_data.blink))
+                self.client.send_message(self.config.osc.endpoints.right_eye_blink, float(eye_data.blink))
 
 
 # TODO: refactor this
