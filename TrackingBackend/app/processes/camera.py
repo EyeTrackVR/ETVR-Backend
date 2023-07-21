@@ -44,14 +44,21 @@ class Camera(WorkerProcess):
         while True:
             # If things aren't open, retry until they are. Don't let read requests come in any earlier than this,
             # otherwise we can deadlock ourselves.
-            if self.config.capture_source != "":
+            if self.config.capture_source != "" and self.config.enabled:
                 # if the camera is disconnected or the capture source has changed, reconnect
                 if self.get_state() == CameraState.DISCONNECTED or self.current_capture_source != self.config.capture_source:
                     self.connect_camera()
                 else:
                     self.get_camera_image()
             else:  # no capture source is defined yet, so we wait :3
-                self.set_state(CameraState.DISCONNECTED)
+                if not self.config.enabled:
+                    self.set_state(CameraState.DISABLED)
+                else:
+                    self.set_state(CameraState.DISCONNECTED)
+                # if we disable the camera while this process is running
+                # we need to release the camera so we dont memory leak
+                if self.camera.isOpened():
+                    self.camera.release()
 
     def connect_camera(self) -> None:
         self.set_state(CameraState.CONNECTING)
@@ -87,6 +94,12 @@ class Camera(WorkerProcess):
 
     def push_image_to_queue(self, frame: cv2.Mat, frame_number: float, fps: float) -> None:
         try:
+            if self.config.flip_x_axis:
+                frame = cv2.flip(frame, 0)
+
+            if self.config.flip_y_axis:
+                frame = cv2.flip(frame, 1)
+
             qsize: int = self.image_queue.qsize()
             if qsize > 10:
                 self.logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")

@@ -133,7 +133,7 @@ class EyeTrackConfig(BaseModel):
 
     def update_attributes(self, data: dict, parents: list[str] = []) -> None:
         for name in data.keys():
-            # if the value is a dict it means we need to are updating a nested config
+            # if the value is a dict it means we are updating a nested config
             # so we need to recursively update all the values in the subconfig individually
             # if we don't do this we will overwrite the entire subconfig with default and partial values
             if type(data[name]) is dict:

@@ -1,6 +1,5 @@
 # This file exists purely because circular imports are a thing and im too lazy to come up with a better
 # solution that doesnt involve a bunch of refactoring.
-# If you have a better solution, please dont hesitate to shout at me in discord about my bad code, thanks!
 import logging
 from enum import Enum
 from dataclasses import dataclass
@@ -23,6 +22,7 @@ class CameraState(Enum):
     DISCONNECTED = 0
     CONNECTED = 1
     CONNECTING = 2
+    DISABLED = 3
 
 
 @dataclass

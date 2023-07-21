@@ -13,13 +13,13 @@ install:
 run:
 	cd TrackingBackend/ && poetry run uvicorn --factory main:setup_app --reload --port 8000
 
-format:
+black:
 	poetry run black TrackingBackend/
 
-lint:
+ruff:
 	poetry run ruff TrackingBackend/
 
-typecheck:
+mypy:
 	poetry run mypy --ignore-missing-imports --check-untyped-defs TrackingBackend/
 
 pyinstaller:
