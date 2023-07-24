@@ -43,16 +43,17 @@ class Blob:
             tx: float = cx / frame.shape[0]
             ty: float = cy / frame.shape[1]
 
-            if tx > 0.5:
-                tx = tx * 2
+            if tx < 0.5:
+                tx = 1-(tx * 2)
             else:
                 tx = (tx * -2) + 1
-            if ty > 0.5:
-                ty = ty * 2
+            if ty < 0.5:
+                ty = 1-(ty * 2)
             else:
-                ty = ((ty * -2)) * -1
+                ty = (ty * -2) + 1
 
             cv2.imshow("Blob", frame)
-            return EyeData(ty, tx, 1, eye_id)
+            # print(f"Blob found at {tx}, {ty}")
+            return EyeData(tx, ty, 1, eye_id)
 
         return EyeData(0, 0, 1, eye_id)
