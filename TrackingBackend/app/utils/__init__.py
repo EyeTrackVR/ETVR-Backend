@@ -1,2 +1,2 @@
-from .misc import clamp
+from .misc import clamp, BaseAlgorithm
 from .process import WorkerProcess

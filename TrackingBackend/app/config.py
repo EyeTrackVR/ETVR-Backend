@@ -23,6 +23,8 @@ class BlobConfig(BaseModel):
 
 
 class AlgorithmConfig(BaseModel):
+    # TODO: should probably be an enum
+    algorithm_order: list[str] = ["blob"]
     blob: BlobConfig = BlobConfig()
 
 
@@ -62,7 +64,6 @@ class OSCConfig(BaseModel):
 
 
 class CameraConfig(BaseModel):
-    _name: str = "Camera"
     enabled: bool = True
     capture_source: str = ""
     threshold: int = 50

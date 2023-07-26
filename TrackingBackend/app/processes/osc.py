@@ -28,7 +28,7 @@ class VRChatOSC(WorkerProcess):
     def run(self) -> None:
         while True:
             try:
-                eye_data: EyeData = self.osc_queue.get(block=True, timeout=0.1)
+                eye_data: EyeData = self.osc_queue.get(block=True, timeout=0.5)
                 if not self.config.osc.enable_sending:
                     continue
             except Exception:

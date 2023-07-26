@@ -4,9 +4,10 @@
 import cv2
 from app.processes import EyeProcessor
 from app.types import EyeID, EyeData
+from app.utils import BaseAlgorithm
 
 
-class Blob:
+class Blob(BaseAlgorithm):
     def __init__(self, eye_processor: EyeProcessor):
         self.ep = eye_processor
 
@@ -30,30 +31,20 @@ class Blob:
 
             # if our blob width/height are within suitable (yet arbitrary) boundaries, call that good.
             # TODO: This should be scaled based on camera resolution.
-            # if not self.ep.config.blob.minsize <= h <= self.ep.config.blob.maxsize or not self.ep.config.blob.minsize <= w <= self.ep.config.blob.maxsize:
-            #     break
+            if (
+                not self.ep.config.blob.minsize <= h <= self.ep.config.blob.maxsize
+                or not self.ep.config.blob.minsize <= w <= self.ep.config.blob.maxsize
+            ):
+                continue
 
             cx = x + int(w / 2)
             cy = y + int(h / 2)
 
             cv2.drawContours(frame, [cnt], -1, (0, 255, 0), 3)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-
-            # print(f"Blob found at {cx/frame.shape[0]}, {cy/frame.shape[1]}")
-            tx: float = cx / frame.shape[0]
-            ty: float = cy / frame.shape[1]
-
-            if tx < 0.5:
-                tx = 1-(tx * 2)
-            else:
-                tx = (tx * -2) + 1
-            if ty < 0.5:
-                ty = 1-(ty * 2)
-            else:
-                ty = (ty * -2) + 1
-
             cv2.imshow("Blob", frame)
-            # print(f"Blob found at {tx}, {ty}")
+
+            tx, ty = self.normalize(cx, cy, frame.shape[0], frame.shape[1])
             return EyeData(tx, ty, 1, eye_id)
 
         return EyeData(0, 0, 1, eye_id)
