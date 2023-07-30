@@ -48,9 +48,9 @@ jobs:
         uses: JackMcKew/pyinstaller-action-linux@python3.10
         with:
           path: TrackingBackend
-      - name: Rename Linux Binary
-        run: |
-          mv dist/ETVR
+      #- name: Rename Linux Binary
+      #  run: |
+      #    mv dist/ETVR
       - uses: actions/upload-artifact@v2
         with:
           name: production-files
