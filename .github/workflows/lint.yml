@@ -10,6 +10,27 @@ jobs:
         with:
           args: --select E,F --ignore E501,F401,F541
 
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+      - name: Setup Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+      - name: Install dependencies
+        run: poetry install
+      - name: Create test folder
+        run: mkdir .pytest_cache
+      - name: Run Pytest
+        run: poetry run pytest
+
   mypy:
     runs-on: ubuntu-latest
     steps:
@@ -26,7 +47,7 @@ jobs:
           installer-parallel: true
       - name: Install dependencies
         run: poetry install
-      - name: Lint with Mypy                                                                                        
+      - name: Lint with Mypy
         # Wish we could warn instead of erroring
         run: poetry run mypy --ignore-missing-imports --check-untyped-defs --show-error-context --implicit-optional --disable-error-code union-attr TrackingBackend/
         
