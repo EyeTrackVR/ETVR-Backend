@@ -32,12 +32,14 @@ jobs:
       - run: npm install -g conventional-changelog-conventionalcommits
       - run: npm install -g semantic-release@v19.0.5
       - run: npm install -g @semantic-release/changelog
+      - run: npm install -g @semantic-release/release-notes-generator
+      - run: npm install -g @semantic-release/exec
       - name: Update Version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x ./.github/scripts/prepareCMD.sh
-          semantic-release
+          semantic-release -config ./github/scripts/.releaserc
       - name: PyInstaller Windows
         uses: JackMcKew/pyinstaller-action-windows@python3-10-pyinstaller-5-3
         with:
@@ -46,6 +48,9 @@ jobs:
         uses: JackMcKew/pyinstaller-action-linux@python3.10
         with:
           path: TrackingBackend
+      - name: Rename Linux Binary
+        run: |
+          mv dist/ETVR
       - uses: actions/upload-artifact@v2
         with:
           name: production-files
