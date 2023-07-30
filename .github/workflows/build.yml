@@ -31,6 +31,7 @@ jobs:
           node-version: 18
       - run: npm install -g conventional-changelog-conventionalcommits
       - run: npm install -g semantic-release@v19.0.5
+      - run: npm install -g @semantic-release/changelog
       - name: Update Version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
