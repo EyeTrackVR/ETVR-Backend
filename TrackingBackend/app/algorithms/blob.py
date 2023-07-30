@@ -24,7 +24,7 @@ class Blob(BaseAlgorithm):
                 self.ep.logger.warning(f"Failed to find any contours for {eye_id.name} eye")
                 return EyeData(0, 0, 1, eye_id)
         except (cv2.error, Exception):
-            self.ep.logger.exception(f"Something went wrong!")
+            self.ep.logger.exception("Something went wrong!")
             return EyeData(0, 0, 1, eye_id)
 
         for cnt in contours:
