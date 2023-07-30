@@ -109,7 +109,9 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release
+        run: |
+          chmod +x ./.github/scripts/prepareCMD.sh
+          semantic-release
   cleanup:
     name: Cleanup actions
     needs:
