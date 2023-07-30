@@ -19,10 +19,13 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -39,20 +42,33 @@ jobs:
           virtualenvs-in-project: true
           installer-parallel: true
 
-      - name: Install python dependencies (Linux)
-        if: ${{ matrix.os == 'ubuntu-latest'}}
-        run: poetry install
+      - name: Load cached venv
+        id: cached-pip-wheels
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      #----------------------------------------------
+      #       load cached venv if cache exists
+      #----------------------------------------------
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
       
-      - name: Install python dependencies (Windows)
-        if: ${{ matrix.os == 'windows-latest'}}
-        run: |
-          cd C:\Users\runneradmin\.local\bin
-          poetry install
+      - name: Install python dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install
 
       - name: Install Linux dependencies
         if: ${{ matrix.os == 'ubuntu-latest'}}
         run: sudo apt install build-essential curl wget libssl-dev
 
+      - run: source $VENV
+      
       - name: Build Backend
         run: poetry run pyinstaller --noconfirm ETVR.spec TrackingBackend/main.py
 
