@@ -42,8 +42,12 @@ jobs:
       - name: Install python dependencies
         run: poetry install
 
+      - name: Install Linux dependencies
+        if: ${{ matrix.os == 'ubuntu-latest'}}
+        run: sudo apt install build-essential curl wget libssl-dev
+
       - name: Build Backend
-        run: poetry run pyinstaller ETVR.spec TrackingBackend/main.py
+        run: poetry run pyinstaller --noconfirm ETVR.spec TrackingBackend/main.py
 
       - name: Rename Linux Binary
         if: ${{ matrix.os == 'ubuntu-latest' }}
