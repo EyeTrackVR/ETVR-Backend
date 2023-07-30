@@ -35,16 +35,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          chmod +x ./scripts/prepareCMD.sh
+          chmod +x ./.github/scripts/prepareCMD.sh
           semantic-release
       - name: PyInstaller Windows
         uses: JackMcKew/pyinstaller-action-windows@python3-10-pyinstaller-5-3
         with:
-          path: dist
+          path: TrackingBackend
       - name: PyInstaller Linux
         uses: JackMcKew/pyinstaller-action-linux@python3.10
         with:
-          path: dist
+          path: TrackingBackend
       - uses: actions/upload-artifact@v2
         with:
           name: production-files
