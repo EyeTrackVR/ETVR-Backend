@@ -70,7 +70,7 @@ jobs:
       - run: source $VENV
       
       - name: Build Backend
-        run: poetry run pyinstaller --noconfirm ETVR.spec TrackingBackend/main.py
+        run: poetry run pyinstaller --noconfirm --one-file ETVR.spec TrackingBackend/main.py
 
       - name: Rename Linux Binary
         if: ${{ matrix.os == 'ubuntu-latest' }}
