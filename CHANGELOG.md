@@ -3,6 +3,13 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.0.3](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/compare/v1.0.2...v1.0.3) (2023-07-30)
+
+
+### 🔁 Continuous Integration
+
+* **ci-fix:** migrate to one-file install ([aecc796](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/commit/aecc796dde33e02c68b99c309cd08edb036f46e2))
+
 ## [1.0.2](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/compare/v1.0.1...v1.0.2) (2023-07-30)
 
 
