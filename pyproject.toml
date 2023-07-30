@@ -1,11 +1,9 @@
+[tool]
 [tool.poetry]
 name = "EyeTrackVR"
 version = "0.2.0"
 description = "Opensource, affordable VR eye tracker for VRChat"
-authors = [
-    "RedHawk989 <48768484+RedHawk989@users.noreply.github.com>",
-    "ShyAssassin <49711232+ShyAssassin@users.noreply.github.com>"
-]
+authors = ["RedHawk989 <48768484+RedHawk989@users.noreply.github.com>", "ShyAssassin <49711232+ShyAssassin@users.noreply.github.com>"]
 license = "MIT"
 repository = "https://github.com/RedHawk989/EyeTrackVR"
 
@@ -31,41 +29,27 @@ ruff = "^0.0.275"
 viztracer = "^0.15.6"
 mypy = "^1.4.1"
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
 [tool.black]
 line-length = 135
 exclude = "(.git|.env|venv|.venv|build|dist|.vscode|.idea|__pycache__|.ruff_cache)"
-target-version = ["py310","py311"]
+target-version = ["py310", "py311"]
 
 [tool.ruff]
-select = [
-    "E",
-    "F",
-    "W",
-    "Q",
-]
+select = ["E", "F", "W", "Q"]
 src = ["TrackingBackend", "test"]
 respect-gitignore = true
 target-version = "py310"
 format = "grouped"
 tab-size = 4
-exclude = [
-    "__pycache__",
-    ".ruff_cache",
-    ".vscode",
-    ".idea",
-    ".venv",
-    "build",
-    "dist",
-    ".git",
-    ".env",
-    "venv",
-]
+exclude = ["__pycache__", ".ruff_cache", ".vscode", ".idea", ".venv", "build", "dist", ".git", ".env", "venv"]
 line-length = 135
 
 [tool.ruff.per-file-ignores]
-# Ignore unused imports in __init__.py files
 "__init__.py" = ["F401"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[package]
+version = "1.0.4"
