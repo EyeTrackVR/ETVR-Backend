@@ -39,8 +39,15 @@ jobs:
           virtualenvs-in-project: true
           installer-parallel: true
 
-      - name: Install python dependencies
+      - name: Install python dependencies (Linux)
+        if: ${{ matrix.os == 'ubuntu-latest'}}
         run: poetry install
+      
+      - name: Install python dependencies (Windows)
+        if: ${{ matrix.os == 'windows-latest'}}
+        run: |
+          cd C:\Users\runneradmin\.local\bin
+          poetry install
 
       - name: Install Linux dependencies
         if: ${{ matrix.os == 'ubuntu-latest'}}
