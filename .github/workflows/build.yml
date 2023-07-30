@@ -42,7 +42,7 @@ jobs:
           virtualenvs-in-project: true
           installer-parallel: true
 
-      - name: Load cached venv
+      - name: Load cached wheels
         id: cached-pip-wheels
         uses: actions/cache@v3
         with:
@@ -74,7 +74,9 @@ jobs:
 
       - name: Rename Linux Binary
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: mv ./dist/ETVR ./dist/ETVR.bin
+        #mv ./dist/ETVR ./dist/ETVR.bin
+        run: |
+          ls -a
       - uses: actions/upload-artifact@v2
         with:
           name: production-files
