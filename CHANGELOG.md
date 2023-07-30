@@ -3,6 +3,22 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.0.1](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/compare/v1.0.0...v1.0.1) (2023-07-30)
+
+
+### 🔁 Continuous Integration
+
+* **ci-fix:** fix semantic-release dependancy ([fcd957a](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/commit/fcd957a1f9be95606fbabe7d2d5c062947a0445a))
+* **ci-fix:** migrate to manual build ([147336b](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/commit/147336b7016f141a686f6ef9a1b56e24fc0fe595))
+* **ci-fix:** migrate to manual build ([1835632](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/commit/18356321e017f0b67cc81ca7d9d2af8114df5316))
+* **ci-fix:** migrate to manual build ([db020a1](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/commit/db020a1102ad056f28df31641852d2786fa4c135))
+* **ci-fix:** migrate to manual build ([db1a998](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/commit/db1a99884c893476787117cb0834a75cf2e71f5e))
+* **ci-fix:** migrate to manual build ([d257edb](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/commit/d257edb6f9e12baf92bd21c6c5e126f2f07f6a61))
+* **ci-fix:** setup linux deps ([75befed](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/commit/75befed81d46bac1148e14114299190688961385))
+* **ci-fix:** setup windows build requirements ([19e75c5](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/commit/19e75c515fa44e3efe4e3a501520524f2cda021c))
+* **ci-fix:** setup windows build requirements ([e4fa6d1](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/commit/e4fa6d18adb7377329010510906e0a0e4d571a58))
+* **ci-fix:** setup windows build requirements ([5af4fed](https://github.com/ZanzyTHEbar/ETVR-Tracking-Backend/commit/5af4fed415727487d85180b79cb8a03d98c14edc))
+
 ## 1.0.0 (2023-07-30)
 
 
