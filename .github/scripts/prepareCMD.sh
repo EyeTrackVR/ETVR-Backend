@@ -55,7 +55,7 @@ export PATH="~/.local/bin:$PATH"
 source ~/.bashrc
 
 tmp=$(mktemp)
-tomlq -t --arg version "$nextReleaseVersion" '.package.version |= $version' ./pyproject.toml > "$tmp" && mv "$tmp" ./pyproject.toml -f
+tomlq -t --arg version "$nextReleaseVersion" '.tool.poetry.version |= $version' ./pyproject.toml > "$tmp" && mv "$tmp" ./pyproject.toml -f
 
 # validate the Cargo.toml file
 #printf "[prepareCMD.sh]: Validating the Cargo.toml file \n"
