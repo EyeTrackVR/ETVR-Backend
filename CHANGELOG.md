@@ -3,6 +3,13 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.0.1](https://github.com/ShyAssassin/ETVR-Backend/compare/v1.0.0...v1.0.1) (2023-07-30)
+
+
+### 🤖 Build System
+
+* Update prepareCMD.sh ([a2bc6e7](https://github.com/ShyAssassin/ETVR-Backend/commit/a2bc6e7ad97f86684becf8768ff8e0f9ef8c050b))
+
 ## 1.0.0 (2023-07-30)
 
 
