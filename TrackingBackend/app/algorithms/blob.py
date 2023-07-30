@@ -21,10 +21,11 @@ class Blob(BaseAlgorithm):
 
             # If we have no contours, we have nothing to blob track. Fail here.
             if len(contours) == 0:
-                print("No contours found for image")
-                raise RuntimeError("No contours found for image")
+                self.ep.logger.warning(f"Failed to find any contours for {eye_id.name} eye")
+                return EyeData(0, 0, 1, eye_id)
         except (cv2.error, Exception):
-            return EyeData(0, 0, 0, eye_id)
+            self.ep.logger.exception(f"Something went wrong!")
+            return EyeData(0, 0, 1, eye_id)
 
         for cnt in contours:
             (x, y, w, h) = cv2.boundingRect(cnt)
