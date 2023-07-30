@@ -5,6 +5,7 @@ import re
 from pydantic import BaseModel, ValidationError, field_validator
 from .logger import get_logger
 from fastapi import Request, HTTPException
+from app.types import Algorithms
 
 logger = get_logger()
 
@@ -23,8 +24,7 @@ class BlobConfig(BaseModel):
 
 
 class AlgorithmConfig(BaseModel):
-    # TODO: should probably be an enum
-    algorithm_order: list[str] = ["blob"]
+    algorithm_order: list[Algorithms] = [Algorithms.BLOB, Algorithms.HSRAC, Algorithms.RANSAC, Algorithms.HSF]
     blob: BlobConfig = BlobConfig()
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from app.config import AlgorithmConfig, EyeTrackConfig
 from app.utils import WorkerProcess, BaseAlgorithm
-from app.types import EyeData, EyeID
+from app.types import EyeData, EyeID, Algorithms
 from queue import Queue
 import cv2
 
@@ -37,13 +37,13 @@ class EyeProcessor(WorkerProcess):
     def setup_algorithms(self) -> None:
         self.algorithms.clear()
         for algorithm in self.config.algorithm_order:
-            if algorithm == "blob":
+            if algorithm == Algorithms.BLOB:
                 self.algorithms.append(self.blob)
-            elif algorithm == "hsf":
+            elif algorithm == Algorithms.HSF:
                 self.algorithms.append(self.hsf)
-            elif algorithm == "hsrac":
+            elif algorithm == Algorithms.HSRAC:
                 self.algorithms.append(self.hsrac)
-            elif algorithm == "ransac":
+            elif algorithm == Algorithms.RANSAC:
                 self.algorithms.append(self.ransac)
             else:
                 self.logger.warning(f"Unknown algorithm {algorithm}")
