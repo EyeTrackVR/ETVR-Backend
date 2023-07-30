@@ -39,7 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x ./.github/scripts/prepareCMD.sh
-          semantic-release -config ./github/scripts/.releaserc
+          semantic-release -config ./.github/scripts/.releaserc
       - name: PyInstaller Windows
         uses: JackMcKew/pyinstaller-action-windows@python3-10-pyinstaller-5-3
         with:
