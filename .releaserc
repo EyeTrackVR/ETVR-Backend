@@ -174,7 +174,6 @@
       {
         "assets": [
           "LICENSE*",
-          "pyproject.toml",
           "CHANGELOG.md"
         ],
         "message": "chore(${nextRelease.type}): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
