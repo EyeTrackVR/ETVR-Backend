@@ -19,23 +19,45 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           token: ${{ env.GITHUB_TOKEN }}
-      - name: PyInstaller Windows
-        uses: JackMcKew/pyinstaller-action-windows@python3-10-pyinstaller-5-3
-        with:
-          path: TrackingBackend
-      - name: PyInstaller Linux
-        uses: JackMcKew/pyinstaller-action-linux@python3.10
-        with:
-          path: TrackingBackend
-      #- name: Rename Linux Binary
-      #  run: |
-      #    mv dist/ETVR
+      - name: Set up Python
+        uses: actions/setup-python@v2	
+        with:	
+          python-version: 3.10
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v2.0.0	
+        with:	
+          poetry-version: 1.5.1
+
+      - name: Install python dependencies (Linux)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: poetry install -E pyinstaller
+    
+      - name: Install python dependencies (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: poetry install --extras "Windows pyinstaller"
+
+      - name: Build Backend
+        run: poetry run pyinstaller ETVR.spec TrackingBackend/main.py
+      #- name: PyInstaller Windows
+      #  uses: JackMcKew/pyinstaller-action-windows@python3-10-pyinstaller-5-3
+      #  with:
+      #    path: TrackingBackend
+      #- name: PyInstaller Linux
+      #  uses: JackMcKew/pyinstaller-action-linux@python3.10
+      #  with:
+      #    path: TrackingBackend
+      - name: Rename Linux Binary
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: mv ./dist/ETVR ./dist/ETVR.bin
       - uses: actions/upload-artifact@v2
         with:
           name: production-files
