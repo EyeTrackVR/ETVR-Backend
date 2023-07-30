@@ -76,7 +76,9 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         #mv ./dist/ETVR ./dist/ETVR.bin
         run: |
-          ls -a
+          ls -a dist
+          mv ./dist/main ./dist/main.bin
+
       - uses: actions/upload-artifact@v2
         with:
           name: production-files
