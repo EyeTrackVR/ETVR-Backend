@@ -3,6 +3,13 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.0.2](https://github.com/ShyAssassin/ETVR-Backend/compare/v1.0.1...v1.0.2) (2023-07-31)
+
+
+### 🐛 Bug Fixes
+
+* custom config paths work now ([b0e5b1d](https://github.com/ShyAssassin/ETVR-Backend/commit/b0e5b1dde9b3fcad2fb9b8736f2796c8910050ec))
+
 ## [1.0.1](https://github.com/ShyAssassin/ETVR-Backend/compare/v1.0.0...v1.0.1) (2023-07-30)
 
 
