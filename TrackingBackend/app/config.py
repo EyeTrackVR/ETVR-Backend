@@ -114,11 +114,11 @@ class EyeTrackConfig(BaseModel):
             except (PermissionError, json.JSONDecodeError):
                 logger.error("Failed to load config, file is locked, Retrying...")
                 # FIXME: we need to check if the file has a lock
-                return self.load()
+                return self.load(file=file)
             except ValidationError as e:
                 logger.error(f"Invalid Data found in config, replacing with default values.\n{e}")
 
-        self.save()
+        self.save(file=file)
         return self
 
     async def update(self, request: Request) -> None:
