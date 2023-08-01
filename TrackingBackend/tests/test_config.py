@@ -43,17 +43,45 @@ def test_config_load():
 
     config = EyeTrackConfig()
     config.load(".pytest_cache/test_config.json")
-    assert config.return_config() == EyeTrackConfig().return_config()
+    assert config == EyeTrackConfig()
+
+
+def test_config_load_modified():
+    # remove the test config if it exists
+    if os.path.exists(".pytest_cache/test_config.json"):
+        os.remove(".pytest_cache/test_config.json")
+
+    original_config = EyeTrackConfig()
+    original_config.version = 3
+    original_config.save(".pytest_cache/test_config.json")
+    assert os.path.exists(".pytest_cache/test_config.json")
+
+    config = EyeTrackConfig()
+    config.load(".pytest_cache/test_config.json")
+    assert config == original_config
+
+
+def test_config_load_invalid():
+    # remove the test config if it exists
+    if os.path.exists(".pytest_cache/test_config.json"):
+        os.remove(".pytest_cache/test_config.json")
+
+    with open(".pytest_cache/test_config.json", "w") as f:
+        f.write("invalid json")
+
+    config = EyeTrackConfig()
+    config.load(".pytest_cache/test_config.json")
+    assert config == EyeTrackConfig()
 
 
 def test_config_upate_attributes():
     config = EyeTrackConfig()
-    
+
     config.update_attributes({"version": 3})
     assert config.return_config()["version"] == 3
 
     config.update_attributes({"osc": {"address": "localhost"}})
     assert config.return_config()["osc"]["address"] == "localhost"
 
-    config.update_attributes({"osc": {"endpoints": {"eyes_y": "/eyes/y/pytest"}}})
-    assert config.return_config()["osc"]["endpoints"]["eyes_y"] == "/eyes/y/pytest"
+    config.update_attributes({"osc": {"endpoints": {"eyes_y": "/avatar/parameters/EyesPytest"}}})
+    assert config.return_config()["osc"]["endpoints"]["eyes_y"] == "/avatar/parameters/EyesPytest"
