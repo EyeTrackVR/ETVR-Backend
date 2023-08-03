@@ -17,13 +17,7 @@ class BaseAlgorithm:
         tx: float = x / width
         ty: float = y / height
 
-        if tx < 0.5:
-            tx = 1 - (tx * 2)
-        else:
-            tx = (tx * -2) + 1
-        if ty < 0.5:
-            ty = 1 - (ty * 2)
-        else:
-            ty = (ty * -2) + 1
+        tx = 2 * (tx - 0.5)
+        ty = 2 * (ty - 0.5)
 
         return tx, ty
