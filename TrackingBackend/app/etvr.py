@@ -16,6 +16,7 @@ class ETVR:
     def __init__(self):
         self.config: EyeTrackConfig = EyeTrackConfig()
         self.config.load()
+        self.running: bool = False
         # IPC stuff
         self.manager = Manager()
         self.osc_queue: Queue[EyeData] = self.manager.Queue()
@@ -37,6 +38,7 @@ class ETVR:
         self.router.add_api_route("/etvr/start", self.start, methods=["GET"])
         self.router.add_api_route("/etvr/stop", self.stop, methods=["GET"])
         self.router.add_api_route("/etvr/restart", self.restart, methods=["GET"])
+        self.router.add_api_route("/etvr/status", lambda: self.running, methods=["GET"])
         # camera stuff
         self.router.add_api_route("/etvr/camera_l/status", self.tracker_left.camera.get_state, methods=["GET"])
         self.router.add_api_route("/etvr/camera_r/status", self.tracker_right.camera.get_state, methods=["GET"])
@@ -47,6 +49,7 @@ class ETVR:
         self.tracker_right.start()
         self.osc_sender.start()
         self.osc_receiver.start()
+        self.running = True
 
     def stop(self) -> None:
         logger.debug("Stopping...")
@@ -54,6 +57,7 @@ class ETVR:
         self.tracker_right.stop()
         self.osc_sender.stop()
         self.osc_receiver.stop()
+        self.running = False
 
     def restart(self) -> None:
         self.stop()
