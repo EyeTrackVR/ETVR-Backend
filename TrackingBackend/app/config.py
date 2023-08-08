@@ -132,6 +132,8 @@ class EyeTrackConfig(BaseModel):
             logger.error(f"Failed to update config with new values!\n{e}")
             if type(e) is ValidationError:
                 raise HTTPException(status_code=400, detail=e.errors(include_url=False, include_context=False))
+            else:
+                raise HTTPException(status_code=400, detail=str(e))
 
     def update_attributes(self, data: dict, parents: list[str] = []) -> None:
         for name in data.keys():
