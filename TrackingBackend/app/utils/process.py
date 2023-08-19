@@ -8,6 +8,15 @@ from os import path
 import time
 import typing
 
+# Welcome to assassin's multiprocessing hell here is your complimentary gas mask, flamethrower, fire extinguisher, and bible
+# Here are some rules to follow:
+# 1. Try not to share objects between processes
+# 2. If you have to share objects between processes, use a manager
+# 3. Do not pass a manager to a child process, it will not work
+# 4. If you have to register a complex object to a manager, create a proxy
+# 5. Queue's are your friend, use them
+# I hope you enjoy your stay
+
 
 # This is a simple wrapper around the multiprocessing.Process class
 # we are using it to abstract some of the more painful parts of multiprocessing
@@ -22,6 +31,7 @@ class WorkerProcess:
         self.logger = get_logger(self.__module__)
         self.logger.debug(f"Created process `{self.__name}`")
 
+    # TODO: we should add a event so we can gracefully shutdown the process
     def _run_process(self) -> None:
         # since we are in a child process, we need to recreate some objects that arent shared
         try:
@@ -98,9 +108,6 @@ class WorkerProcess:
         pass
 
     def on_config_update(self, config: EyeTrackConfig) -> None:
-        # TODO: this shouldnt be requird, config should be fully managed by this parent class,
-        # each child should be able to set what config class it uses and the parent should manage it automatically.
-        # this is a temporary solution to get around the fact that worker processes currently have different config objects.
         pass
 
     def __del__(self) -> None:
