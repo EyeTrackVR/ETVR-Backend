@@ -140,7 +140,7 @@ class EyeTrackConfig(BaseModel):
             # if the value is a dict it means we are updating a nested config
             # so we need to recursively update all the values in the subconfig individually
             # if we don't do this we will overwrite the entire subconfig with default and partial values
-            if type(data[name]) is dict:
+            if isinstance(data[name], dict):
                 self.update_attributes(data[name], parents + [name])
             else:
                 obj = self
