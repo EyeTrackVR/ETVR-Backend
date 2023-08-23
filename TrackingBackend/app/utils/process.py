@@ -6,7 +6,6 @@ from watchdog.observers.api import BaseObserver
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 from os import path
 import time
-import typing
 
 # Welcome to assassin's multiprocessing realm
 # To not repeat the same mistakes I made, here are some tips:
@@ -17,7 +16,6 @@ import typing
 # 5. Queue's are your friend, use them
 
 
-# FIXME: Abstract the config watcher into a separate class
 # This is a simple wrapper around the multiprocessing.Process class
 # we are using it to abstract some of the more painful parts of multiprocessing
 class WorkerProcess:
@@ -26,7 +24,8 @@ class WorkerProcess:
         self.__shutdown_event = Event()
         self.__last_config_update = 0.0
         self.__process: Process = Process()
-        self.__observer: BaseObserver = Observer()
+        # TODO: Abstract the config watcher into a separate class
+        self.__observer: BaseObserver = None  # type: ignore[assignment]
         self.__event_handler = FileSystemEventHandler()
         self.base_config: EyeTrackConfig = EyeTrackConfig()
         self.logger = get_logger(self.__module__)
@@ -49,6 +48,7 @@ class WorkerProcess:
 
     def on_config_update(self, config: EyeTrackConfig) -> None:
         """callback function that is called when any part of the config is updated."""
+
     # endregion
 
     def _run(self) -> None:
@@ -76,6 +76,7 @@ class WorkerProcess:
     def setup_watchdog(self) -> None:
         try:
             self.logger.debug(f"Starting config watcher thread for process `{self.__name}`")
+            self.__observer = Observer()
             self.__observer.daemon = True
             self.__observer.name = f"{self.__name} Config Watcher"
             self.__event_handler.on_modified = self.on_file_modified  # type: ignore[method-assign]
@@ -88,7 +89,6 @@ class WorkerProcess:
         except Exception:
             self.logger.exception("Failed to start config watcher thread")
 
-    # FIXME: make this look nicer
     def start(self) -> None:
         if self.is_alive():
             self.logger.debug(f"Process `{self.__name}` requested to start but is already running")
@@ -103,7 +103,6 @@ class WorkerProcess:
         except (TypeError, Exception):
             self.logger.exception(f"Failed to start process `{self.__name}`")
 
-    # FIXME: make this look nicer
     def stop(self) -> None:
         if not self.is_alive():
             self.logger.debug(f"Request to kill dead process `{self.__name}` was made!")
@@ -113,13 +112,16 @@ class WorkerProcess:
             self.__shutdown_event.set()
             self.logger.info(f"Stopping process `{self.__name}`")
             self.__process.join(timeout=5)
-            # if the process is still alive after the timeout, kill it
-            if self.__process.is_alive():
-                self.logger.error(f"Failed to stop `{self.__name}`, killing process...")
-                self.__process.kill()
-                self.__process.join()
         except (AttributeError, Exception):
             self.logger.exception(f"Failed to stop process `{self.__name}`")
+        finally:
+            self.kill()
+
+    def kill(self) -> None:
+        if self.is_alive():
+            self.__process.kill()
+            self.__process.join()
+            self.logger.info(f"Killed process `{self.__name}`")
 
     def on_file_modified(self, event: FileModifiedEvent) -> None:
         # this event is called multiple times when a file is modified
@@ -148,8 +150,10 @@ class WorkerProcess:
         else:
             return self.__process.is_alive()
 
+
 # Example usage:
 if __name__ == "__main__":
+
     class ExampleWorker(WorkerProcess):
         def __init__(self):
             super().__init__("Example Worker")
