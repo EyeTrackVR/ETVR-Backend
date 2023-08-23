@@ -9,8 +9,8 @@ import cv2
 
 # fmt: off
 OPENCV_PARAMS = [
-    cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 5000,
-    cv2.CAP_PROP_READ_TIMEOUT_MSEC, 5000,
+    cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 2500,
+    cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2500,
 ]
 # fmt: on
 
@@ -27,38 +27,30 @@ class Camera(WorkerProcess):
         self.current_capture_source: str = self.config.capture_source
         self.camera: cv2.VideoCapture = None  # type: ignore[assignment]
 
-    def on_config_update(self, config: EyeTrackConfig) -> None:
-        self.config = (config.left_eye, config.right_eye)[bool(self.eye_id.value)]
-
-    def get_state(self) -> CameraState:
-        return CameraState(self.state.get_obj().value)
-
-    def set_state(self, state: CameraState) -> None:
-        # since we cant sync enums directly, so we sync the value of the enum instead
-        self.state.get_obj().value = state.value
-
-    def run(self) -> None:
+    def startup(self) -> None:
         if self.camera is None:
             self.camera = cv2.VideoCapture()
 
-        while True:
-            # If things aren't open, retry until they are. Don't let read requests come in any earlier than this,
-            # otherwise we can deadlock ourselves.
-            if self.config.capture_source != "" and self.config.enabled:
-                # if the camera is disconnected or the capture source has changed, reconnect
-                if self.get_state() == CameraState.DISCONNECTED or self.current_capture_source != self.config.capture_source:
-                    self.connect_camera()
-                else:
-                    self.get_camera_image()
-            else:  # no capture source is defined yet, so we wait :3
-                if not self.config.enabled:
-                    self.set_state(CameraState.DISABLED)
-                else:
-                    self.set_state(CameraState.DISCONNECTED)
-                # if we disable the camera while this process is running
-                # we need to release the camera so we dont memory leak
-                if self.camera.isOpened():
-                    self.camera.release()
+    def run(self) -> None:
+        if not self.config.enabled:
+            self.set_state(CameraState.DISABLED)
+            return
+
+        if self.config.capture_source != "":
+            # if the camera is disconnected or the capture source has changed, reconnect
+            if self.get_state() == CameraState.DISCONNECTED or self.current_capture_source != self.config.capture_source:
+                self.connect_camera()
+            else:
+                self.get_camera_image()
+        else:
+            self.set_state(CameraState.DISCONNECTED)
+
+    def shutdown(self) -> None:
+        if self.camera.isOpened():
+            self.camera.release()
+
+    def on_config_update(self, config: EyeTrackConfig) -> None:
+        self.config = (config.left_eye, config.right_eye)[bool(self.eye_id.value)]
 
     def connect_camera(self) -> None:
         self.set_state(CameraState.CONNECTING)
@@ -107,3 +99,10 @@ class Camera(WorkerProcess):
             self.image_queue.put(frame)
         except Exception:
             self.logger.exception("Failed to push to camera capture queue!")
+
+    def get_state(self) -> CameraState:
+        return CameraState(self.state.get_obj().value)
+
+    def set_state(self, state: CameraState) -> None:
+        # since we cant sync enums directly, so we sync the value of the enum instead
+        self.state.get_obj().value = state.value

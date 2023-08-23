@@ -5,6 +5,7 @@ from enum import Enum
 from dataclasses import dataclass
 import enum
 
+
 # When we upgrade to python 3.11 we can use the built in StrEnum
 class StrEnum(str, enum.Enum):
     def __new__(cls, value, *args, **kwargs):

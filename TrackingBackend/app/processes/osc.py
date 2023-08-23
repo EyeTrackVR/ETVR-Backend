@@ -22,34 +22,41 @@ class VRChatOSC(WorkerProcess):
         self.config: EyeTrackConfig = config
         self.client = SimpleUDPClient(self.config.osc.address, self.config.osc.sending_port)
 
-    def on_config_update(self, config: EyeTrackConfig) -> None:
-        self.config = config
+    # TODO: Since vrchat implements OSCQuery shouldnt rely on the config for this
+    # and instead use the OSCQuery to address and port for vrc
+    def startup(self) -> None:
+        pass
 
     def run(self) -> None:
-        while True:
-            try:
-                eye_data: EyeData = self.osc_queue.get(block=True, timeout=0.5)
-                if not self.config.osc.enable_sending:
-                    continue
-            except Exception:
-                continue
+        try:
+            eye_data: EyeData = self.osc_queue.get(block=True, timeout=0.5)
+            if not self.config.osc.enable_sending:
+                return
+        except Exception:
+            return
 
-            if self.config.osc.mirror_eyes:
-                self.client.send_message(self.config.osc.endpoints.eyes_y, float(eye_data.y))
-                self.client.send_message(self.config.osc.endpoints.left_eye_x, float(eye_data.x))
-                self.client.send_message(self.config.osc.endpoints.right_eye_x, float(eye_data.x))
-                self.client.send_message(self.config.osc.endpoints.left_eye_blink, float(eye_data.blink))
-                self.client.send_message(self.config.osc.endpoints.right_eye_blink, float(eye_data.blink))
-                continue
+        if self.config.osc.mirror_eyes:
+            self.client.send_message(self.config.osc.endpoints.eyes_y, float(eye_data.y))
+            self.client.send_message(self.config.osc.endpoints.left_eye_x, float(eye_data.x))
+            self.client.send_message(self.config.osc.endpoints.right_eye_x, float(eye_data.x))
+            self.client.send_message(self.config.osc.endpoints.left_eye_blink, float(eye_data.blink))
+            self.client.send_message(self.config.osc.endpoints.right_eye_blink, float(eye_data.blink))
+            return
 
-            if eye_data.eye_id == EyeID.LEFT:
-                self.client.send_message(self.config.osc.endpoints.eyes_y, float(eye_data.y))
-                self.client.send_message(self.config.osc.endpoints.left_eye_x, float(eye_data.x))
-                self.client.send_message(self.config.osc.endpoints.left_eye_blink, float(eye_data.blink))
-            elif eye_data.eye_id == EyeID.RIGHT:
-                self.client.send_message(self.config.osc.endpoints.eyes_y, float(eye_data.y))
-                self.client.send_message(self.config.osc.endpoints.right_eye_x, float(eye_data.x))
-                self.client.send_message(self.config.osc.endpoints.right_eye_blink, float(eye_data.blink))
+        if eye_data.eye_id == EyeID.LEFT:
+            self.client.send_message(self.config.osc.endpoints.eyes_y, float(eye_data.y))
+            self.client.send_message(self.config.osc.endpoints.left_eye_x, float(eye_data.x))
+            self.client.send_message(self.config.osc.endpoints.left_eye_blink, float(eye_data.blink))
+        elif eye_data.eye_id == EyeID.RIGHT:
+            self.client.send_message(self.config.osc.endpoints.eyes_y, float(eye_data.y))
+            self.client.send_message(self.config.osc.endpoints.right_eye_x, float(eye_data.x))
+            self.client.send_message(self.config.osc.endpoints.right_eye_blink, float(eye_data.blink))
+
+    def shutdown(self) -> None:
+        pass
+
+    def on_config_update(self, config: EyeTrackConfig) -> None:
+        self.config = config
 
 
 # TODO: refactor this

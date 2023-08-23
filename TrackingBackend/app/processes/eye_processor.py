@@ -30,6 +30,27 @@ class EyeProcessor(WorkerProcess):
         self.ransac: Ransac = Ransac(self)
         # fmt: on
 
+    def startup(self) -> None:
+        self.setup_algorithms()
+
+    def run(self) -> None:
+        try:
+            current_frame = self.image_queue.get(block=True, timeout=0.5)
+            cv2.imshow(f"{self.process_name()}", current_frame)
+            current_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
+        except Exception:
+            return
+
+        result = EyeData(0, 0, 0, self.eye_id)
+        for algorithm in self.algorithms:
+            result = algorithm.run(current_frame, self.eye_id)
+
+        self.osc_queue.put(result)
+        cv2.waitKey(1)
+
+    def shutdown(self) -> None:
+        pass
+
     def on_config_update(self, config: EyeTrackConfig) -> None:
         self.config = config.algorithm
         self.setup_algorithms()
@@ -47,28 +68,3 @@ class EyeProcessor(WorkerProcess):
                 self.algorithms.append(self.ransac)
             else:
                 self.logger.warning(f"Unknown algorithm {algorithm}")
-
-    def run(self) -> None:
-        self.setup_algorithms()
-        while True:
-            try:
-                current_frame = self.image_queue.get(block=True, timeout=0.5)
-                cv2.imshow(f"{self.process_name()}", current_frame)
-                current_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
-            except Exception:
-                continue
-
-            result = EyeData(0, 0, 0, self.eye_id)
-            for algorithm in self.algorithms:
-                result = algorithm.run(current_frame, self.eye_id)
-                # it is unlikely that we will get a result of 0,0,0 we assume tracking is working and use that result
-                if result.x != 0 or result.y != 0:
-                    break
-                else:
-                    self.logger.warning(f"Algorithm {algorithm.__class__.__name__} failed to tack {self.eye_id.name} eye")
-                    continue
-
-            self.osc_queue.put(result)
-
-            # comment this out if you want to get the actual frame rate
-            cv2.waitKey(1)
