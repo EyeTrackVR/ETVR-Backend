@@ -3,6 +3,13 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.0.4](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.0.3...v1.0.4) (2023-09-07)
+
+
+### 🤖 Build System
+
+* enabled `pyproject.toml` versioning ([33f3908](https://github.com/EyeTrackVR/ETVR-Backend/commit/33f390835a9ad1ef4da245ce7a35946cb88cc285))
+
 ## [1.0.3](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.0.2...v1.0.3) (2023-09-07)
 
 

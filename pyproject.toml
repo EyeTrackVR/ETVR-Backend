@@ -1,11 +1,9 @@
+[tool]
 [tool.poetry]
 name = "EyeTrackVR"
-version = "0.2.0"
+version = "1.0.4"
 description = "Opensource, affordable VR eye tracker for VRChat"
-authors = [
-    "ShyAssassin <49711232+ShyAssassin@users.noreply.github.com>",
-    "RedHawk989 <48768484+RedHawk989@users.noreply.github.com>"
-]
+authors = ["ShyAssassin <49711232+ShyAssassin@users.noreply.github.com>", "RedHawk989 <48768484+RedHawk989@users.noreply.github.com>"]
 license = "MIT"
 repository = "https://github.com/RedHawk989/EyeTrackVR"
 
