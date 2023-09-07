@@ -3,6 +3,23 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.0.3](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.0.2...v1.0.3) (2023-09-07)
+
+
+### 🐛 Bug Fixes
+
+* fixed model validation for config updates ([987e65f](https://github.com/EyeTrackVR/ETVR-Backend/commit/987e65fa3a34cfb8d2cbc3de0f73eabe44f75d50))
+
+
+### 📝 Documentation
+
+* add virtual environment instructions ([fb3eaba](https://github.com/EyeTrackVR/ETVR-Backend/commit/fb3eaba19b012f201f3a74d289a33dd99678f7a9))
+
+
+### 🤖 Build System
+
+* Update build.yml to fix early-exit bug ([b46d299](https://github.com/EyeTrackVR/ETVR-Backend/commit/b46d2998a65a41b76c0f65f883f06b4a8877bf2e))
+
 ## [1.0.2](https://github.com/ShyAssassin/ETVR-Backend/compare/v1.0.1...v1.0.2) (2023-07-31)
 
 
