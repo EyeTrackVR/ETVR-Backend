@@ -31,11 +31,11 @@ class AlgorithmConfig(BaseModel):
     def algorithm_order_validator(cls, value: list[Algorithms]) -> list[Algorithms]:
         if len(value) < 1:
             raise ValueError("Algorithm order must contain at least 1 algorithm")
-        
+
         for algorithm in value:
             if algorithm not in Algorithms:
                 raise ValueError("Algorithm order must only contain valid algorithms")
-            
+
         if len(set(value)) != len(value):
             raise ValueError("Algorithm order must not contain duplicate algorithms")
         return value
