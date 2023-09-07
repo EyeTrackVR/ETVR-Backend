@@ -27,6 +27,19 @@ class AlgorithmConfig(BaseModel):
     algorithm_order: list[Algorithms] = [Algorithms.BLOB, Algorithms.HSRAC, Algorithms.RANSAC, Algorithms.HSF]
     blob: BlobConfig = BlobConfig()
 
+    @field_validator("algorithm_order")
+    def algorithm_order_validator(cls, value: list[Algorithms]) -> list[Algorithms]:
+        if len(value) < 1:
+            raise ValueError("Algorithm order must contain at least 1 algorithm")
+        
+        for algorithm in value:
+            if algorithm not in Algorithms:
+                raise ValueError("Algorithm order must only contain valid algorithms")
+            
+        if len(set(value)) != len(value):
+            raise ValueError("Algorithm order must not contain duplicate algorithms")
+        return value
+
 
 class OSCConfigEndpoints(BaseModel):
     eyes_y: str = "/avatar/parameters/EyesY"
@@ -109,14 +122,15 @@ class EyeTrackConfig(BaseModel):
             try:
                 with open(file, "r", encoding="utf8") as config:
                     data = config.read()
-                    # If the config has invalid attributes, pydantic will replace them with default values
                     self.__dict__.update(self.model_validate_json(data))
-            except (PermissionError, json.JSONDecodeError):
-                logger.error("Failed to load config, file is locked, Retrying...")
-                # FIXME: we need to check if the file has a lock
+            except (json.JSONDecodeError, ValidationError) as e:
+                if type(e) is ValidationError:
+                    logger.error(f"Invalid data found in config\n{e}")
+                logger.critical("Config is corrupted, creating backup and regenerating")
+                os.rename(file, f"{file}.backup")
+            except PermissionError:
+                logger.error("Permission Denied, assuming config has lock, Retrying...")
                 return self.load(file=file)
-            except ValidationError as e:
-                logger.error(f"Invalid Data found in config, replacing with default values.\n{e}")
 
         self.save(file=file)
         return self
@@ -125,7 +139,7 @@ class EyeTrackConfig(BaseModel):
         data = await request.json()
         try:
             # make sure all data is valid before we update the config
-            self.model_validate(data)
+            self.model_validate_json(data)
             self.update_attributes(data)
             self.save()
         except (ValidationError, Exception) as e:
