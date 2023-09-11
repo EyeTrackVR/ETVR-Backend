@@ -163,7 +163,7 @@ class EyeTrackConfig(BaseModel):
                 if type(e) is ValidationError:
                     logger.error(f"Invalid data found in config\n{e}")
                 logger.critical("Config is corrupted, creating backup and regenerating")
-                os.rename(file, f"{file}.backup")
+                os.replace(file, f"{file}.backup")
             except PermissionError:
                 logger.error("Permission Denied, assuming config has lock, Retrying...")
                 return self.load(file=file)
