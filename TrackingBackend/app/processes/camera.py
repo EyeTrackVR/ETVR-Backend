@@ -32,10 +32,6 @@ class Camera(WorkerProcess):
             self.camera = cv2.VideoCapture()
 
     def run(self) -> None:
-        if not self.config.enabled:
-            self.set_state(CameraState.DISABLED)
-            return
-
         if self.config.capture_source != "":
             # if the camera is disconnected or the capture source has changed, reconnect
             if self.get_state() == CameraState.DISCONNECTED or self.current_capture_source != self.config.capture_source:

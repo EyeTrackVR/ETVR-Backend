@@ -21,10 +21,17 @@ class StrEnum(str, enum.Enum):
 
 
 class Algorithms(StrEnum):
-    BLOB = "BLOB"
     HSF = "HSF"
+    BLOB = "BLOB"
     HSRAC = "HSRAC"
     RANSAC = "RANSAC"
+
+
+class DevicePosition(StrEnum):
+    MOUTH = "mouth"
+    LEFT_EYE = "left_eye"
+    RIGHT_EYE = "right_eye"
+    UNDEFINED = "undefined"
 
 
 class LogLevel(Enum):

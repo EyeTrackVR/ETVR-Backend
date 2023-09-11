@@ -1,11 +1,12 @@
 from __future__ import annotations
+import uuid
 import json
 import os.path
 import re
 from pydantic import BaseModel, ValidationError, field_validator
 from .logger import get_logger
 from fastapi import Request, HTTPException
-from app.types import Algorithms
+from app.types import Algorithms, DevicePosition
 
 logger = get_logger()
 
@@ -77,7 +78,6 @@ class OSCConfig(BaseModel):
 
 
 class CameraConfig(BaseModel):
-    enabled: bool = True
     capture_source: str = ""
     threshold: int = 50
     focal_length: int = 30
@@ -103,6 +103,22 @@ class CameraConfig(BaseModel):
         return value
 
 
+class DeviceConfig(BaseModel):
+    enabled: bool = False
+    name: str = ""
+    uuid: str = ""
+    device_position: DevicePosition = DevicePosition.UNDEFINED
+    algorithm: AlgorithmConfig = AlgorithmConfig()
+    camera: CameraConfig = CameraConfig()
+
+    @field_validator("uuid")
+    def uuid_validator(cls, value: str) -> str:
+        if value == "":
+            logger.warning("No UUID found for device, generating one")
+            return str(uuid.uuid4())
+        return value
+
+
 class EyeTrackConfig(BaseModel):
     version: int = 2
     debug: bool = True  # For future use
@@ -110,6 +126,26 @@ class EyeTrackConfig(BaseModel):
     left_eye: CameraConfig = CameraConfig()
     right_eye: CameraConfig = CameraConfig()
     algorithm: AlgorithmConfig = AlgorithmConfig()
+    devices: list[DeviceConfig] = [
+        DeviceConfig(
+            enabled=True,
+            name="ETVR: Left Eye",
+            uuid=str(uuid.uuid4()),
+            device_position=DevicePosition.LEFT_EYE,
+        ),
+        DeviceConfig(
+            enabled=True,
+            name="ETVR: Right Eye",
+            uuid=str(uuid.uuid4()),
+            device_position=DevicePosition.RIGHT_EYE,
+        ),
+        DeviceConfig(
+            enabled=False,
+            name="Babble: Mouth",
+            uuid=str(uuid.uuid4()),
+            device_position=DevicePosition.MOUTH,
+        ),
+    ]
 
     def save(self, file: str = CONFIG_FILE) -> None:
         with open(file, "w+", encoding="utf8") as settings_file:
@@ -155,6 +191,8 @@ class EyeTrackConfig(BaseModel):
             # so we need to recursively update all the values in the subconfig individually
             # if we don't do this we will overwrite the entire subconfig with default and partial values
             if isinstance(data[name], dict):
+                if name == "devices":
+                    logger.warning("Updating devices array directly, this may cause unexpected behaviour")
                 self.update_attributes(data[name], parents + [name])
             else:
                 obj = self
@@ -169,3 +207,36 @@ class EyeTrackConfig(BaseModel):
 
     def return_config(self) -> dict:
         return self.model_dump()
+
+    @field_validator("devices")
+    def devices_uuid_validator(cls, value: list[DeviceConfig]) -> list[DeviceConfig]:
+        uuids = []
+        for device in value:
+            if device.uuid in uuids:
+                logger.warning(f"Duplicate UUID found for device {device.name}, generating new UUID")
+                device.uuid = str(uuid.uuid4())
+            uuids.append(device.uuid)
+        return value
+
+    @field_validator("devices")
+    def devices_enabled_validator(cls, value: list[DeviceConfig]) -> list[DeviceConfig]:
+        # make sure we only have one device per position, if we have multiple we disable all occurences after the first
+        enabled = []
+        for device in value:
+            if device.enabled:
+                if device.device_position in enabled:
+                    logger.warning(f"Multiple devices found with position `{device.device_position.name}`")
+                    logger.warning(f"Disabling device `{device.name}`, with UUID `{device.uuid}`")
+                    device.enabled = False
+                else:
+                    enabled.append(device.device_position)
+        return value
+
+    @field_validator("devices")
+    def devices_position_validator(cls, value: list[DeviceConfig]) -> list[DeviceConfig]:
+        # if the device has no position we disable it
+        for device in value:
+            if device.device_position == DevicePosition.UNDEFINED and device.enabled:
+                logger.warning(f"Device `{device.name}` with uuid `{device.uuid}` has no position, disabling it")
+                device.enabled = False
+        return value
