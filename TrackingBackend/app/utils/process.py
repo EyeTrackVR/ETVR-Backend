@@ -147,10 +147,6 @@ class WorkerProcess:
             self.__process.join()
             self.logger.info(f"Killed process `{self.name}`")
 
-    def __del__(self) -> None:
-        if self.is_alive():
-            self.stop()
-
     def restart(self) -> None:
         self.stop()
         self.start()
@@ -163,6 +159,15 @@ class WorkerProcess:
             return False
         else:
             return self.__process.is_alive()
+
+    def __del__(self) -> None:
+        if self.is_alive():
+            self.stop()
+
+    def __repr__(self) -> str:
+        parent_class = self.__class__.__bases__[0].__name__
+        child_class = self.__class__.__name__
+        return f"{parent_class}(child={child_class}, name='{self.name}' alive={self.is_alive()}, uuid='{self.uuid}')"
 
 
 # Example usage:
