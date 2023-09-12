@@ -27,7 +27,7 @@ class Algorithms(StrEnum):
     RANSAC = "RANSAC"
 
 
-class DevicePosition(StrEnum):
+class TrackerPosition(StrEnum):
     MOUTH = "mouth"
     LEFT_EYE = "left_eye"
     RIGHT_EYE = "right_eye"

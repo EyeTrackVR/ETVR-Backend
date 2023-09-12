@@ -6,7 +6,7 @@ import re
 from pydantic import BaseModel, ValidationError, field_validator
 from .logger import get_logger
 from fastapi import Request, HTTPException
-from app.types import Algorithms, DevicePosition
+from app.types import Algorithms, TrackerPosition
 
 logger = get_logger()
 
@@ -103,11 +103,11 @@ class CameraConfig(BaseModel):
         return value
 
 
-class DeviceConfig(BaseModel):
+class TrackerConfig(BaseModel):
     enabled: bool = False
     name: str = ""
     uuid: str = ""
-    device_position: DevicePosition = DevicePosition.UNDEFINED
+    tracker_position: TrackerPosition = TrackerPosition.UNDEFINED
     algorithm: AlgorithmConfig = AlgorithmConfig()
     camera: CameraConfig = CameraConfig()
 
@@ -126,24 +126,24 @@ class EyeTrackConfig(BaseModel):
     left_eye: CameraConfig = CameraConfig()
     right_eye: CameraConfig = CameraConfig()
     algorithm: AlgorithmConfig = AlgorithmConfig()
-    devices: list[DeviceConfig] = [
-        DeviceConfig(
+    trackers: list[TrackerConfig] = [
+        TrackerConfig(
             enabled=True,
             name="ETVR: Left Eye",
             uuid=str(uuid.uuid4()),
-            device_position=DevicePosition.LEFT_EYE,
+            tracker_position=TrackerPosition.LEFT_EYE,
         ),
-        DeviceConfig(
+        TrackerConfig(
             enabled=True,
             name="ETVR: Right Eye",
             uuid=str(uuid.uuid4()),
-            device_position=DevicePosition.RIGHT_EYE,
+            tracker_position=TrackerPosition.RIGHT_EYE,
         ),
-        DeviceConfig(
+        TrackerConfig(
             enabled=False,
             name="Babble: Mouth",
             uuid=str(uuid.uuid4()),
-            device_position=DevicePosition.MOUTH,
+            tracker_position=TrackerPosition.MOUTH,
         ),
     ]
 
@@ -208,35 +208,35 @@ class EyeTrackConfig(BaseModel):
     def return_config(self) -> dict:
         return self.model_dump()
 
-    @field_validator("devices")
-    def devices_uuid_validator(cls, value: list[DeviceConfig]) -> list[DeviceConfig]:
+    @field_validator("trackers")
+    def trackers_uuid_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
         uuids = []
-        for device in value:
-            if device.uuid in uuids:
-                logger.warning(f"Duplicate UUID found for device {device.name}, generating new UUID")
-                device.uuid = str(uuid.uuid4())
-            uuids.append(device.uuid)
+        for tracker in value:
+            if tracker.uuid in uuids:
+                logger.warning(f"Duplicate UUID found for tracker {tracker.name}, generating new UUID")
+                tracker.uuid = str(uuid.uuid4())
+            uuids.append(tracker.uuid)
         return value
 
-    @field_validator("devices")
-    def devices_enabled_validator(cls, value: list[DeviceConfig]) -> list[DeviceConfig]:
+    @field_validator("trackers")
+    def trackers_enabled_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
         # make sure we only have one device per position, if we have multiple we disable all occurences after the first
         enabled = []
-        for device in value:
-            if device.enabled:
-                if device.device_position in enabled:
-                    logger.warning(f"Multiple devices found with position `{device.device_position.name}`")
-                    logger.warning(f"Disabling device `{device.name}`, with UUID `{device.uuid}`")
-                    device.enabled = False
+        for tracker in value:
+            if tracker.enabled:
+                if tracker.tracker_position in enabled:
+                    logger.warning(f"Multiple devices found with position `{tracker.tracker_position.name}`")
+                    logger.warning(f"Disabling tracker `{tracker.name}`, with UUID `{tracker.uuid}`")
+                    tracker.enabled = False
                 else:
-                    enabled.append(device.device_position)
+                    enabled.append(tracker.tracker_position)
         return value
 
-    @field_validator("devices")
-    def devices_position_validator(cls, value: list[DeviceConfig]) -> list[DeviceConfig]:
+    @field_validator("trackers")
+    def trackers_position_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
         # if the device has no position we disable it
-        for device in value:
-            if device.device_position == DevicePosition.UNDEFINED and device.enabled:
-                logger.warning(f"Device `{device.name}` with uuid `{device.uuid}` has no position, disabling it")
-                device.enabled = False
+        for tracker in value:
+            if tracker.tracker_position == TrackerPosition.UNDEFINED and tracker.enabled:
+                logger.warning(f"Tracker `{tracker.name}` with uuid `{tracker.uuid}` has no position, disabling it")
+                tracker.enabled = False
         return value
