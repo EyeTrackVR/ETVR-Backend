@@ -42,11 +42,6 @@ class LogLevel(Enum):
     CRITICAL = logging.CRITICAL
 
 
-class EyeID(Enum):
-    LEFT = 0
-    RIGHT = 1
-
-
 class CameraState(Enum):
     DISCONNECTED = 0
     CONNECTED = 1
@@ -59,4 +54,4 @@ class EyeData:
     x: float
     y: float
     blink: float
-    eye_id: EyeID
+    position: TrackerPosition

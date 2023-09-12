@@ -123,9 +123,6 @@ class EyeTrackConfig(BaseModel):
     version: int = 2
     debug: bool = True  # For future use
     osc: OSCConfig = OSCConfig()
-    left_eye: CameraConfig = CameraConfig()
-    right_eye: CameraConfig = CameraConfig()
-    algorithm: AlgorithmConfig = AlgorithmConfig()
     trackers: list[TrackerConfig] = [
         TrackerConfig(
             enabled=True,
@@ -198,7 +195,7 @@ class EyeTrackConfig(BaseModel):
             # if we don't do this we will overwrite the entire subconfig with default and partial values
             if isinstance(data[name], dict):
                 if name == "devices":
-                    logger.warning("Updating devices array directly, this may cause unexpected behaviour")
+                    logger.warning("Updating trackers array directly, this may cause unexpected behaviour")
                 self.update_attributes(data[name], parents + [name])
             else:
                 obj = self

@@ -5,13 +5,12 @@ from app.processes import VRChatOSCReceiver, VRChatOSC
 from multiprocessing import Manager
 from queue import Queue
 from fastapi import APIRouter
-from .types import EyeID, EyeData
+from .types import EyeData
+from app.utils import clear_queue
 
 logger = get_logger()
 
 
-# might be temporary, not sure if we are gonna use something else for IPC
-# TODO: talk to Zanzy / lorrow about this!
 class ETVR:
     def __init__(self):
         self.config: EyeTrackConfig = EyeTrackConfig()
@@ -21,13 +20,23 @@ class ETVR:
         self.manager = Manager()
         self.osc_queue: Queue[EyeData] = self.manager.Queue()
         # OSC stuff
-        self.osc_sender: VRChatOSC = VRChatOSC(self.config, self.osc_queue)
-        self.osc_receiver: VRChatOSCReceiver = VRChatOSCReceiver(self.config)
+        self.osc_sender = VRChatOSC(self.config, self.osc_queue)
+        self.osc_receiver = VRChatOSCReceiver(self.config)
         # Trackers
-        self.tracker_left: Tracker = Tracker(EyeID.LEFT, self.config, self.osc_queue, self.manager)
-        self.tracker_right: Tracker = Tracker(EyeID.RIGHT, self.config, self.osc_queue, self.manager)
+        self.trackers: list[Tracker] = []
+        self.setup_trackers()
         # Object for fastapi routes
         self.router: APIRouter = APIRouter()
+
+    def setup_trackers(self) -> None:
+        logger.debug("Setting up trackers")
+        for tracker in self.trackers:
+            tracker.stop()
+
+        self.trackers.clear()
+        for tracker_config in self.config.trackers:
+            if tracker_config.enabled:
+                self.trackers.append(Tracker(tracker_config, self.osc_queue, self.manager))
 
     def add_routes(self) -> None:
         logger.debug("Adding routes to ETVR")
@@ -40,23 +49,26 @@ class ETVR:
         self.router.add_api_route("/etvr/restart", self.restart, methods=["GET"])
         self.router.add_api_route("/etvr/status", lambda: self.running, methods=["GET"])
         # camera stuff
-        self.router.add_api_route("/etvr/camera_l/status", self.tracker_left.camera.get_state, methods=["GET"])
-        self.router.add_api_route("/etvr/camera_r/status", self.tracker_right.camera.get_state, methods=["GET"])
+        # self.router.add_api_route("/etvr/camera_l/status", self.tracker_left.camera.get_state, methods=["GET"])
+        # self.router.add_api_route("/etvr/camera_r/status", self.tracker_right.camera.get_state, methods=["GET"])
 
     def start(self) -> None:
         logger.debug("Starting...")
-        self.tracker_left.start()
-        self.tracker_right.start()
+        # TODO: we should have a endpoint to start individual trackers
+        for tracker in self.trackers:
+            tracker.start()
         self.osc_sender.start()
         self.osc_receiver.start()
         self.running = True
 
     def stop(self) -> None:
         logger.debug("Stopping...")
-        self.tracker_left.stop()
-        self.tracker_right.stop()
+        # TODO: we should have a endpoint to stop individual trackers
+        for tracker in self.trackers:
+            tracker.stop()
         self.osc_sender.stop()
         self.osc_receiver.stop()
+        clear_queue(self.osc_queue)
         self.running = False
 
     def restart(self) -> None:
