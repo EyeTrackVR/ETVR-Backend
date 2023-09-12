@@ -129,33 +129,39 @@ class EyeTrackConfig(BaseModel):
     trackers: list[TrackerConfig] = [
         TrackerConfig(
             enabled=True,
-            name="ETVR: Left Eye",
+            name="Left Eye",
             uuid=str(uuid.uuid4()),
             tracker_position=TrackerPosition.LEFT_EYE,
         ),
         TrackerConfig(
             enabled=True,
-            name="ETVR: Right Eye",
+            name="Right Eye",
             uuid=str(uuid.uuid4()),
             tracker_position=TrackerPosition.RIGHT_EYE,
         ),
         TrackerConfig(
             enabled=False,
-            name="Babble: Mouth",
+            name="Mouth",
             uuid=str(uuid.uuid4()),
             tracker_position=TrackerPosition.MOUTH,
         ),
     ]
 
     def save(self, file: str = CONFIG_FILE) -> None:
-        with open(file, "w+", encoding="utf8") as settings_file:
-            json.dump(obj=self.model_dump(), fp=settings_file, indent=4)
+        try:
+            # FIXME: we need to check if the file is locked before we try to open it
+            with open(file, "w+", encoding="utf8") as settings_file:
+                json.dump(obj=self.model_dump(), fp=settings_file, indent=4)
+        except PermissionError:
+            logger.error(f"Permission Denied `{file}`, assuming config has lock, Retrying...")
+            self.save(file=file)
 
     def load(self, file: str = CONFIG_FILE) -> EyeTrackConfig:
         if not os.path.exists(file):
             logger.info("No config file found, using base settings")
         else:
             try:
+                # FIXME: we need to check if the file is locked before we try to open it
                 with open(file, "r", encoding="utf8") as config:
                     data = config.read()
                     self.__dict__.update(self.model_validate_json(data))
@@ -205,6 +211,12 @@ class EyeTrackConfig(BaseModel):
                     logger.debug(f"Setting Config{''.join(['[', *parents, ']']).replace('[]', '')}[{name}] to {value}")
                     setattr(obj, name, value)
 
+    def get_tracker_by_uuid(self, uuid: str) -> TrackerConfig:
+        for tracker in self.trackers:
+            if tracker.uuid == uuid:
+                return tracker
+        raise ValueError(f"No tracker found with UUID `{uuid}`")
+
     def return_config(self) -> dict:
         return self.model_dump()
 
@@ -220,7 +232,8 @@ class EyeTrackConfig(BaseModel):
 
     @field_validator("trackers")
     def trackers_enabled_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
-        # make sure we only have one device per position, if we have multiple we disable all occurences after the first
+        # make sure we only have one tracker per position active at one time,
+        # if we have multiple we disable all occurences after the first
         enabled = []
         for tracker in value:
             if tracker.enabled:
@@ -234,7 +247,7 @@ class EyeTrackConfig(BaseModel):
 
     @field_validator("trackers")
     def trackers_position_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
-        # if the device has no position we disable it
+        # if the tracker has no position we disable it
         for tracker in value:
             if tracker.tracker_position == TrackerPosition.UNDEFINED and tracker.enabled:
                 logger.warning(f"Tracker `{tracker.name}` with uuid `{tracker.uuid}` has no position, disabling it")
