@@ -120,7 +120,7 @@ class TrackerConfig(BaseModel):
 
 
 class EyeTrackConfig(BaseModel):
-    version: int = 2
+    version: int = 3
     debug: bool = True  # For future use
     osc: OSCConfig = OSCConfig()
     trackers: list[TrackerConfig] = [
