@@ -227,7 +227,7 @@ class EyeTrackConfig(BaseModel):
             logger.error(f"Failed to update tracker config with new values!\n{e}")
             self.__HTTPException(e)
 
-    async def create_tracker(self, tracker: TrackerConfig) -> None:
+    async def create_tracker(self, tracker: TrackerConfig) -> TrackerConfig:
         try:
             tracker = TrackerConfig.model_validate(tracker)
             self.trackers.append(tracker)
@@ -235,6 +235,7 @@ class EyeTrackConfig(BaseModel):
         except (ValidationError, Exception) as e:
             logger.error(f"Failed to create tracker!\n{e}")
             self.__HTTPException(e)
+        return tracker
 
     async def delete_tracker(self, uuid: str) -> None:
         try:
