@@ -10,6 +10,8 @@ from app.types import Algorithms, TrackerPosition
 
 logger = get_logger()
 
+# FIXME: when compiled to exe the config file is not found and not created
+# we should probably explicitly set the path to the config file at runtime
 CONFIG_FILE = "tracker-config.json"
 # https://regex101.com/r/qlLITU/1
 IP_ADDRESS_REGEX = (
@@ -119,6 +121,7 @@ class TrackerConfig(BaseModel):
         return value
 
 
+# FIXME: before opening any files we should check if they are locked
 class EyeTrackConfig(BaseModel):
     version: int = 3
     debug: bool = True  # For future use
@@ -146,7 +149,6 @@ class EyeTrackConfig(BaseModel):
 
     def save(self, file: str = CONFIG_FILE) -> None:
         try:
-            # FIXME: we need to check if the file is locked before we try to open it
             with open(file, "w+", encoding="utf8") as settings_file:
                 json.dump(obj=self.model_dump(), fp=settings_file, indent=4)
         except PermissionError:
@@ -158,7 +160,6 @@ class EyeTrackConfig(BaseModel):
             logger.info("No config file found, using base settings")
         else:
             try:
-                # FIXME: we need to check if the file is locked before we try to open it
                 with open(file, "r", encoding="utf8") as config:
                     data = config.read()
                     self.__dict__.update(self.model_validate_json(data))
@@ -174,39 +175,20 @@ class EyeTrackConfig(BaseModel):
         self.save(file=file)
         return self
 
-    async def update(self, request: Request) -> None:
-        data = await request.json()
-        try:
-            # make sure all data is valid before we update the config
-            self.model_validate_json(data)
-            self.update_attributes(data)
-            self.save()
-        except (ValidationError, Exception) as e:
-            logger.error(f"Failed to update config with new values!\n{e}")
-            if type(e) is ValidationError:
-                raise HTTPException(status_code=400, detail=e.errors(include_url=False, include_context=False))
-            else:
-                raise HTTPException(status_code=400, detail=str(e))
-
-    def update_attributes(self, data: dict, parents: list[str] = []) -> None:
-        for name in data.keys():
-            # if the value is a dict it means we are updating a nested config
-            # so we need to recursively update all the values in the subconfig individually
-            # if we don't do this we will overwrite the entire subconfig with default and partial values
-            if isinstance(data[name], dict):
-                if name == "devices":
-                    logger.warning("Updating trackers array directly, this may cause unexpected behaviour")
-                self.update_attributes(data[name], parents + [name])
-            else:
-                obj = self
-                if len(parents) > 0:
-                    # build the path to the object
-                    for parent in parents:
-                        obj = getattr(obj, parent)
-                value = data[name]
-                if not getattr(obj, name) == value:
-                    logger.debug(f"Setting Config{''.join(['[', *parents, ']']).replace('[]', '')}[{name}] to {value}")
-                    setattr(obj, name, value)
+    def update_model(self, obj: BaseModel, data: dict) -> None:
+        if isinstance(obj, BaseModel):
+            for key, value in data.items():
+                if hasattr(obj, key):
+                    if key == "trackers":
+                        logger.warning("Skiping input validation for trackers array, this may cause unexpected behaviour!")
+                        logger.warning("Use the `/etvr/config/tracker` endpoints to update individual trackers")
+                    current_value = getattr(obj, key)
+                    if isinstance(current_value, BaseModel):
+                        self.update_model(current_value, value)
+                    else:
+                        setattr(obj, key, value)
+                else:
+                    logger.debug(f"Config has no attribute `{key}`")
 
     def get_tracker_by_uuid(self, uuid: str) -> TrackerConfig:
         for tracker in self.trackers:
@@ -214,9 +196,64 @@ class EyeTrackConfig(BaseModel):
                 return tracker
         raise ValueError(f"No tracker found with UUID `{uuid}`")
 
+    def get_uuid_index(self, uuid: str) -> int:
+        for index, tracker in enumerate(self.trackers):
+            if tracker.uuid == uuid:
+                return index
+        raise ValueError(f"No tracker found with UUID `{uuid}`")
+
     def return_config(self) -> dict:
         return self.model_dump()
 
+    # region: FastAPI routes
+    async def update(self, request: Request) -> None:
+        try:
+            data = await request.json()
+            self.model_validate(data)
+            self.update_model(self, data)
+            self.save()
+        except (ValidationError, Exception) as e:
+            logger.error(f"Failed to update config with new values!\n{e}")
+            self.__HTTPException(e)
+
+    async def update_tracker(self, request: Request, uuid: str) -> None:
+        try:
+            data = await request.json()
+            tracker = self.get_tracker_by_uuid(uuid)
+            tracker.model_validate(data)
+            self.update_model(tracker, data)
+            self.save()
+        except (ValidationError, ValueError, Exception) as e:
+            logger.error(f"Failed to update tracker config with new values!\n{e}")
+            self.__HTTPException(e)
+
+    async def create_tracker(self, tracker: TrackerConfig) -> None:
+        try:
+            tracker = TrackerConfig.model_validate(tracker)
+            self.trackers.append(tracker)
+            self.save()
+        except (ValidationError, Exception) as e:
+            logger.error(f"Failed to create tracker!\n{e}")
+            self.__HTTPException(e)
+
+    async def delete_tracker(self, uuid: str) -> None:
+        try:
+            tracker = self.get_tracker_by_uuid(uuid)
+            self.trackers.remove(tracker)
+            self.save()
+        except (ValueError, Exception) as e:
+            logger.error(f"Failed to delete tracker!\n{e}")
+            self.__HTTPException(e)
+
+    def __HTTPException(self, e: Exception) -> HTTPException:
+        if type(e) is ValidationError:
+            raise HTTPException(status_code=400, detail=e.errors(include_url=False, include_context=False))
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    # endregion
+
+    # region: Model validation
     @field_validator("trackers")
     def trackers_uuid_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
         uuids = []
@@ -250,3 +287,5 @@ class EyeTrackConfig(BaseModel):
                 logger.warning(f"Tracker `{tracker.name}` with uuid `{tracker.uuid}` has no position, disabling it")
                 tracker.enabled = False
         return value
+
+    # endregion

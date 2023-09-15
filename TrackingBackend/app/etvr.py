@@ -43,14 +43,17 @@ class ETVR:
         # config stuff
         self.router.add_api_route("/etvr/config", self.config.update, methods=["POST"])
         self.router.add_api_route("/etvr/config", self.config.return_config, methods=["GET"])
+        self.router.add_api_route("/etvr/config/tracker", self.config.create_tracker, methods=["put"])
+        self.router.add_api_route("/etvr/config/tracker", self.config.update_tracker, methods=["post"])
+        self.router.add_api_route("/etvr/config/tracker", self.config.delete_tracker, methods=["delete"])
+        self.router.add_api_route("/etvr/config/tracker", self.config.get_tracker_by_uuid, methods=["get"])
+        self.router.add_api_route("/etvr/config/save", self.config.save, methods=["GET"])
+        self.router.add_api_route("/etvr/config/load", self.config.load, methods=["GET"])
         # general stuff
         self.router.add_api_route("/etvr/start", self.start, methods=["GET"])
         self.router.add_api_route("/etvr/stop", self.stop, methods=["GET"])
         self.router.add_api_route("/etvr/restart", self.restart, methods=["GET"])
         self.router.add_api_route("/etvr/status", lambda: self.running, methods=["GET"])
-        # camera stuff
-        # self.router.add_api_route("/etvr/camera_l/status", self.tracker_left.camera.get_state, methods=["GET"])
-        # self.router.add_api_route("/etvr/camera_r/status", self.tracker_right.camera.get_state, methods=["GET"])
 
     def start(self) -> None:
         logger.debug("Starting...")

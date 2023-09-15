@@ -77,11 +77,11 @@ def test_config_load_invalid():
 def test_config_upate_attributes():
     config = EyeTrackConfig()
 
-    config.update_attributes({"version": 3})
+    config.update_model(config, {"version": 3})
     assert config.return_config()["version"] == 3
 
-    config.update_attributes({"osc": {"address": "localhost"}})
+    config.update_model(config, {"osc": {"address": "localhost"}})
     assert config.return_config()["osc"]["address"] == "localhost"
 
-    config.update_attributes({"osc": {"endpoints": {"eyes_y": "/avatar/parameters/EyesPytest"}}})
+    config.update_model(config, {"osc": {"endpoints": {"eyes_y": "/avatar/parameters/EyesPytest"}}})
     assert config.return_config()["osc"]["endpoints"]["eyes_y"] == "/avatar/parameters/EyesPytest"
