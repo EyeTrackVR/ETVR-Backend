@@ -7,12 +7,18 @@ from pydantic import BaseModel, ValidationError, field_validator
 from .logger import get_logger
 from fastapi import Request, HTTPException
 from app.types import Algorithms, TrackerPosition
+import sys
 
 logger = get_logger()
 
-# FIXME: when compiled to exe the config file is not found and not created
-# we should probably explicitly set the path to the config file at runtime
-CONFIG_FILE = "tracker-config.json"
+# TODO: we should store this in the same folder as the GUI config, we might not have write access to the executable folder
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    # remove the executable name from the path, and replace it with the config file name
+    CONFIG_FILE = os.path.dirname(sys.executable) + os.path.sep + "tracker-config.json"
+else:
+    CONFIG_FILE = "tracker-config.json"
+
+
 # https://regex101.com/r/qlLITU/1
 IP_ADDRESS_REGEX = (
     r"(\b(?:http:\/\/)?(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)"
