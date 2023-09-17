@@ -30,6 +30,9 @@ class Camera(WorkerProcess):
         if self.camera is None:
             self.camera = cv2.VideoCapture()
 
+        if self.config.capture_source == "" or self.current_capture_source == "":
+            self.logger.info("No capture source set, waiting for config update")
+
     def run(self) -> None:
         if self.config.capture_source != "":
             # if the camera is disconnected or the capture source has changed, reconnect

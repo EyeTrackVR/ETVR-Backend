@@ -252,6 +252,9 @@ class EyeTrackConfig(BaseModel):
             logger.error(f"Failed to delete tracker!\n{e}")
             self.__HTTPException(e)
 
+    async def get_trackers(self) -> list[TrackerConfig]:
+        return self.trackers
+
     def __HTTPException(self, e: Exception) -> HTTPException:
         if type(e) is ValidationError:
             raise HTTPException(status_code=400, detail=e.errors(include_url=False, include_context=False))
