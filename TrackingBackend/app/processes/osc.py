@@ -1,7 +1,7 @@
 from __future__ import annotations
 from app.config import EyeTrackConfig, OSCConfig
 from app.utils import WorkerProcess
-from app.types import EyeData, EyeID
+from app.types import EyeData, TrackerPosition
 from app.logger import get_logger
 from queue import Queue
 import threading
@@ -22,8 +22,8 @@ class VRChatOSC(WorkerProcess):
         self.config: EyeTrackConfig = config
         self.client = SimpleUDPClient(self.config.osc.address, self.config.osc.sending_port)
 
-    # TODO: Since vrchat implements OSCQuery shouldnt rely on the config for this
-    # and instead use the OSCQuery to address and port for vrc
+    # TODO: Since vrchat implements OSCQuery we shouldnt rely on the config for this
+    # we should instead query the server for the endpoints
     def startup(self) -> None:
         pass
 
@@ -43,11 +43,11 @@ class VRChatOSC(WorkerProcess):
             self.client.send_message(self.config.osc.endpoints.right_eye_blink, float(eye_data.blink))
             return
 
-        if eye_data.eye_id == EyeID.LEFT:
+        if eye_data.position == TrackerPosition.LEFT_EYE:
             self.client.send_message(self.config.osc.endpoints.eyes_y, float(eye_data.y))
             self.client.send_message(self.config.osc.endpoints.left_eye_x, float(eye_data.x))
             self.client.send_message(self.config.osc.endpoints.left_eye_blink, float(eye_data.blink))
-        elif eye_data.eye_id == EyeID.RIGHT:
+        elif eye_data.position == TrackerPosition.RIGHT_EYE:
             self.client.send_message(self.config.osc.endpoints.eyes_y, float(eye_data.y))
             self.client.send_message(self.config.osc.endpoints.right_eye_x, float(eye_data.x))
             self.client.send_message(self.config.osc.endpoints.right_eye_blink, float(eye_data.blink))

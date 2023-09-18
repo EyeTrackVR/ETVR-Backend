@@ -1,11 +1,12 @@
 from multiprocessing import Process, Event
 from app.logger import get_logger, setup_logger
-from app.config import EyeTrackConfig, CONFIG_FILE
+from app.config import EyeTrackConfig, CONFIG_FILE, TrackerConfig
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 from os import path
 import time
+import copy
 
 # Welcome to assassin's multiprocessing realm
 # To not repeat the same mistakes I made, here are some tips:
@@ -19,17 +20,19 @@ import time
 # This is a simple wrapper around the multiprocessing.Process class
 # we are using it to abstract some of the more painful parts of multiprocessing
 class WorkerProcess:
-    def __init__(self, name: str):
-        self.__name: str = name
+    def __init__(self, name: str, uuid: str = ""):
+        self.name: str = name
         self.__shutdown_event = Event()
         self.__last_config_update = 0.0
         self.__process: Process = Process()
         # TODO: Abstract the config watcher into a separate class
         self.__observer: BaseObserver = None  # type: ignore[assignment]
         self.__event_handler = FileSystemEventHandler()
-        self.base_config: EyeTrackConfig = EyeTrackConfig()
+
+        self.uuid: str = uuid
+        self.base_config: EyeTrackConfig = EyeTrackConfig().load()
         self.logger = get_logger(self.__module__)
-        self.logger.debug(f"Initialized process `{self.__name}`")
+        self.logger.debug(f"Initialized process `{self.name}`")
 
     # region: Child class overrides and callbacks
     def run(self) -> None:
@@ -48,6 +51,9 @@ class WorkerProcess:
 
     def on_config_update(self, config: EyeTrackConfig) -> None:
         """callback function that is called when any part of the config is updated."""
+
+    def on_tracker_config_update(self, tracker_config: TrackerConfig) -> None:
+        """callback function that is called when the tracker with the given uuid is updated."""
 
     # endregion
 
@@ -73,12 +79,30 @@ class WorkerProcess:
                 self.logger.exception("Unhandled exception in child process! Continuing...")
                 continue
 
+    def on_file_modified(self, event: FileModifiedEvent) -> None:
+        # this event is called multiple times when a file is modified
+        # so we just use a one second timeout
+        if time.time() - self.__last_config_update > 1:
+            if event.src_path == f".{path.sep}{CONFIG_FILE}":
+                self.logger.debug(f"Config updated for process `{self.name}`")
+                old_config = copy.deepcopy(self.base_config)
+                self.base_config.load()
+
+                self.on_config_update(self.base_config)
+                for tracker in self.base_config.trackers:
+                    if tracker.uuid == self.uuid:
+                        old_tracker = old_config.get_tracker_by_uuid(self.uuid)
+                        if tracker != old_tracker:
+                            self.logger.info(f"Tracker config updated for process `{self.name}`")
+                            self.on_tracker_config_update(tracker)
+                self.__last_config_update = time.time()
+
     def setup_watchdog(self) -> None:
         try:
-            self.logger.debug(f"Starting config watcher thread for process `{self.__name}`")
+            self.logger.debug(f"Starting config watcher thread for process `{self.name}`")
             self.__observer = Observer()
             self.__observer.daemon = True
-            self.__observer.name = f"{self.__name} Config Watcher"
+            self.__observer.name = f"{self.name} Config Watcher"
             self.__event_handler.on_modified = self.on_file_modified  # type: ignore[method-assign]
             self.__observer.schedule(
                 event_handler=self.__event_handler,
@@ -91,29 +115,29 @@ class WorkerProcess:
 
     def start(self) -> None:
         if self.is_alive():
-            self.logger.debug(f"Process `{self.__name}` requested to start but is already running")
+            self.logger.debug(f"Process `{self.name}` requested to start but is already running")
             return
 
         try:
             self.__shutdown_event.clear()
-            self.logger.info(f"Starting Process `{self.__name}`")
-            self.__process = Process(target=self._run, name=f"{self.__name}")
+            self.logger.info(f"Starting Process `{self.name}`")
+            self.__process = Process(target=self._run, name=f"{self.name}")
             self.__process.daemon = True
             self.__process.start()
         except (TypeError, Exception):
-            self.logger.exception(f"Failed to start process `{self.__name}`")
+            self.logger.exception(f"Failed to start process `{self.name}`")
 
     def stop(self) -> None:
         if not self.is_alive():
-            self.logger.debug(f"Request to kill dead process `{self.__name}` was made!")
+            self.logger.debug(f"Request to kill dead process `{self.name}` was made!")
             return
 
         try:
             self.__shutdown_event.set()
-            self.logger.info(f"Stopping process `{self.__name}`")
+            self.logger.info(f"Stopping process `{self.name}`")
             self.__process.join(timeout=5)
         except (AttributeError, Exception):
-            self.logger.exception(f"Failed to stop process `{self.__name}`")
+            self.logger.exception(f"Failed to stop process `{self.name}`")
         finally:
             self.kill()
 
@@ -121,34 +145,29 @@ class WorkerProcess:
         if self.is_alive():
             self.__process.kill()
             self.__process.join()
-            self.logger.info(f"Killed process `{self.__name}`")
-
-    def on_file_modified(self, event: FileModifiedEvent) -> None:
-        # this event is called multiple times when a file is modified
-        # so we just use a one second timeout
-        if time.time() - self.__last_config_update > 1:
-            if event.src_path == f".{path.sep}{CONFIG_FILE}":
-                self.logger.debug(f"Config updated for process `{self.__name}`")
-                self.base_config.load()
-                self.on_config_update(self.base_config)
-                self.__last_config_update = time.time()
-
-    def __del__(self) -> None:
-        if self.is_alive():
-            self.stop()
+            self.logger.info(f"Killed process `{self.name}`")
 
     def restart(self) -> None:
         self.stop()
         self.start()
 
     def process_name(self) -> str:
-        return self.__name
+        return self.name
 
     def is_alive(self) -> bool:
         if self.__process is None:
             return False
         else:
             return self.__process.is_alive()
+
+    def __del__(self) -> None:
+        if self.is_alive():
+            self.stop()
+
+    def __repr__(self) -> str:
+        parent_class = self.__class__.__bases__[0].__name__
+        child_class = self.__class__.__name__
+        return f"{parent_class}(child={child_class}, name='{self.name}' alive={self.is_alive()}, uuid='{self.uuid}')"
 
 
 # Example usage:

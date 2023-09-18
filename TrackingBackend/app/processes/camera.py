@@ -1,8 +1,8 @@
 from __future__ import annotations
 from app.utils import WorkerProcess
-from app.types import CameraState, EyeID
+from app.types import CameraState
 from multiprocessing import Value
-from app.config import CameraConfig, EyeTrackConfig
+from app.config import CameraConfig, TrackerConfig
 from queue import Queue
 import ctypes
 import cv2
@@ -16,14 +16,13 @@ OPENCV_PARAMS = [
 
 
 class Camera(WorkerProcess):
-    def __init__(self, config: CameraConfig, eye_id: EyeID, image_queue: Queue[cv2.Mat]):
-        super().__init__(name=f"Capture {str(eye_id.name).capitalize()}")
+    def __init__(self, tracker_config: TrackerConfig, image_queue: Queue[cv2.Mat]):
+        super().__init__(name=f"Capture {str(tracker_config.name)}", uuid=tracker_config.uuid)
         # Synced variables
         self.image_queue: Queue[cv2.Mat] = image_queue
         self.state = Value(ctypes.c_int, CameraState.DISCONNECTED.value)
         # Unsynced variables
-        self.eye_id: EyeID = eye_id
-        self.config: CameraConfig = config
+        self.config: CameraConfig = tracker_config.camera
         self.current_capture_source: str = self.config.capture_source
         self.camera: cv2.VideoCapture = None  # type: ignore[assignment]
 
@@ -31,11 +30,10 @@ class Camera(WorkerProcess):
         if self.camera is None:
             self.camera = cv2.VideoCapture()
 
-    def run(self) -> None:
-        if not self.config.enabled:
-            self.set_state(CameraState.DISABLED)
-            return
+        if self.config.capture_source == "" or self.current_capture_source == "":
+            self.logger.info("No capture source set, waiting for config update")
 
+    def run(self) -> None:
         if self.config.capture_source != "":
             # if the camera is disconnected or the capture source has changed, reconnect
             if self.get_state() == CameraState.DISCONNECTED or self.current_capture_source != self.config.capture_source:
@@ -49,8 +47,8 @@ class Camera(WorkerProcess):
         if self.camera.isOpened():
             self.camera.release()
 
-    def on_config_update(self, config: EyeTrackConfig) -> None:
-        self.config = (config.left_eye, config.right_eye)[bool(self.eye_id.value)]
+    def on_tracker_config_update(self, tracker_config: TrackerConfig) -> None:
+        self.config = tracker_config.camera
 
     def connect_camera(self) -> None:
         self.set_state(CameraState.CONNECTING)

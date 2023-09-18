@@ -1,36 +1,35 @@
 from __future__ import annotations
 from .logger import get_logger
-from .config import EyeTrackConfig
+from .config import TrackerConfig
 from app.processes import EyeProcessor, Camera
 from multiprocessing.managers import SyncManager
+from app.utils import clear_queue
 from queue import Queue
-from .types import EyeID, EyeData
+from .types import EyeData
 import cv2
 
 logger = get_logger()
 
-
+# TODO: when we start to integrate babble this should become a common interface that eye trackers and mouth trackers inherit from
 class Tracker:
-    def __init__(self, eye_id: EyeID, config: EyeTrackConfig, osc_queue: Queue[EyeData], manager: SyncManager):
+    def __init__(self, config: TrackerConfig, osc_queue: Queue[EyeData], manager: SyncManager):
+        self.config = config
+        self.uuid = config.uuid
         # IPC stuff
         self.manager = manager
         self.image_queue: Queue[cv2.Mat] = self.manager.Queue()
-        self.osc_queue: Queue[EyeData] = osc_queue
-        # --------------------------------------------------------
-        self.eye_id = eye_id
-        self.config = config
-        self.eye_config = (self.config.left_eye, self.config.right_eye)[bool(self.eye_id.value)]  # god i love python
         # processes
-        self.camera = Camera(self.eye_config, self.eye_id, self.image_queue)
-        self.eye_processor = EyeProcessor(self.image_queue, self.osc_queue, self.config.algorithm, self.eye_id)
+        self.camera = Camera(self.config, self.image_queue)
+        self.eye_processor = EyeProcessor(self.config, self.image_queue, osc_queue)
 
     def start(self) -> None:
-        self.camera.start()
         self.eye_processor.start()
+        self.camera.start()
 
     def stop(self) -> None:
         self.camera.stop()
         self.eye_processor.stop()
+        clear_queue(self.image_queue)
 
     def restart(self) -> None:
         self.camera.restart()

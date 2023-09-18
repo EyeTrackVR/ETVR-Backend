@@ -21,10 +21,17 @@ class StrEnum(str, enum.Enum):
 
 
 class Algorithms(StrEnum):
-    BLOB = "BLOB"
     HSF = "HSF"
+    BLOB = "BLOB"
     HSRAC = "HSRAC"
     RANSAC = "RANSAC"
+
+
+class TrackerPosition(StrEnum):
+    MOUTH = "mouth"
+    LEFT_EYE = "left_eye"
+    RIGHT_EYE = "right_eye"
+    UNDEFINED = "undefined"
 
 
 class LogLevel(Enum):
@@ -33,11 +40,6 @@ class LogLevel(Enum):
     WARNING = logging.WARNING
     ERROR = logging.ERROR
     CRITICAL = logging.CRITICAL
-
-
-class EyeID(Enum):
-    LEFT = 0
-    RIGHT = 1
 
 
 class CameraState(Enum):
@@ -52,4 +54,4 @@ class EyeData:
     x: float
     y: float
     blink: float
-    eye_id: EyeID
+    position: TrackerPosition

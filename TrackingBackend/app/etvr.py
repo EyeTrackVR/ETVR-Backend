@@ -5,13 +5,12 @@ from app.processes import VRChatOSCReceiver, VRChatOSC
 from multiprocessing import Manager
 from queue import Queue
 from fastapi import APIRouter
-from .types import EyeID, EyeData
+from .types import EyeData
+from app.utils import clear_queue
 
 logger = get_logger()
 
 
-# might be temporary, not sure if we are gonna use something else for IPC
-# TODO: talk to Zanzy / lorrow about this!
 class ETVR:
     def __init__(self):
         self.config: EyeTrackConfig = EyeTrackConfig()
@@ -21,44 +20,184 @@ class ETVR:
         self.manager = Manager()
         self.osc_queue: Queue[EyeData] = self.manager.Queue()
         # OSC stuff
-        self.osc_sender: VRChatOSC = VRChatOSC(self.config, self.osc_queue)
-        self.osc_receiver: VRChatOSCReceiver = VRChatOSCReceiver(self.config)
+        self.osc_sender = VRChatOSC(self.config, self.osc_queue)
+        self.osc_receiver = VRChatOSCReceiver(self.config)
         # Trackers
-        self.tracker_left: Tracker = Tracker(EyeID.LEFT, self.config, self.osc_queue, self.manager)
-        self.tracker_right: Tracker = Tracker(EyeID.RIGHT, self.config, self.osc_queue, self.manager)
+        self.trackers: list[Tracker] = []
+        self.setup_trackers()
         # Object for fastapi routes
         self.router: APIRouter = APIRouter()
 
-    def add_routes(self) -> None:
-        logger.debug("Adding routes to ETVR")
-        # config stuff
-        self.router.add_api_route("/etvr/config", self.config.update, methods=["POST"])
-        self.router.add_api_route("/etvr/config", self.config.return_config, methods=["GET"])
-        # general stuff
-        self.router.add_api_route("/etvr/start", self.start, methods=["GET"])
-        self.router.add_api_route("/etvr/stop", self.stop, methods=["GET"])
-        self.router.add_api_route("/etvr/restart", self.restart, methods=["GET"])
-        self.router.add_api_route("/etvr/status", lambda: self.running, methods=["GET"])
-        # camera stuff
-        self.router.add_api_route("/etvr/camera_l/status", self.tracker_left.camera.get_state, methods=["GET"])
-        self.router.add_api_route("/etvr/camera_r/status", self.tracker_right.camera.get_state, methods=["GET"])
+    def setup_trackers(self) -> None:
+        logger.debug("Setting up trackers")
+        for tracker in self.trackers:
+            tracker.stop()
+
+        self.trackers.clear()
+        for tracker_config in self.config.trackers:
+            if tracker_config.enabled:
+                self.trackers.append(Tracker(tracker_config, self.osc_queue, self.manager))
 
     def start(self) -> None:
         logger.debug("Starting...")
-        self.tracker_left.start()
-        self.tracker_right.start()
+        # TODO: we should have a endpoint to start individual trackers
+        for tracker in self.trackers:
+            tracker.start()
         self.osc_sender.start()
         self.osc_receiver.start()
         self.running = True
 
     def stop(self) -> None:
         logger.debug("Stopping...")
-        self.tracker_left.stop()
-        self.tracker_right.stop()
+        # TODO: we should have a endpoint to stop individual trackers
+        for tracker in self.trackers:
+            tracker.stop()
         self.osc_sender.stop()
         self.osc_receiver.stop()
+        clear_queue(self.osc_queue)
         self.running = False
 
     def restart(self) -> None:
         self.stop()
         self.start()
+
+    def add_routes(self) -> None:
+        logger.debug("Adding routes to ETVR")
+        # region: General Endpoints
+        self.router.add_api_route(
+            name="Start ETVR",
+            path="/etvr/start",
+            endpoint=self.start,
+            methods=["GET"],
+            tags=["default"],
+            description="""
+            Start the ETVR backend, this will start all enabled trackers and the OSC sender / receiver.
+            """,
+        )
+        self.router.add_api_route(
+            name="Stop ETVR",
+            path="/etvr/stop",
+            endpoint=self.stop,
+            methods=["GET"],
+            tags=["default"],
+            description="""
+            Stop the ETVR backend, this will stop all trackers and the OSC sender / receiver.
+            """,
+        )
+        self.router.add_api_route(
+            name="Restart ETVR",
+            path="/etvr/restart",
+            endpoint=self.restart,
+            methods=["GET"],
+            tags=["default"],
+            description="""
+            Restart the ETVR backend, internally this just calls stop and then start.
+            """,
+        )
+        self.router.add_api_route(
+            name="Return ETVR Status",
+            path="/etvr/status",
+            endpoint=lambda: self.running,
+            methods=["GET"],
+            tags=["default"],
+            description="""
+            Return the current status, True if ETVR is running, False if not.
+            """,
+        )
+        # endregion
+
+        # region: Config Endpoints
+        self.router.add_api_route(
+            name="Update Config",
+            path="/etvr/config",
+            endpoint=self.config.update,
+            methods=["POST"],
+            tags=["Config"],
+            description="""
+            Update the current config, partial updates are allowed (only the fields you want to update need to be provided)
+            """,
+        )
+        self.router.add_api_route(
+            name="Return Config",
+            path="/etvr/config",
+            endpoint=self.config.return_config,
+            methods=["GET"],
+            tags=["Config"],
+            description="""
+            Return the currently loadeed config
+            """,
+        )
+        self.router.add_api_route(
+            name="Save Config",
+            path="/etvr/config/save",
+            endpoint=self.config.save,
+            tags=["Config"],
+            methods=["GET"],
+            description="""
+            Save the current config to a file.
+            """,
+        )
+        self.router.add_api_route(
+            name="Load Config",
+            path="/etvr/config/load",
+            endpoint=self.config.load,
+            methods=["GET"],
+            tags=["Config"],
+            description="""
+            Load a config from a file.
+            """,
+        )
+        # endregion
+
+        # region: Tracker Config Endpoints
+        self.router.add_api_route(
+            name="Return all tracker configs",
+            path="/etvr/config/trackers",
+            endpoint=self.config.get_trackers,
+            methods=["GET"],
+            tags=["Tracker Config"],
+            description="""
+            Return a list of all trackers with their configs.
+            """,
+        )
+        self.router.add_api_route(
+            name="Return a trackers config",
+            path="/etvr/config/tracker",
+            endpoint=self.config.get_tracker_by_uuid,
+            methods=["GET"],
+            tags=["Tracker Config"],
+            description="""
+            Get a tracker's config with a given uuid.
+            """,
+        )
+        self.router.add_api_route(
+            name="Create a new tracker",
+            path="/etvr/config/tracker",
+            endpoint=self.config.create_tracker,
+            methods=["PUT"],
+            tags=["Tracker Config"],
+            description="""
+            Create a new tracker, if no config is provided, a default config will be used.
+            """,
+        )
+        self.router.add_api_route(
+            name="Update a trackers config",
+            path="/etvr/config/tracker",
+            endpoint=self.config.update_tracker,
+            methods=["POST"],
+            tags=["Tracker Config"],
+            description="""
+            Update a tracker with a given uuid, partial updates are allowed (only the fields you want to update need to be provided)
+            """,
+        )
+        self.router.add_api_route(
+            name="Delete a tracker",
+            path="/etvr/config/tracker",
+            endpoint=self.config.delete_tracker,
+            methods=["DELETE"],
+            tags=["Tracker Config"],
+            description="""
+            Delete a tracker with a given uuid.
+            """,
+        )
+        # endregion
