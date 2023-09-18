@@ -3,6 +3,35 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.1.0](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.0.4...v1.1.0) (2023-09-18)
+
+
+### 🍕 Features
+
+* added __repr__ to processor class ([6c6028e](https://github.com/EyeTrackVR/ETVR-Backend/commit/6c6028ea1cf2cfeac7edf53bd6604c66d23fc6f9))
+* added device config class ([0c3cca8](https://github.com/EyeTrackVR/ETVR-Backend/commit/0c3cca894e131ee74ded26ec1d514ee7d7a59bf9))
+* added method to get tracker by uuid ([cbc1e25](https://github.com/EyeTrackVR/ETVR-Backend/commit/cbc1e259d0736c35e7a75ed167d6cf9ed305a939))
+* added new endpoints to manage trackers ([5023f32](https://github.com/EyeTrackVR/ETVR-Backend/commit/5023f32319394bcffeef355bb9b9ab598a35057b))
+* added support for dynamic trackers ([60b0b02](https://github.com/EyeTrackVR/ETVR-Backend/commit/60b0b02ad920bddd32d78d845a342c7e9b941ee1))
+* added tracker config update callback ([8d38031](https://github.com/EyeTrackVR/ETVR-Backend/commit/8d3803106a9bc4966e5477d3d9861908e3aa0905))
+
+
+### 🐛 Bug Fixes
+
+* fixed generating configs when bundled ([428c422](https://github.com/EyeTrackVR/ETVR-Backend/commit/428c42276d41d7bfc6207be56035fa9fae8c8ba7))
+* newer backup configs replace older ones ([ba58882](https://github.com/EyeTrackVR/ETVR-Backend/commit/ba588820fabb10f41760f7b520cf7a26d954fafa))
+* return newly created tracker config ([5d3cd33](https://github.com/EyeTrackVR/ETVR-Backend/commit/5d3cd33b51621798bed80b8e121675db8b936938))
+
+
+### 📝 Documentation
+
+* added documentation for FastAPI ([666ef3c](https://github.com/EyeTrackVR/ETVR-Backend/commit/666ef3c127551ca55da63fdb229a2af4ab3d1909))
+
+
+### 🧑‍💻 Code Refactoring
+
+* rename device to tracker ([31cd1f7](https://github.com/EyeTrackVR/ETVR-Backend/commit/31cd1f7da14a3c12e404194985d7e72f49a042d1))
+
 ## [1.0.4](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.0.3...v1.0.4) (2023-09-07)
 
 
