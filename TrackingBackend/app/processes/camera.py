@@ -12,6 +12,7 @@ OPENCV_PARAMS = [
     cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 2500,
     cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2500,
 ]
+BACKEND = cv2.CAP_FFMPEG
 # fmt: on
 
 
@@ -57,10 +58,10 @@ class Camera(WorkerProcess):
         try:
             self.camera.setExceptionMode(True)
             # https://github.com/opencv/opencv/issues/23207
-            self.camera.open(self.current_capture_source, cv2.CAP_FFMPEG, OPENCV_PARAMS)
+            self.camera.open(self.current_capture_source, BACKEND, OPENCV_PARAMS)
             if self.camera.isOpened():
                 self.set_state(CameraState.CONNECTED)
-                self.logger.info("Camera connected!")
+                self.logger.info(f"Camera connected with backend: {self.camera.getBackendName()}")
             else:
                 raise cv2.error
         except (cv2.error, Exception):
