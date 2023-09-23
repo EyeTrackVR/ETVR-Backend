@@ -147,9 +147,29 @@ class ETVR:
             Load a config from a file.
             """,
         )
+        self.router.add_api_route(
+            name="Reset Config",
+            path="/etvr/config/reset",
+            endpoint=self.config.reset,
+            methods=["GET"],
+            tags=["Config"],
+            description="""
+            Reset the config to the default values.
+            """,
+        )
         # endregion
 
         # region: Tracker Config Endpoints
+        self.router.add_api_route(
+            name="Reset a trackers config",
+            path="/etvr/config/tracker/reset",
+            endpoint=self.config.reset_tracker,
+            methods=["GET"],
+            tags=["Tracker Config"],
+            description="""
+            Reset a tracker's config to the default values. (tracker uuid and name will remain the same)
+            """,
+        )
         self.router.add_api_route(
             name="Return all tracker configs",
             path="/etvr/config/trackers",

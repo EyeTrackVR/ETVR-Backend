@@ -255,6 +255,26 @@ class EyeTrackConfig(BaseModel):
     async def get_trackers(self) -> list[TrackerConfig]:
         return self.trackers
 
+    async def reset(self) -> None:
+        new_config = EyeTrackConfig()
+        self.__dict__.update(new_config.__dict__)
+        self.save()
+
+    async def reset_tracker(self, uuid: str) -> None:
+        try:
+            # we reset everything except the UUID and name
+            old_tracker = self.get_tracker_by_uuid(uuid)
+            uuid = old_tracker.uuid
+            name = old_tracker.name
+
+            tracker = TrackerConfig()
+            tracker.uuid = uuid
+            tracker.name = name
+            self.trackers[self.get_uuid_index(uuid)] = tracker
+        except (ValueError, Exception) as e:
+            logger.error(f"Failed to reset tracker!\n{e}")
+            self.__HTTPException(e)
+
     def __HTTPException(self, e: Exception) -> HTTPException:
         if type(e) is ValidationError:
             raise HTTPException(status_code=400, detail=e.errors(include_url=False, include_context=False))
