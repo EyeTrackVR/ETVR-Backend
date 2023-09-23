@@ -3,6 +3,13 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.2.0](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.1.0...v1.2.0) (2023-09-23)
+
+
+### 🍕 Features
+
+* Added endpoint to reset config/trackers ([020b291](https://github.com/EyeTrackVR/ETVR-Backend/commit/020b291e5f83a3c4d97e8f8f3aa41897e88eec92))
+
 ## [1.1.0](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.0.4...v1.1.0) (2023-09-18)
 
 
