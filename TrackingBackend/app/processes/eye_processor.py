@@ -45,6 +45,8 @@ class EyeProcessor(WorkerProcess):
                 break
 
         self.osc_queue.put(result)
+
+        cv2.imshow(f"{self.process_name()}, output", current_frame)
         cv2.waitKey(1)
 
     def shutdown(self) -> None:
@@ -56,17 +58,20 @@ class EyeProcessor(WorkerProcess):
         self.setup_algorithms()
 
     def setup_algorithms(self) -> None:
-        from app.algorithms import Blob, HSF, HSRAC, Ransac
+        from app.algorithms import Blob, HSF, HSRAC, Ransac, Leap
 
         self.algorithms.clear()
         for algorithm in self.config.algorithm_order:
-            if algorithm == Algorithms.BLOB:
-                self.algorithms.append(Blob(self))
-            elif algorithm == Algorithms.HSF:
-                self.algorithms.append(HSF(self))
-            elif algorithm == Algorithms.HSRAC:
-                self.algorithms.append(HSRAC(self))
-            elif algorithm == Algorithms.RANSAC:
-                self.algorithms.append(Ransac(self))
-            else:
-                self.logger.warning(f"Unknown algorithm {algorithm}")
+            match algorithm:
+                case Algorithms.BLOB:
+                    self.algorithms.append(Blob(self))
+                case Algorithms.HSF:
+                    self.algorithms.append(HSF(self))
+                case Algorithms.HSRAC:
+                    self.algorithms.append(HSRAC(self))
+                case Algorithms.RANSAC:
+                    self.algorithms.append(Ransac(self))
+                case Algorithms.LEAP:
+                    self.algorithms.append(Leap(self))
+                case _:
+                    self.logger.warning(f"Unknown algorithm: {algorithm}")
