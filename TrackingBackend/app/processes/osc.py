@@ -96,26 +96,32 @@ class VRChatOSCReceiver:
             logger.debug(f"Thread `{self.thread.name}` requested to start but is already running")
             return
 
-        logger.info("Starting OSC receiver thread")
-        # we redefine the OSC server here just incase the address or port changed
-        self.server.socket.close()  # close the old socket so we don't get a "address already in use" error
-        self.server = ThreadingOSCUDPServer((self.config.address, self.config.receiver_port), self.dispatcher)
-        logger.info(f"OSC receiver listening on {self.config.address}:{self.config.receiver_port}")
-        self.map_events()
-        self.thread = threading.Thread(target=self.server.serve_forever, name="OSC Receiver")
-        self.thread.start()
+        if self.config.enable_receiving:
+            logger.info("Starting OSC receiver thread")
+            # we redefine the OSC server here just incase the address or port changed
+            self.server.socket.close()  # close the old socket so we don't get a "address already in use" error
+            self.server = ThreadingOSCUDPServer((self.config.address, self.config.receiver_port), self.dispatcher)
+            logger.info(f"OSC receiver listening on {self.config.address}:{self.config.receiver_port}")
+            self.map_events()
+            self.thread = threading.Thread(target=self.server.serve_forever, name="OSC Receiver")
+            self.thread.start()
+        else:
+            logger.info("OSC receiver is disabled, skipping start")
 
     def stop(self) -> None:
         if not self.thread.is_alive():
             logger.debug("Request to kill dead thread was made!")
             return
 
-        logger.info("Stopping OSC receiver thread")
-        self.server.shutdown()
-        self.thread.join(timeout=5)
-        # If the thread fails to stop, start yelling at the top of your lungs and happy debugging!
-        if self.thread.is_alive():
-            logger.error("Failed to stop OSC receiver thread!!!!!!!!")
+        if self.config.enable_receiving:
+            logger.info("Stopping OSC receiver thread")
+            self.server.shutdown()
+            self.thread.join(timeout=5)
+            # If the thread fails to stop, start yelling at the top of your lungs and happy debugging!
+            if self.thread.is_alive():
+                logger.error("Failed to stop OSC receiver thread!!!!!!!!")
+        else:
+            logger.info("OSC receiver is disabled, skipping stop")
 
     def restart(self) -> None:
         self.stop()

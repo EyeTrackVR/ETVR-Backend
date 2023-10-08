@@ -1,6 +1,3 @@
-# -----------------------------------------------------
-# TODO: look at ETVR source and adapt blob stuff better
-# -----------------------------------------------------
 import cv2
 from app.processes import EyeProcessor
 from app.types import TrackerPosition, EyeData
@@ -12,7 +9,7 @@ class Blob(BaseAlgorithm):
         self.ep = eye_processor
 
     def run(self, frame: cv2.Mat) -> EyeData:
-        _, larger_threshold = cv2.threshold(frame, (self.ep.config.blob.threshold + 12), 255, cv2.THRESH_BINARY)
+        _, larger_threshold = cv2.threshold(frame, self.ep.config.blob.threshold, 255, cv2.THRESH_BINARY)
 
         try:
             # Try rebuilding our contours

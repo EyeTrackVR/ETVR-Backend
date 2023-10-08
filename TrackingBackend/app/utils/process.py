@@ -17,8 +17,8 @@ import copy
 # 5. Queue's are your friend, use them
 
 
-# This is a simple wrapper around the multiprocessing.Process class
-# we are using it to abstract some of the more painful parts of multiprocessing
+# TODO: when python 3.13 comes out, we should look into the new per interpreter GIL
+# if it is faster maybe we should refactor this to use it?
 class WorkerProcess:
     def __init__(self, name: str, uuid: str = ""):
         self.name: str = name
@@ -38,7 +38,8 @@ class WorkerProcess:
     def run(self) -> None:
         """run the child process main loop.
         * Should not include a while loop this parent class should handle lifecycles.
-        * All children must override this method and implement their own main loop.
+        * All children must override this method and implement their own main loop
+        * Although its better to handle all errors in the child process, this parent class will take care of unhandled exceptions
         """
         self.logger.critical("WorkerProcess.run() must be overridden in child class!")
         raise NotImplementedError
