@@ -32,6 +32,10 @@ class VRChatOSC(WorkerProcess):
             eye_data: EyeData = self.osc_queue.get(block=True, timeout=0.5)
             if not self.config.osc.enable_sending:
                 return
+            else:
+                # "normalize" the data to be between -1 and 1
+                eye_data.x = 2 * (eye_data.x - 0.5)
+                eye_data.y = -(2 * (eye_data.y - 0.5))
         except Exception:
             return
 

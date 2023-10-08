@@ -21,12 +21,9 @@ class BaseAlgorithm:
     def run(self, frame: cv2.Mat) -> EyeData:
         return EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
 
-    # takes a point and normalizes it to a range of -1 to 1
     def normalize(self, x: float, y: float, width: int, height: int) -> tuple[float, float]:
+        """takes a point and normalizes it to a range of 0 to 1"""
         tx: float = x / width
         ty: float = y / height
-
-        tx = 2 * (tx - 0.5)
-        ty = 2 * (ty - 0.5)
 
         return tx, ty

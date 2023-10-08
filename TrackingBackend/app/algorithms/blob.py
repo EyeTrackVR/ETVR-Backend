@@ -1,3 +1,31 @@
+"""
+------------------------------------------------------------------------------------------------------
+
+                                               ,@@@@@@
+                                            @@@@@@@@@@@            @@@
+                                          @@@@@@@@@@@@      @@@@@@@@@@@
+                                        @@@@@@@@@@@@@   @@@@@@@@@@@@@@
+                                      @@@@@@@/         ,@@@@@@@@@@@@@
+                                         /@@@@@@@@@@@@@@@  @@@@@@@@
+                                    @@@@@@@@@@@@@@@@@@@@@@@@ @@@@@
+                                @@@@@@@@                @@@@@
+                              ,@@@                        @@@@&
+                                             @@@@@@.       @@@@
+                                   @@@     @@@@@@@@@/      @@@@@
+                                   ,@@@.     @@@@@@((@     @@@@(
+                                   //@@@        ,,  @@@@  @@@@@
+                                   @@@(                @@@@@@@
+                                   @@@  @          @@@@@@@@#
+                                       @@@@@@@@@@@@@@@@@
+                                      @@@@@@@@@@@@@(
+
+Blob By: Prohurtz
+Algorithm App Implimentations By: Prohurtz, qdot, ShyAssassin
+
+Copyright (c) 2023 EyeTrackVR <3
+------------------------------------------------------------------------------------------------------
+"""
+
 import cv2
 from app.processes import EyeProcessor
 from app.types import TrackerPosition, EyeData
@@ -35,14 +63,12 @@ class Blob(BaseAlgorithm):
             ):
                 continue
 
-            cx = x + int(w / 2)
-            cy = y + int(h / 2)
+            x = x + int(w / 2)
+            y = y + int(h / 2)
 
             cv2.drawContours(frame, [cnt], -1, (0, 255, 0), 3)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-            cv2.imshow(str({self.ep.name}), frame)
 
-            tx, ty = self.normalize(cx, cy, frame.shape[0], frame.shape[1])
-            return EyeData(tx, ty, 1, self.ep.tracker_position)
+            return EyeData(x, y, 1, self.ep.tracker_position)
 
         return EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
