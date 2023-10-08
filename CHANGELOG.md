@@ -3,6 +3,13 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.2.2](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.2.1...v1.2.2) (2023-10-08)
+
+
+### 🐛 Bug Fixes
+
+* general optimizations / cleanup ([3675301](https://github.com/EyeTrackVR/ETVR-Backend/commit/36753018409d5a7b4e46ddc189f1ec0c85913f35))
+
 ## [1.2.1](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.2.0...v1.2.1) (2023-10-06)
 
 
