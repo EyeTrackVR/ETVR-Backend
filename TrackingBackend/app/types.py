@@ -23,6 +23,7 @@ class StrEnum(str, enum.Enum):
 class Algorithms(StrEnum):
     HSF = "HSF"
     BLOB = "BLOB"
+    LEAP = "LEAP"
     HSRAC = "HSRAC"
     RANSAC = "RANSAC"
 

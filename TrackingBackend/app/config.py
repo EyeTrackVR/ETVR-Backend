@@ -32,9 +32,20 @@ class BlobConfig(BaseModel):
     maxsize: int = 25
 
 
+class LeapConfig(BaseModel):
+    blink_threshold: float = 0.2
+
+    @field_validator("blink_threshold")
+    def blink_threshold_validator(cls, value: float) -> float:
+        if value < 0 or value > 1:
+            raise ValueError("Blink threshold must be between 0 and 1")
+        return value
+
+
 class AlgorithmConfig(BaseModel):
-    algorithm_order: list[Algorithms] = [Algorithms.BLOB, Algorithms.HSRAC, Algorithms.RANSAC, Algorithms.HSF]
+    algorithm_order: list[Algorithms] = [Algorithms.LEAP, Algorithms.BLOB, Algorithms.HSRAC, Algorithms.RANSAC, Algorithms.HSF]
     blob: BlobConfig = BlobConfig()
+    leap: LeapConfig = LeapConfig()
 
     @field_validator("algorithm_order")
     def algorithm_order_validator(cls, value: list[Algorithms]) -> list[Algorithms]:
