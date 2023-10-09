@@ -43,7 +43,7 @@ class LeapConfig(BaseModel):
 
 
 class AlgorithmConfig(BaseModel):
-    algorithm_order: list[Algorithms] = [Algorithms.BLOB, Algorithms.HSRAC, Algorithms.RANSAC, Algorithms.HSF]
+    algorithm_order: list[Algorithms] = [Algorithms.LEAP, Algorithms.BLOB, Algorithms.HSRAC, Algorithms.RANSAC, Algorithms.HSF]
     blob: BlobConfig = BlobConfig()
     leap: LeapConfig = LeapConfig()
 
