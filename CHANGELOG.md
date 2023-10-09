@@ -3,6 +3,24 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.3.0](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.2.2...v1.3.0) (2023-10-09)
+
+
+### 🍕 Features
+
+* Added leap ([e65d1e4](https://github.com/EyeTrackVR/ETVR-Backend/commit/e65d1e4dfb2660294d0aa3dd00e20ab74eb7c2e3))
+* Added OneEuroFilter ([000574b](https://github.com/EyeTrackVR/ETVR-Backend/commit/000574b394abc997be6c8f8cdc6209cf68a015ea))
+
+
+### 🐛 Bug Fixes
+
+* moved normalization to the OSC process ([69e2f2a](https://github.com/EyeTrackVR/ETVR-Backend/commit/69e2f2a7b956e2b7cabc8aecfc9bbefd12220f20))
+
+
+### 🤖 Build System
+
+* added onnxruntime ([b42ae07](https://github.com/EyeTrackVR/ETVR-Backend/commit/b42ae07ea46d63f511555453b774fa317b7a099a))
+
 ## [1.2.2](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.2.1...v1.2.2) (2023-10-08)
 
 
