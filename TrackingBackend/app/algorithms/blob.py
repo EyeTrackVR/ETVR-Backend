@@ -28,9 +28,9 @@ This project is licensed under the MIT License. See LICENSE for more details.
 """
 
 import cv2
-from app.processes import EyeProcessor
-from app.types import TrackerPosition, EyeData
 from app.utils import BaseAlgorithm
+from app.processes import EyeProcessor
+from app.types import EyeData, TRACKING_FAILED
 
 
 class Blob(BaseAlgorithm):
@@ -47,11 +47,11 @@ class Blob(BaseAlgorithm):
 
             # If we have no contours, we have nothing to blob track. Fail here.
             if len(contours) == 0:
-                self.ep.logger.warning(f"Failed to find any contours for {self.ep.tracker_position.name} eye")
-                return EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
+                self.ep.logger.warning(f"Failed to find any contours for {self.ep.tracker_position.name}")
+                return TRACKING_FAILED
         except (cv2.error, Exception):
             self.ep.logger.exception("Something went wrong!")
-            return EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
+            return TRACKING_FAILED
 
         for cnt in contours:
             (x, y, w, h) = cv2.boundingRect(cnt)
@@ -72,4 +72,4 @@ class Blob(BaseAlgorithm):
 
             return EyeData(x, y, 1, self.ep.tracker_position)
 
-        return EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
+        return TRACKING_FAILED

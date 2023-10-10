@@ -40,6 +40,7 @@ ONNX_OPTIONS = rt.SessionOptions()
 ONNX_OPTIONS.inter_op_num_threads = 1
 ONNX_OPTIONS.intra_op_num_threads = 1
 ONNX_OPTIONS.graph_optimization_level = rt.GraphOptimizationLevel.ORT_ENABLE_ALL
+MODEL_PATH = "assets/leap.onnx"
 
 
 class Leap(BaseAlgorithm):
@@ -47,7 +48,8 @@ class Leap(BaseAlgorithm):
         self.ep = eye_processor
         self.openlist: list[float] = []
         self.filter = OneEuroFilter(np.random.rand(7, 2), 0.9, 5.0)
-        self.model = rt.InferenceSession("assets/leap.onnx", ONNX_OPTIONS, ["CPUExecutionProvider"])
+        self.session = rt.InferenceSession(MODEL_PATH, ONNX_OPTIONS, ["CPUExecutionProvider"])
+        self.ep.logger.debug(f"Created Inference Session with `{MODEL_PATH}`")
 
     def run(self, frame: cv2.Mat) -> EyeData:
         pre_landmark = self.filter(self.run_model(frame.copy()))
@@ -88,8 +90,8 @@ class Leap(BaseAlgorithm):
 
         # add a batch dimension
         frame = np.expand_dims(frame, axis=0)
-        ort_inputs = {self.model.get_inputs()[0].name: frame}
-        pre_landmark = self.model.run(None, ort_inputs)[1]
+        ort_inputs = {self.session.get_inputs()[0].name: frame}
+        pre_landmark = self.session.run(None, ort_inputs)[1]
         pre_landmark = np.reshape(pre_landmark, (7, 2))
         return pre_landmark
 

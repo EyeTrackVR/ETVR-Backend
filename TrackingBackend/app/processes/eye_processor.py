@@ -1,7 +1,7 @@
 from __future__ import annotations
 from app.config import AlgorithmConfig, TrackerConfig
 from app.utils import WorkerProcess, BaseAlgorithm
-from app.types import EyeData, Algorithms, TrackerPosition
+from app.types import EyeData, Algorithms, TRACKING_FAILED
 from queue import Queue
 import cv2
 
@@ -37,12 +37,9 @@ class EyeProcessor(WorkerProcess):
         for algorithm in self.algorithms:
             result = algorithm.run(current_frame)
 
-            # if the algorithm returns (0, 0, 0, UNDEFINED) then it has failed, so we go to the next algorithm
-            if result == EyeData(0, 0, 0, TrackerPosition.UNDEFINED):
-                self.logger.debug(f"Algorithm {algorithm.__class__.__name__} failed to find a result")
-                continue
-            else:
+            if result != TRACKING_FAILED:
                 break
+            self.logger.debug(f"Algorithm {algorithm.__class__.__name__} failed to find a result")
 
         self.osc_queue.put(result)
 

@@ -56,3 +56,6 @@ class EyeData:
     y: float
     blink: float
     position: TrackerPosition
+
+
+TRACKING_FAILED = EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
