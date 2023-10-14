@@ -37,9 +37,10 @@ class EyeProcessor(WorkerProcess):
         for algorithm in self.algorithms:
             result = algorithm.run(current_frame)
 
-            if result != TRACKING_FAILED:
-                break
-            self.logger.debug(f"Algorithm {algorithm.__class__.__name__} failed to find a result")
+            if result == TRACKING_FAILED:
+                self.logger.debug(f"Algorithm {algorithm.__class__.__name__} failed to find a result")
+                continue
+            break
 
         self.osc_queue.put(result)
 
