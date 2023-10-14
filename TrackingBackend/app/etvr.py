@@ -5,9 +5,8 @@ from app.utils import clear_queue
 from .logger import get_logger
 from fastapi import APIRouter
 from .tracker import Tracker
-from .types import EyeData, DEBUG_FLAG
+from .types import EyeData
 from queue import Queue
-import os
 
 logger = get_logger()
 
@@ -17,8 +16,6 @@ class ETVR:
         self.config: EyeTrackConfig = EyeTrackConfig()
         self.config.load()
         self.running: bool = False
-        if self.config.debug:
-            os.environ[DEBUG_FLAG] = "1"
         # IPC stuff
         self.manager = Manager()
         self.osc_queue: Queue[EyeData] = self.manager.Queue()

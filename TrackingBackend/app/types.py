@@ -1,6 +1,5 @@
 # This file exists purely because circular imports are a thing and im too lazy to come up with a better
 # solution that doesnt involve a bunch of refactoring.
-import os
 import enum
 import logging
 from enum import Enum
@@ -59,10 +58,4 @@ class EyeData:
     position: TrackerPosition
 
 
-DEBUG_FLAG = "ETVR_DEBUG"
 TRACKING_FAILED = EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
-
-
-# This is a function because some modules are imported before the env variable is set / loaded
-def IS_DEBUG() -> bool:
-    return os.environ.get(DEBUG_FLAG) not in [None, "0", "false", "False", "FALSE"]

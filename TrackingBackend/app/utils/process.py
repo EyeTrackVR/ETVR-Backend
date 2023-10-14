@@ -1,6 +1,6 @@
 import time
 import copy
-from os import path, environ
+from os import path
 from watchdog.observers import Observer
 from multiprocessing import Process, Event
 from app.logger import get_logger, setup_logger
@@ -31,6 +31,7 @@ class WorkerProcess:
 
         self.uuid: str = uuid
         self.base_config: EyeTrackConfig = EyeTrackConfig().load()
+        self.debug: bool = self.base_config.debug
         self.logger = get_logger(self.__module__)
         self.logger.debug(f"Initialized process `{self.name}`")
 
@@ -59,11 +60,6 @@ class WorkerProcess:
     # endregion
 
     def _run(self, env_args: list[str] = []) -> None:
-        # since the debug flag is a env variable we clone the parent process env
-        for arg in env_args:
-            arg = arg.split("=")  # type: ignore[assignment]
-            environ[arg[0]] = arg[1]
-
         try:
             setup_logger()
             self.setup_watchdog()
@@ -108,14 +104,10 @@ class WorkerProcess:
             self.logger.debug(f"Process `{self.name}` requested to start but is already running")
             return
 
-        env_args = []
-        for key, value in environ.items():
-            env_args.append(f"{key}={value}")
-
         try:
             self.__shutdown_event.clear()
             self.logger.info(f"Starting Process `{self.name}`")
-            self.__process = Process(target=self._run, name=f"{self.name}", args=(env_args,))
+            self.__process = Process(target=self._run, name=f"{self.name}")
             self.__process.daemon = True
             self.__process.start()
         except (TypeError, Exception):
