@@ -58,4 +58,5 @@ class EyeData:
     position: TrackerPosition
 
 
+DEBUG_FLAG = "ETVR_DEBUG"
 TRACKING_FAILED = EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
