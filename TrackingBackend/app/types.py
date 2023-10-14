@@ -1,9 +1,10 @@
 # This file exists purely because circular imports are a thing and im too lazy to come up with a better
 # solution that doesnt involve a bunch of refactoring.
+import os
+import enum
 import logging
 from enum import Enum
 from dataclasses import dataclass
-import enum
 
 
 # When we upgrade to python 3.11 we can use the built in StrEnum
@@ -58,4 +59,7 @@ class EyeData:
     position: TrackerPosition
 
 
+DEBUG_FLAG = "ETVR_DEBUG"
 TRACKING_FAILED = EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
+# This is a lambda because some modules are imported before the env variable is set / loaded
+IS_DEBUG = lambda: os.environ.get(DEBUG_FLAG) not in [None, "0", "false", "False", "FALSE"]

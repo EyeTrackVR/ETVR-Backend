@@ -1,12 +1,12 @@
-from multiprocessing import Process, Event
-from app.logger import get_logger, setup_logger
-from app.config import EyeTrackConfig, CONFIG_FILE, TrackerConfig
-from watchdog.observers import Observer
-from watchdog.observers.api import BaseObserver
-from watchdog.events import FileSystemEventHandler, FileModifiedEvent
-from os import path
 import time
 import copy
+from os import path, environ
+from watchdog.observers import Observer
+from multiprocessing import Process, Event
+from app.logger import get_logger, setup_logger
+from watchdog.observers.api import BaseObserver
+from app.config import EyeTrackConfig, CONFIG_FILE, TrackerConfig
+from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 
 # Welcome to assassin's multiprocessing realm
 # To not repeat the same mistakes I made, here are some tips:
@@ -58,7 +58,12 @@ class WorkerProcess:
 
     # endregion
 
-    def _run(self) -> None:
+    def _run(self, env_args: list[str] = []) -> None:
+        # since the debug flag is a env variable we clone the parent process env
+        for arg in env_args:
+            arg = arg.split("=")
+            environ[arg[0]] = arg[1]
+
         try:
             setup_logger()
             self.setup_watchdog()
@@ -98,31 +103,19 @@ class WorkerProcess:
                             self.on_tracker_config_update(tracker)
                 self.__last_config_update = time.time()
 
-    def setup_watchdog(self) -> None:
-        try:
-            self.logger.debug(f"Starting config watcher thread for process `{self.name}`")
-            self.__observer = Observer()
-            self.__observer.daemon = True
-            self.__observer.name = f"{self.name} Config Watcher"
-            self.__event_handler.on_modified = self.on_file_modified  # type: ignore[method-assign]
-            self.__observer.schedule(
-                event_handler=self.__event_handler,
-                path=".",
-                recursive=False,
-            )
-            self.__observer.start()
-        except Exception:
-            self.logger.exception("Failed to start config watcher thread")
-
     def start(self) -> None:
         if self.is_alive():
             self.logger.debug(f"Process `{self.name}` requested to start but is already running")
             return
 
+        env_args = []
+        for key, value in environ.items():
+            env_args.append(f"{key}={value}")
+
         try:
             self.__shutdown_event.clear()
             self.logger.info(f"Starting Process `{self.name}`")
-            self.__process = Process(target=self._run, name=f"{self.name}")
+            self.__process = Process(target=self._run, name=f"{self.name}", args=(env_args,))
             self.__process.daemon = True
             self.__process.start()
         except (TypeError, Exception):
@@ -141,6 +134,22 @@ class WorkerProcess:
             self.logger.exception(f"Failed to stop process `{self.name}`")
         finally:
             self.kill()
+
+    def setup_watchdog(self) -> None:
+        try:
+            self.logger.debug(f"Starting config watcher thread for process `{self.name}`")
+            self.__observer = Observer()
+            self.__observer.daemon = True
+            self.__observer.name = f"{self.name} Config Watcher"
+            self.__event_handler.on_modified = self.on_file_modified  # type: ignore[method-assign]
+            self.__observer.schedule(
+                event_handler=self.__event_handler,
+                path=".",
+                recursive=False,
+            )
+            self.__observer.start()
+        except Exception:
+            self.logger.exception("Failed to start config watcher thread")
 
     def kill(self) -> None:
         if self.is_alive():
