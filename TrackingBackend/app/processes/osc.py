@@ -1,14 +1,19 @@
 from __future__ import annotations
+from app.utils import WorkerProcess, OneEuroFilter
 from app.config import EyeTrackConfig, OSCConfig
-from app.utils import WorkerProcess
 from app.types import EyeData, TrackerPosition
 from app.logger import get_logger
-from queue import Queue
+from queue import Queue, Empty
+from copy import deepcopy
+import numpy as np
 import threading
+import cv2
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.udp_client import SimpleUDPClient
 from pythonosc.osc_server import ThreadingOSCUDPServer
 
+WIDTH = 256
+HEIGHT = 256
 
 logger = get_logger()
 
@@ -21,6 +26,7 @@ class VRChatOSC(WorkerProcess):
         # Unsynced variables
         self.config: EyeTrackConfig = config
         self.client = SimpleUDPClient(self.config.osc.address, self.config.osc.sending_port)
+        self.filter = OneEuroFilter(np.random.rand(2), 0.9, 5.0)
 
     # TODO: Since vrchat implements OSCQuery we shouldnt rely on the config for this
     # we should instead query the server for the endpoints
@@ -32,11 +38,15 @@ class VRChatOSC(WorkerProcess):
             eye_data: EyeData = self.osc_queue.get(block=True, timeout=0.5)
             if not self.config.osc.enable_sending:
                 return
-            else:
-                # "normalize" the data to be between -1 and 1
-                eye_data.x = 2 * (eye_data.x - 0.5)
-                eye_data.y = -(2 * (eye_data.y - 0.5))
+
+            self.smooth(eye_data)
+            # "normalize" the data to be between -1 and 1
+            eye_data.x = 2 * (eye_data.x - 0.5)
+            eye_data.y = -(2 * (eye_data.y - 0.5))
+        except Empty:
+            return
         except Exception:
+            self.logger.exception("Failed to get eye data from queue")
             return
 
         if self.config.osc.mirror_eyes:
@@ -61,6 +71,29 @@ class VRChatOSC(WorkerProcess):
 
     def on_config_update(self, config: EyeTrackConfig) -> None:
         self.config = config
+
+    def smooth(self, data: EyeData) -> EyeData:
+        original = deepcopy(data)
+        data.x, data.y = self.filter(np.array([data.x, data.y]))
+
+        # TODO: hide all debug stuff behind a flag
+        # regular users don't need to see this plus it slows down the process
+        self.draw_debug("Smoothed", original, data)
+        return data
+
+    def draw_debug(self, window: str, original: EyeData, smoothed: EyeData) -> None:
+        frame = np.zeros((HEIGHT, WIDTH, 3), np.uint8)
+        frame[:] = (255, 255, 255)
+        x1 = int(original.x * WIDTH)
+        y1 = int(original.y * HEIGHT)
+        x2 = int(smoothed.x * WIDTH)
+        y2 = int(smoothed.y * HEIGHT)
+        cv2.circle(frame, (x1, y1), 5, (0, 0, 255), -1)
+        cv2.circle(frame, (x2, y2), 5, (255, 0, 0), -1)
+        cv2.putText(frame, "original", (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 1)
+        cv2.putText(frame, "smoothed", (0, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 1)
+        cv2.imshow(window, frame)
+        cv2.waitKey(1)
 
 
 # TODO: refactor this
