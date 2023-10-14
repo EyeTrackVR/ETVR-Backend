@@ -33,7 +33,7 @@ class BlobConfig(BaseModel):
 
 
 class LeapConfig(BaseModel):
-    blink_threshold: float = 0.2
+    blink_threshold: float = 0.25
 
     @field_validator("blink_threshold")
     def blink_threshold_validator(cls, value: float) -> float:
