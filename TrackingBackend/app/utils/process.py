@@ -59,7 +59,7 @@ class WorkerProcess:
 
     # endregion
 
-    def _run(self, env_args: list[str] = []) -> None:
+    def _run(self) -> None:
         try:
             setup_logger()
             self.setup_watchdog()
