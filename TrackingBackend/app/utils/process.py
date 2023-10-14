@@ -61,7 +61,7 @@ class WorkerProcess:
     def _run(self, env_args: list[str] = []) -> None:
         # since the debug flag is a env variable we clone the parent process env
         for arg in env_args:
-            arg = arg.split("=")
+            arg = arg.split("=")  # type: ignore[assignment]
             environ[arg[0]] = arg[1]
 
         try:

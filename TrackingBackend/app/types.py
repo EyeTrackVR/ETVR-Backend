@@ -61,5 +61,8 @@ class EyeData:
 
 DEBUG_FLAG = "ETVR_DEBUG"
 TRACKING_FAILED = EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
-# This is a lambda because some modules are imported before the env variable is set / loaded
-IS_DEBUG = lambda: os.environ.get(DEBUG_FLAG) not in [None, "0", "false", "False", "FALSE"]
+
+
+# This is a function because some modules are imported before the env variable is set / loaded
+def IS_DEBUG() -> bool:
+    return os.environ.get(DEBUG_FLAG) not in [None, "0", "false", "False", "FALSE"]
