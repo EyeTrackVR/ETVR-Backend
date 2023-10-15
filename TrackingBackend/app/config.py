@@ -1,13 +1,15 @@
 from __future__ import annotations
+import re
+import sys
 import uuid
 import json
+import time
+import random
 import os.path
-import re
-from pydantic import BaseModel, ValidationError, field_validator
 from .logger import get_logger
 from fastapi import Request, HTTPException
 from app.types import Algorithms, TrackerPosition
-import sys
+from pydantic import BaseModel, ValidationError, field_validator
 
 logger = get_logger()
 
@@ -138,7 +140,6 @@ class TrackerConfig(BaseModel):
         return value
 
 
-# FIXME: before opening any files we should check if they are locked
 class EyeTrackConfig(BaseModel):
     version: int = 3
     debug: bool = True  # For future use
@@ -173,6 +174,9 @@ class EyeTrackConfig(BaseModel):
             self.save(file=file)
 
     def load(self, file: str = CONFIG_FILE) -> EyeTrackConfig:
+        # FIXME: this hopefully prevents multiple processes opening the config file at the same time
+        time.sleep(random.random())
+
         if not os.path.exists(file):
             logger.info("No config file found, using base settings")
         else:
@@ -180,14 +184,14 @@ class EyeTrackConfig(BaseModel):
                 with open(file, "r", encoding="utf8") as config:
                     data = config.read()
                     self.__dict__.update(self.model_validate_json(data))
+            except PermissionError:
+                logger.error("Permission Denied, assuming config has lock, Retrying...")
+                return self.load(file=file)
             except (json.JSONDecodeError, ValidationError) as e:
                 if type(e) is ValidationError:
                     logger.error(f"Invalid data found in config\n{e}")
                 logger.critical("Config is corrupted, creating backup and regenerating")
                 os.replace(file, f"{file}.backup")
-            except PermissionError:
-                logger.error("Permission Denied, assuming config has lock, Retrying...")
-                return self.load(file=file)
 
         self.save(file=file)
         return self
