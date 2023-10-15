@@ -348,15 +348,15 @@ class ConfigWatcher:
         self.__callback = callback
         # Threads arent pickleable, so we create the observer in the start method
         self.__observer: BaseObserver = None  # type: ignore[assignment]
-        self.__event_handler = FileSystemEventHandler()
 
     def start(self) -> None:
         self.__observer = Observer()
         self.__observer.daemon = True
-        self.__event_handler.on_modified = self.__callback  # type: ignore[method-assign]
+        event_handler = FileSystemEventHandler()
+        event_handler.on_modified = self.__callback  # type: ignore[method-assign]
         self.__observer.name = f"{self.__name} Config Watcher"
         self.__observer.schedule(
-            event_handler=self.__event_handler,
+            event_handler=event_handler,
             path=".",
             recursive=False,
         )
