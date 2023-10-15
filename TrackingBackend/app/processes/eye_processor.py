@@ -28,7 +28,7 @@ class EyeProcessor(WorkerProcess):
     def run(self) -> None:
         try:
             current_frame = self.image_queue.get(block=True, timeout=0.5)
-            cv2.imshow(f"{self.process_name()}", current_frame)
+            self.window.imshow(f"{self.process_name()}", current_frame)
             current_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
         except Exception:
             return
@@ -43,9 +43,7 @@ class EyeProcessor(WorkerProcess):
             break
 
         self.osc_queue.put(result)
-
-        cv2.imshow(f"{self.process_name()}, output", current_frame)
-        cv2.waitKey(1)
+        self.window.imshow(f"{self.process_name()}, output", current_frame)
 
     def shutdown(self) -> None:
         pass

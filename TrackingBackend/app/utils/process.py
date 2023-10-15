@@ -1,6 +1,7 @@
 import time
-import copy
 from os import path
+from copy import deepcopy
+from app.window import Window
 from watchdog.observers import Observer
 from multiprocessing import Process, Event
 from app.logger import get_logger, setup_logger
@@ -32,6 +33,7 @@ class WorkerProcess:
         self.uuid: str = uuid
         self.base_config: EyeTrackConfig = EyeTrackConfig().load()
         self.debug: bool = self.base_config.debug
+        self.window: Window = Window(self.debug)
         self.logger = get_logger(self.__module__)
         self.logger.debug(f"Initialized process `{self.name}`")
 
@@ -41,6 +43,7 @@ class WorkerProcess:
         * Should not include a while loop this parent class should handle lifecycles.
         * All children must override this method and implement their own main loop
         * Although its better to handle all errors in the child process, this parent class will take care of unhandled exceptions
+        * Unless necessary, do not call cv2.waitkey(1) this parent class handle all debug windows
         """
         self.logger.critical("WorkerProcess.run() must be overridden in child class!")
         raise NotImplementedError
@@ -73,6 +76,7 @@ class WorkerProcess:
         while not self.__shutdown_event.is_set():
             try:
                 self.run()
+                self.window._waitkey(1)
             except KeyboardInterrupt:
                 self.logger.warning("Keyboard interrupt received, shutting down...")
                 self.__shutdown_event.set()
@@ -86,18 +90,19 @@ class WorkerProcess:
         # so we just use a one second timeout
         if time.time() - self.__last_config_update > 1:
             if event.src_path == f".{path.sep}{CONFIG_FILE}":
-                self.logger.debug(f"Config updated for process `{self.name}`")
-                old_config = copy.deepcopy(self.base_config)
+                old_config = deepcopy(self.base_config)
                 self.base_config.load()
-
-                self.on_config_update(self.base_config)
-                for tracker in self.base_config.trackers:
-                    if tracker.uuid == self.uuid:
-                        old_tracker = old_config.get_tracker_by_uuid(self.uuid)
-                        if tracker != old_tracker:
-                            self.logger.info(f"Tracker config updated for process `{self.name}`")
-                            self.on_tracker_config_update(tracker)
-                self.__last_config_update = time.time()
+                if self.base_config != old_config:
+                    self.logger.debug(f"Config updated for process `{self.name}`")
+                    self.window._debug = self.base_config.debug
+                    self.on_config_update(self.base_config)
+                    for tracker in self.base_config.trackers:
+                        if tracker.uuid == self.uuid:
+                            old_tracker = old_config.get_tracker_by_uuid(self.uuid)
+                            if tracker != old_tracker:
+                                self.logger.info(f"Tracker config updated for process `{self.name}`")
+                                self.on_tracker_config_update(tracker)
+                    self.__last_config_update = time.time()
 
     def start(self) -> None:
         if self.is_alive():
@@ -167,8 +172,8 @@ class WorkerProcess:
             self.stop()
 
     def __repr__(self) -> str:
-        parent_class = self.__class__.__bases__[0].__name__
         child_class = self.__class__.__name__
+        parent_class = self.__class__.__bases__[0].__name__
         return f"{parent_class}(child={child_class}, name='{self.name}' alive={self.is_alive()}, uuid='{self.uuid}')"
 
 

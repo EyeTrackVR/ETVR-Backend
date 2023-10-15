@@ -75,9 +75,6 @@ class VRChatOSC(WorkerProcess):
     def smooth(self, data: EyeData) -> EyeData:
         original = deepcopy(data)
         data.x, data.y = self.filter(np.array([data.x, data.y]))
-
-        # TODO: hide all debug stuff behind a flag
-        # regular users don't need to see this plus it slows down the process
         self.draw_debug("Smoothed", original, data)
         return data
 
@@ -92,8 +89,7 @@ class VRChatOSC(WorkerProcess):
         cv2.circle(frame, (x2, y2), 5, (255, 0, 0), -1)
         cv2.putText(frame, "original", (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 1)
         cv2.putText(frame, "smoothed", (0, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 1)
-        cv2.imshow(window, frame)
-        cv2.waitKey(1)
+        self.window.imshow("OSC", frame)
 
 
 # TODO: refactor this
