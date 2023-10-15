@@ -173,6 +173,7 @@ class EyeTrackConfig(BaseModel):
             logger.error(f"Permission Denied `{file}`, assuming config has lock, Retrying...")
             self.save(file=file)
 
+    # TODO: refactor how we load config files, this is a mess
     def load(self, file: str = CONFIG_FILE) -> EyeTrackConfig:
         # FIXME: this hopefully prevents multiple processes opening the config file at the same time
         time.sleep(random.random())
@@ -192,8 +193,8 @@ class EyeTrackConfig(BaseModel):
                     logger.error(f"Invalid data found in config\n{e}")
                 logger.critical("Config is corrupted, creating backup and regenerating")
                 os.replace(file, f"{file}.backup")
+                self.save(file=file)
 
-        self.save(file=file)
         return self
 
     def update_model(self, obj: BaseModel, data: dict) -> None:
