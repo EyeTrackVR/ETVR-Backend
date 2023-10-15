@@ -10,6 +10,10 @@ from .logger import get_logger
 from fastapi import Request, HTTPException
 from app.types import Algorithms, TrackerPosition
 from pydantic import BaseModel, ValidationError, field_validator
+from typing import Callable
+from watchdog.observers import Observer
+from watchdog.observers.api import BaseObserver
+from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 
 logger = get_logger()
 
@@ -335,3 +339,28 @@ class EyeTrackConfig(BaseModel):
         return value
 
     # endregion
+
+
+# TODO: the config has become a bit messy, we should split it up into multiple files
+class ConfigWatcher:
+    def __init__(self, name: str, callback: Callable[[FileModifiedEvent], None]):
+        self.__name = name
+        self.__callback = callback
+        # Threads arent pickleable, so we create the observer in the start method
+        self.__observer: BaseObserver = None  # type: ignore[assignment]
+        self.__event_handler = FileSystemEventHandler()
+
+    def start(self) -> None:
+        self.__observer = Observer()
+        self.__observer.daemon = True
+        self.__event_handler.on_modified = self.__callback  # type: ignore[method-assign]
+        self.__observer.name = f"{self.__name} Config Watcher"
+        self.__observer.schedule(
+            event_handler=self.__event_handler,
+            path=".",
+            recursive=False,
+        )
+        self.__observer.start()
+
+    def stop(self) -> None:
+        self.__observer.stop()

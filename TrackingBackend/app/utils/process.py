@@ -2,12 +2,10 @@ import time
 from os import path
 from copy import deepcopy
 from app.window import Window
-from watchdog.observers import Observer
 from multiprocessing import Process, Event
+from watchdog.events import FileModifiedEvent
 from app.logger import get_logger, setup_logger
-from watchdog.observers.api import BaseObserver
-from app.config import EyeTrackConfig, CONFIG_FILE, TrackerConfig
-from watchdog.events import FileSystemEventHandler, FileModifiedEvent
+from app.config import EyeTrackConfig, CONFIG_FILE, TrackerConfig, ConfigWatcher
 
 # Welcome to assassin's multiprocessing realm
 # To not repeat the same mistakes I made, here are some tips:
@@ -16,25 +14,24 @@ from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 # 3. Do not pass a manager to a child process, it will not work
 # 4. If you have to register a complex object to a manager, create a proxy
 # 5. Queue's are your friend, use them
+# 6. Unless explicitly shared, all variables should be cloned
+# 7. If you have share a variable, please document it
 
 
 # TODO: when python 3.13 comes out, we should look into the new per interpreter GIL
 # if it is faster maybe we should refactor this to use it?
 class WorkerProcess:
     def __init__(self, name: str, uuid: str = ""):
-        self.name: str = name
+        self.name = name
+        self.__process = Process()
         self.__shutdown_event = Event()
-        self.__last_config_update = 0.0
-        self.__process: Process = Process()
-        # TODO: Abstract the config watcher into a separate class
-        self.__observer: BaseObserver = None  # type: ignore[assignment]
-        self.__event_handler = FileSystemEventHandler()
+        self.base_config = EyeTrackConfig().load()
+        self.__config_watcher = ConfigWatcher(name, self._config_update)
 
-        self.uuid: str = uuid
-        self.base_config: EyeTrackConfig = EyeTrackConfig().load()
-        self.debug: bool = self.base_config.debug
-        self.window: Window = Window(self.debug)
+        self.uuid = uuid
+        self.debug = self.base_config.debug
         self.logger = get_logger(self.__module__)
+        self.window = Window(self.base_config.debug)
         self.logger.debug(f"Initialized process `{self.name}`")
 
     # region: Child class overrides and callbacks
@@ -62,10 +59,11 @@ class WorkerProcess:
 
     # endregion
 
+    # region: Internal methods
     def _run(self) -> None:
         try:
+            self.__config_watcher.start()
             setup_logger()
-            self.setup_watchdog()
             self.startup()
             self._mainloop()
             self.shutdown()
@@ -85,24 +83,23 @@ class WorkerProcess:
                 self.logger.exception("Unhandled exception in child process! Continuing...")
                 continue
 
-    def on_file_modified(self, event: FileModifiedEvent) -> None:
-        # this event is called multiple times when a file is modified
-        # so we just use a one second timeout
-        if time.time() - self.__last_config_update > 1:
-            if event.src_path == f".{path.sep}{CONFIG_FILE}":
-                old_config = deepcopy(self.base_config)
-                self.base_config.load()
-                if self.base_config != old_config:
-                    self.logger.debug(f"Config updated for process `{self.name}`")
-                    self.window._debug = self.base_config.debug
-                    self.on_config_update(self.base_config)
-                    for tracker in self.base_config.trackers:
-                        if tracker.uuid == self.uuid:
-                            old_tracker = old_config.get_tracker_by_uuid(self.uuid)
-                            if tracker != old_tracker:
-                                self.logger.info(f"Tracker config updated for process `{self.name}`")
-                                self.on_tracker_config_update(tracker)
-                    self.__last_config_update = time.time()
+    def _config_update(self, event: FileModifiedEvent) -> None:
+        if event.src_path == f".{path.sep}{CONFIG_FILE}":
+            old_config = deepcopy(self.base_config)
+            self.base_config.load()
+            if self.base_config != old_config:
+                self.logger.debug(f"Config updated for process `{self.name}`")
+                self.debug = self.base_config.debug
+                self.on_config_update(self.base_config)
+                self.window._debug = self.base_config.debug
+                for tracker in self.base_config.trackers:
+                    if tracker.uuid == self.uuid:
+                        old_tracker = old_config.get_tracker_by_uuid(self.uuid)
+                        if tracker != old_tracker:
+                            self.logger.info(f"Tracker config updated for process `{self.name}`")
+                            self.on_tracker_config_update(tracker)
+
+    # endregion
 
     def start(self) -> None:
         if self.is_alive():
@@ -131,22 +128,6 @@ class WorkerProcess:
             self.logger.exception(f"Failed to stop process `{self.name}`")
         finally:
             self.kill()
-
-    def setup_watchdog(self) -> None:
-        try:
-            self.logger.debug(f"Starting config watcher thread for process `{self.name}`")
-            self.__observer = Observer()
-            self.__observer.daemon = True
-            self.__observer.name = f"{self.name} Config Watcher"
-            self.__event_handler.on_modified = self.on_file_modified  # type: ignore[method-assign]
-            self.__observer.schedule(
-                event_handler=self.__event_handler,
-                path=".",
-                recursive=False,
-            )
-            self.__observer.start()
-        except Exception:
-            self.logger.exception("Failed to start config watcher thread")
 
     def kill(self) -> None:
         if self.is_alive():
