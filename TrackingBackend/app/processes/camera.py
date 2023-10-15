@@ -92,7 +92,7 @@ class Camera(WorkerProcess):
                 frame = cv2.flip(frame, 1)
 
             qsize: int = self.image_queue.qsize()
-            if qsize > 10:
+            if qsize > 50:
                 self.logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
                 pass
             self.image_queue.put(frame)
