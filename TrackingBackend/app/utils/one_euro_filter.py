@@ -30,21 +30,24 @@ class OneEuroFilter:
 
         t = time()
         t_e = t - self.t_prev
-        t_e = np.full(x.shape, t_e)  # type: ignore[assignment]
+        # if t_e is ever 0.0, a divide by zero occurs and it will crash the filter
+        if t_e > 0.0:
+            t_e = np.full(x.shape, t_e)  # type: ignore[assignment]
 
-        # The filtered derivative of the signal.
-        a_d = smoothing_factor(t_e, self.d_cutoff)
-        dx = (x - self.x_prev) / t_e
-        dx_hat = exponential_smoothing(a_d, dx, self.dx_prev)
+            # The filtered derivative of the signal.
+            a_d = smoothing_factor(t_e, self.d_cutoff)
+            dx = (x - self.x_prev) / t_e
+            dx_hat = exponential_smoothing(a_d, dx, self.dx_prev)
 
-        # The filtered signal.
-        cutoff = self.min_cutoff + self.beta * np.abs(dx_hat)
-        a = smoothing_factor(t_e, cutoff)
-        x_hat = exponential_smoothing(a, x, self.x_prev)
+            # The filtered signal.
+            cutoff = self.min_cutoff + self.beta * np.abs(dx_hat)
+            a = smoothing_factor(t_e, cutoff)
+            x_hat = exponential_smoothing(a, x, self.x_prev)
 
-        # Memorize the previous values.
-        self.x_prev = x_hat
-        self.dx_prev = dx_hat
-        self.t_prev = t
+            # Memorize the previous values.
+            self.x_prev = x_hat
+            self.dx_prev = dx_hat
+            self.t_prev = t
 
-        return x_hat
+            return x_hat
+        return x
