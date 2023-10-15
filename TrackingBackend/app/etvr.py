@@ -1,12 +1,13 @@
+from .config import EyeTrackConfig, ConfigWatcher, CONFIG_FILE
 from app.processes import VRChatOSCReceiver, VRChatOSC
 from multiprocessing import Manager
-from .config import EyeTrackConfig
 from app.utils import clear_queue
 from .logger import get_logger
 from fastapi import APIRouter
 from .tracker import Tracker
 from .types import EyeData
 from queue import Queue
+from os import path
 
 logger = get_logger()
 
@@ -19,14 +20,21 @@ class ETVR:
         # IPC stuff
         self.manager = Manager()
         self.osc_queue: Queue[EyeData] = self.manager.Queue()
+        self.config_watcher = ConfigWatcher("Master", self.config_update)
+        self.config_watcher.start()
         # OSC stuff
-        self.osc_sender = VRChatOSC(self.config, self.osc_queue)
         self.osc_receiver = VRChatOSCReceiver(self.config)
+        self.osc_sender = VRChatOSC(self.config, self.osc_queue)
         # Trackers
         self.trackers: list[Tracker] = []
         self.setup_trackers()
         # Object for fastapi routes
         self.router: APIRouter = APIRouter()
+
+    def config_update(self, event) -> None:
+        if event.src_path == f".{path.sep}{CONFIG_FILE}":
+            logger.debug("Master config updated")
+            self.config.load()
 
     def setup_trackers(self) -> None:
         logger.debug("Setting up trackers")
@@ -221,3 +229,10 @@ class ETVR:
             """,
         )
         # endregion
+
+    def __del__(self):
+        self.stop()
+        self.config_watcher.stop()
+
+    def __repr__(self) -> str:
+        return f"<ETVR running={self.running}>"
