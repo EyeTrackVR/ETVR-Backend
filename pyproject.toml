@@ -27,9 +27,9 @@ onnxruntime = "^1.16.0"
 pyinstaller = "^5.6.2"
 black = "^22.10.0"
 pytest = "^7.2.0"
-ruff = "^0.0.275"
 viztracer = "^0.15.6"
 mypy = "^1.4.1"
+ruff = "^0.1.0"
 
 [tool.black]
 line-length = 135
@@ -40,8 +40,8 @@ target-version = ["py310", "py311"]
 select = ["E", "F", "W", "Q"]
 src = ["TrackingBackend", "test"]
 respect-gitignore = true
-target-version = "py310"
-format = "grouped"
+target-version = "py311"
+output-format = "grouped"
 tab-size = 4
 exclude = ["__pycache__", ".ruff_cache", ".vscode", ".idea", ".venv", "build", "dist", ".git", ".env", "venv"]
 line-length = 135
