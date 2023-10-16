@@ -1,4 +1,3 @@
-from __future__ import annotations
 from app.utils import WorkerProcess
 from app.types import CameraState
 from multiprocessing import Value

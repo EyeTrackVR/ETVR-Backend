@@ -1,4 +1,3 @@
-from __future__ import annotations
 from app.utils import WorkerProcess, OneEuroFilter
 from app.config import EyeTrackConfig, OSCConfig
 from app.types import EyeData, TrackerPosition

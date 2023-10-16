@@ -1,4 +1,3 @@
-from __future__ import annotations
 import re
 import sys
 import uuid
@@ -7,12 +6,12 @@ import time
 import random
 import os.path
 from .logger import get_logger
+from typing import Callable, Self
+from watchdog.observers import Observer
 from fastapi import Request, HTTPException
+from watchdog.observers.api import BaseObserver
 from app.types import Algorithms, TrackerPosition
 from pydantic import BaseModel, ValidationError, field_validator
-from typing import Callable
-from watchdog.observers import Observer
-from watchdog.observers.api import BaseObserver
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 
 logger = get_logger()
@@ -178,7 +177,7 @@ class EyeTrackConfig(BaseModel):
             self.save(file=file)
 
     # TODO: refactor how we load config files, this is a mess
-    def load(self, file: str = CONFIG_FILE) -> EyeTrackConfig:
+    def load(self, file: str = CONFIG_FILE) -> Self:
         # FIXME: this hopefully prevents multiple processes opening the config file at the same time
         time.sleep(random.random())
 
