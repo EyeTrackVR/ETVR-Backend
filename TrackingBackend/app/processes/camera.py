@@ -1,7 +1,8 @@
+from app.config import CameraConfig, TrackerConfig
 from app.utils import WorkerProcess
 from app.types import CameraState
 from multiprocessing import Value
-from app.config import CameraConfig, TrackerConfig
+from cv2.typing import MatLike
 from queue import Queue
 import ctypes
 import cv2
@@ -16,10 +17,10 @@ BACKEND = cv2.CAP_FFMPEG
 
 
 class Camera(WorkerProcess):
-    def __init__(self, tracker_config: TrackerConfig, image_queue: Queue[cv2.Mat]):
+    def __init__(self, tracker_config: TrackerConfig, image_queue: Queue[MatLike]):
         super().__init__(name=f"Capture {str(tracker_config.name)}", uuid=tracker_config.uuid)
         # Synced variables
-        self.image_queue: Queue[cv2.Mat] = image_queue
+        self.image_queue = image_queue
         self.state = Value(ctypes.c_int, CameraState.DISCONNECTED.value)
         # Unsynced variables
         self.config: CameraConfig = tracker_config.camera
@@ -82,7 +83,7 @@ class Camera(WorkerProcess):
             self.set_state(CameraState.DISCONNECTED)
             self.logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
 
-    def push_image_to_queue(self, frame: cv2.Mat, frame_number: float, fps: float) -> None:
+    def push_image_to_queue(self, frame: MatLike, frame_number: float, fps: float) -> None:
         try:
             if self.config.flip_x_axis:
                 frame = cv2.flip(frame, 0)

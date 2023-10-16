@@ -1,6 +1,6 @@
-import cv2
 from queue import Queue
 from .types import EyeData
+from cv2.typing import MatLike
 from .logger import get_logger
 from app.utils import clear_queue
 from .config import EyeTrackConfig
@@ -19,7 +19,7 @@ class Tracker:
         # IPC stuff
         self.manager = manager
         self.osc_queue: Queue[EyeData] = self.manager.Queue()
-        self.image_queue: Queue[cv2.Mat] = self.manager.Queue()
+        self.image_queue: Queue[MatLike] = self.manager.Queue()
         # processes
         self.osc_sender = VRChatOSC(self.config, self.osc_queue)
         self.camera = Camera(self.track_config, self.image_queue)

@@ -1,4 +1,3 @@
-from numpy import e
 from .config import EyeTrackConfig, ConfigWatcher, CONFIG_FILE
 from app.processes import VRChatOSCReceiver
 from multiprocessing import Manager

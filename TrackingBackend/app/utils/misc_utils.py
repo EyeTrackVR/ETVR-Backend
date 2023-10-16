@@ -1,6 +1,6 @@
 from app.types import EyeData, TRACKING_FAILED
 from queue import Queue, Empty
-import cv2
+from cv2.typing import MatLike
 
 
 def clamp(x, low, high):
@@ -18,7 +18,7 @@ def clear_queue(queue: Queue) -> None:
 # Base class for all algorithms
 class BaseAlgorithm:
     # all algorithms must implement this method
-    def run(self, frame: cv2.Mat) -> EyeData:
+    def run(self, frame: MatLike) -> EyeData:
         return TRACKING_FAILED
 
     def normalize(self, x: float, y: float, width: int, height: int) -> tuple[float, float]:
