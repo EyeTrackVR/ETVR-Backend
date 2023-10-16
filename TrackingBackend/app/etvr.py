@@ -1,9 +1,9 @@
-from .config import EyeTrackConfig, ConfigWatcher, CONFIG_FILE
+from app.config import EyeTrackConfig, ConfigWatcher, CONFIG_FILE
 from app.processes import VRChatOSCReceiver
 from multiprocessing import Manager
-from .logger import get_logger
+from app.logger import get_logger
 from fastapi import APIRouter
-from .tracker import Tracker
+from app.tracker import Tracker
 from os import path
 
 logger = get_logger()

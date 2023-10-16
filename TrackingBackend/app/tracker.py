@@ -1,9 +1,9 @@
 from queue import Queue
-from .types import EyeData
+from app.types import EyeData
 from cv2.typing import MatLike
-from .logger import get_logger
+from app.logger import get_logger
 from app.utils import clear_queue
-from .config import EyeTrackConfig
+from app.config import EyeTrackConfig
 from multiprocessing.managers import SyncManager
 from app.processes import EyeProcessor, Camera, VRChatOSC
 
@@ -15,15 +15,15 @@ class Tracker:
     def __init__(self, config: EyeTrackConfig, uuid: str, manager: SyncManager):
         self.uuid = uuid
         self.config = config
-        self.track_config = config.get_tracker_by_uuid(uuid)
+        self.tracker_config = config.get_tracker_by_uuid(uuid)
         # IPC stuff
         self.manager = manager
         self.osc_queue: Queue[EyeData] = self.manager.Queue()
         self.image_queue: Queue[MatLike] = self.manager.Queue()
         # processes
         self.osc_sender = VRChatOSC(self.config, self.osc_queue)
-        self.camera = Camera(self.track_config, self.image_queue)
-        self.eye_processor = EyeProcessor(self.track_config, self.image_queue, self.osc_queue)
+        self.camera = Camera(self.tracker_config, self.image_queue)
+        self.eye_processor = EyeProcessor(self.tracker_config, self.image_queue, self.osc_queue)
 
     def start(self) -> None:
         self.camera.start()

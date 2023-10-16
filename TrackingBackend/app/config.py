@@ -7,7 +7,7 @@ import time
 import random
 import os.path
 from typing import Callable
-from .logger import get_logger
+from app.logger import get_logger
 from watchdog.observers import Observer
 from fastapi import Request, HTTPException
 from watchdog.observers.api import BaseObserver
