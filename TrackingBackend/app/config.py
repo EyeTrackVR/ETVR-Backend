@@ -1,3 +1,4 @@
+from __future__ import annotations
 import re
 import sys
 import uuid
@@ -177,7 +178,7 @@ class EyeTrackConfig(BaseModel):
             self.save(file=file)
 
     # TODO: refactor how we load config files, this is a mess
-    def load(self, file: str = CONFIG_FILE) -> Self:
+    def load(self, file: str = CONFIG_FILE) -> EyeTrackConfig:
         # FIXME: this hopefully prevents multiple processes opening the config file at the same time
         time.sleep(random.random())
 
