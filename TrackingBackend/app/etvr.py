@@ -1,3 +1,4 @@
+from numpy import e
 from .config import EyeTrackConfig, ConfigWatcher, CONFIG_FILE
 from app.processes import VRChatOSCReceiver
 from multiprocessing import Manager
@@ -32,30 +33,40 @@ class ETVR:
             self.config.load()
 
     def setup_trackers(self) -> None:
-        logger.debug("Setting up trackers")
-        for tracker in self.trackers:
-            tracker.stop()
+        if not self.running:
+            logger.info("Setting up trackers")
+            for tracker in self.trackers:
+                tracker.stop()
 
-        self.trackers.clear()
-        for tracker_config in self.config.trackers:
-            if tracker_config.enabled:
-                self.trackers.append(Tracker(self.config, tracker_config.uuid, self.manager))
+            self.trackers.clear()
+            for tracker_config in self.config.trackers:
+                if tracker_config.enabled:
+                    self.trackers.append(Tracker(self.config, tracker_config.uuid, self.manager))
+        else:
+            logger.error("Cannot setup trackers while ETVR is running!")
 
     def start(self) -> None:
-        logger.info("Starting...")
-        for tracker in self.trackers:
-            tracker.start()
+        if not self.running:
+            self.setup_trackers()
+            logger.info("Starting...")
+            for tracker in self.trackers:
+                tracker.start()
 
-        self.osc_receiver.start()
-        self.running = True
+            self.osc_receiver.start()
+            self.running = True
+        else:
+            logger.error("ETVR is already running!")
 
     def stop(self) -> None:
-        logger.info("Stopping...")
-        for tracker in self.trackers:
-            tracker.stop()
+        if self.running:
+            logger.info("Stopping...")
+            for tracker in self.trackers:
+                tracker.stop()
 
-        self.osc_receiver.stop()
-        self.running = False
+            self.osc_receiver.stop()
+            self.running = False
+        else:
+            logger.error("ETVR is not running!")
 
     def restart(self) -> None:
         self.stop()
