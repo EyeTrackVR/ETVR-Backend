@@ -1,12 +1,9 @@
 from .config import EyeTrackConfig, ConfigWatcher, CONFIG_FILE
-from app.processes import VRChatOSCReceiver, VRChatOSC
+from app.processes import VRChatOSCReceiver
 from multiprocessing import Manager
-from app.utils import clear_queue
 from .logger import get_logger
 from fastapi import APIRouter
 from .tracker import Tracker
-from .types import EyeData
-from queue import Queue
 from os import path
 
 logger = get_logger()
@@ -19,12 +16,10 @@ class ETVR:
         self.running: bool = False
         # IPC stuff
         self.manager = Manager()
-        self.osc_queue: Queue[EyeData] = self.manager.Queue()
         self.config_watcher = ConfigWatcher("Master", self.config_update)
         self.config_watcher.start()
         # OSC stuff
         self.osc_receiver = VRChatOSCReceiver(self.config)
-        self.osc_sender = VRChatOSC(self.config, self.osc_queue)
         # Trackers
         self.trackers: list[Tracker] = []
         self.setup_trackers()
@@ -44,25 +39,22 @@ class ETVR:
         self.trackers.clear()
         for tracker_config in self.config.trackers:
             if tracker_config.enabled:
-                self.trackers.append(Tracker(tracker_config, self.osc_queue, self.manager))
+                self.trackers.append(Tracker(self.config, tracker_config.uuid, self.manager))
 
     def start(self) -> None:
-        logger.debug("Starting...")
-        # TODO: we should have a endpoint to start individual trackers
+        logger.info("Starting...")
         for tracker in self.trackers:
             tracker.start()
-        self.osc_sender.start()
+
         self.osc_receiver.start()
         self.running = True
 
     def stop(self) -> None:
-        logger.debug("Stopping...")
-        # TODO: we should have a endpoint to stop individual trackers
+        logger.info("Stopping...")
         for tracker in self.trackers:
             tracker.stop()
-        self.osc_sender.stop()
+
         self.osc_receiver.stop()
-        clear_queue(self.osc_queue)
         self.running = False
 
     def restart(self) -> None:
