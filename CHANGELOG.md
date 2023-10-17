@@ -3,6 +3,45 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.4.0](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.3.1...v1.4.0) (2023-10-17)
+
+
+### 🍕 Features
+
+* added debug flag ([d2c04da](https://github.com/EyeTrackVR/ETVR-Backend/commit/d2c04dae43e7712544afa7be2a98b7f3547dcb6f))
+* apply `OneEuroFilter` before sending OSC ([021c268](https://github.com/EyeTrackVR/ETVR-Backend/commit/021c268957e7aba01ade4d676f431964ab775c3e))
+* hide all debug visuals behind config `debug` ([0c51ba7](https://github.com/EyeTrackVR/ETVR-Backend/commit/0c51ba731dfc0cf24b2667dd4b2f80ee33c64115))
+* Updated to python 3.11 ([a21c334](https://github.com/EyeTrackVR/ETVR-Backend/commit/a21c334f5bf4d6deada92364d32af10e5b0b48da))
+
+
+### 🐛 Bug Fixes
+
+* fixed `cv2.Mat` type hints ([37e4cf6](https://github.com/EyeTrackVR/ETVR-Backend/commit/37e4cf6d7fb1340e21f9f2706c9bc540834661e0))
+* fixed config saving itself infinitely ([13e57ff](https://github.com/EyeTrackVR/ETVR-Backend/commit/13e57ffcf7763fb4122258896f64e042b34045db))
+* fixed divide by 0 error in one euro filter ([5a01fe1](https://github.com/EyeTrackVR/ETVR-Backend/commit/5a01fe12c4ad8e3790c8508885c9bf110494f5d1))
+* fixed rare bug where the config was always corrupt ([694bb41](https://github.com/EyeTrackVR/ETVR-Backend/commit/694bb413f9fbbdd991243a7d56f9f8fc37b074c2))
+* fixed some type errors ([42a54c7](https://github.com/EyeTrackVR/ETVR-Backend/commit/42a54c77c031617e682e8cbeba5d679d8374e6cd))
+* fixed trackers using old config after updates ([26064f5](https://github.com/EyeTrackVR/ETVR-Backend/commit/26064f50eeb0d66e0607c7347b91f12e564a6729))
+* master config now reacts to file updates ([63558d1](https://github.com/EyeTrackVR/ETVR-Backend/commit/63558d1b137bcc8db5ae7862770644ee428637d5))
+* pydantic validation error ([6677a60](https://github.com/EyeTrackVR/ETVR-Backend/commit/6677a602d31efb8278d1e2495f80f3cff5b883d1))
+* upped maximum frame backlog ([97d4516](https://github.com/EyeTrackVR/ETVR-Backend/commit/97d451661e0fcd32f392ef256cd4d55f20dbaed0))
+
+
+### 🧑‍💻 Code Refactoring
+
+* abstracted config watcher into a class ([06e63cf](https://github.com/EyeTrackVR/ETVR-Backend/commit/06e63cfc158f161e53e5683108940763d1ba1d7c))
+* give each tracker its own OSC sender ([c76c8d3](https://github.com/EyeTrackVR/ETVR-Backend/commit/c76c8d31da7b513fbce0ec20bed110770790a5bf))
+* moved `OneEuroFilter` to its own file ([daab001](https://github.com/EyeTrackVR/ETVR-Backend/commit/daab001d82956dcac96beaf032c9089ce6b029cd))
+* redid how debug flags are handled ([81f82bb](https://github.com/EyeTrackVR/ETVR-Backend/commit/81f82bb63589048e82d14ee9a62e15afeb964175))
+* use `Self` return type ([0393bb6](https://github.com/EyeTrackVR/ETVR-Backend/commit/0393bb681be1966493d8edac79e5a6c680a918db))
+* use built in `StrEnum` ([9f0e5c9](https://github.com/EyeTrackVR/ETVR-Backend/commit/9f0e5c9d8f951f4860017ebbd58a4e12588109f1))
+
+
+### 🤖 Build System
+
+* Update python version ([a62d5dc](https://github.com/EyeTrackVR/ETVR-Backend/commit/a62d5dc4113dfaa0e735380078edd6b612f66242))
+* Upgrade ruff ([af8f74d](https://github.com/EyeTrackVR/ETVR-Backend/commit/af8f74d4c4f1c8cf527f9a366d686ef483e8763d))
+
 ## [1.3.1](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.3.0...v1.3.1) (2023-10-10)
 
 
