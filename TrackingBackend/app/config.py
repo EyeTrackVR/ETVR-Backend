@@ -184,6 +184,7 @@ class EyeTrackConfig(BaseModel):
 
         if not os.path.exists(file):
             logger.info("No config file found, using base settings")
+            self.save(file=file)
         else:
             try:
                 with open(file, "r", encoding="utf8") as config:
