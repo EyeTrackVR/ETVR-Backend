@@ -1,7 +1,7 @@
-from __future__ import annotations
+from app.types import EyeData, Algorithms, TRACKING_FAILED
 from app.config import AlgorithmConfig, TrackerConfig
 from app.utils import WorkerProcess, BaseAlgorithm
-from app.types import EyeData, Algorithms, TRACKING_FAILED
+from cv2.typing import MatLike
 from queue import Queue
 import cv2
 
@@ -10,12 +10,12 @@ class EyeProcessor(WorkerProcess):
     def __init__(
         self,
         tracker_config: TrackerConfig,
-        image_queue: Queue[cv2.Mat],
+        image_queue: Queue[MatLike],
         osc_queue: Queue[EyeData],
     ):
         super().__init__(name=f"Eye Processor {str(tracker_config.name)}", uuid=tracker_config.uuid)
         # Synced variables
-        self.image_queue: Queue[cv2.Mat] = image_queue
+        self.image_queue = image_queue
         self.osc_queue = osc_queue
         # Unsynced variables
         self.algorithms: list[BaseAlgorithm] = []
@@ -28,7 +28,7 @@ class EyeProcessor(WorkerProcess):
     def run(self) -> None:
         try:
             current_frame = self.image_queue.get(block=True, timeout=0.5)
-            cv2.imshow(f"{self.process_name()}", current_frame)
+            self.window.imshow(f"{self.process_name()}", current_frame)
             current_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
         except Exception:
             return
@@ -37,14 +37,13 @@ class EyeProcessor(WorkerProcess):
         for algorithm in self.algorithms:
             result = algorithm.run(current_frame)
 
-            if result != TRACKING_FAILED:
-                break
-            self.logger.debug(f"Algorithm {algorithm.__class__.__name__} failed to find a result")
+            if result == TRACKING_FAILED:
+                self.logger.debug(f"Algorithm {algorithm.__class__.__name__} failed to find a result")
+                continue
+            break
 
         self.osc_queue.put(result)
-
-        cv2.imshow(f"{self.process_name()}, output", current_frame)
-        cv2.waitKey(1)
+        self.window.imshow(f"{self.process_name()}, output", current_frame)
 
     def shutdown(self) -> None:
         pass

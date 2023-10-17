@@ -1,12 +1,10 @@
-from .config import EyeTrackConfig
-from .logger import get_logger
-from .tracker import Tracker
-from app.processes import VRChatOSCReceiver, VRChatOSC
+from app.config import EyeTrackConfig, ConfigWatcher, CONFIG_FILE
+from app.processes import VRChatOSCReceiver
 from multiprocessing import Manager
-from queue import Queue
+from app.logger import get_logger
 from fastapi import APIRouter
-from .types import EyeData
-from app.utils import clear_queue
+from app.tracker import Tracker
+from os import path
 
 logger = get_logger()
 
@@ -18,9 +16,9 @@ class ETVR:
         self.running: bool = False
         # IPC stuff
         self.manager = Manager()
-        self.osc_queue: Queue[EyeData] = self.manager.Queue()
+        self.config_watcher = ConfigWatcher("Master", self.config_update)
+        self.config_watcher.start()
         # OSC stuff
-        self.osc_sender = VRChatOSC(self.config, self.osc_queue)
         self.osc_receiver = VRChatOSCReceiver(self.config)
         # Trackers
         self.trackers: list[Tracker] = []
@@ -28,34 +26,46 @@ class ETVR:
         # Object for fastapi routes
         self.router: APIRouter = APIRouter()
 
-    def setup_trackers(self) -> None:
-        logger.debug("Setting up trackers")
-        for tracker in self.trackers:
-            tracker.stop()
+    def config_update(self, event) -> None:
+        if event.src_path == f".{path.sep}{CONFIG_FILE}":
+            logger.debug("Master config updated")
+            self.config.load()
 
-        self.trackers.clear()
-        for tracker_config in self.config.trackers:
-            if tracker_config.enabled:
-                self.trackers.append(Tracker(tracker_config, self.osc_queue, self.manager))
+    def setup_trackers(self) -> None:
+        if not self.running:
+            logger.info("Setting up trackers")
+            for tracker in self.trackers:
+                tracker.stop()
+
+            self.trackers.clear()
+            for tracker_config in self.config.trackers:
+                if tracker_config.enabled:
+                    self.trackers.append(Tracker(self.config, tracker_config.uuid, self.manager))
+        else:
+            logger.error("Cannot setup trackers while ETVR is running!")
 
     def start(self) -> None:
-        logger.debug("Starting...")
-        # TODO: we should have a endpoint to start individual trackers
-        for tracker in self.trackers:
-            tracker.start()
-        self.osc_sender.start()
-        self.osc_receiver.start()
-        self.running = True
+        if not self.running:
+            self.setup_trackers()
+            logger.info("Starting...")
+            for tracker in self.trackers:
+                tracker.start()
+
+            self.osc_receiver.start()
+            self.running = True
+        else:
+            logger.error("ETVR is already running!")
 
     def stop(self) -> None:
-        logger.debug("Stopping...")
-        # TODO: we should have a endpoint to stop individual trackers
-        for tracker in self.trackers:
-            tracker.stop()
-        self.osc_sender.stop()
-        self.osc_receiver.stop()
-        clear_queue(self.osc_queue)
-        self.running = False
+        if self.running:
+            logger.info("Stopping...")
+            for tracker in self.trackers:
+                tracker.stop()
+
+            self.osc_receiver.stop()
+            self.running = False
+        else:
+            logger.error("ETVR is not running!")
 
     def restart(self) -> None:
         self.stop()
@@ -221,3 +231,10 @@ class ETVR:
             """,
         )
         # endregion
+
+    def __del__(self):
+        self.stop()
+        self.config_watcher.stop()
+
+    def __repr__(self) -> str:
+        return f"<ETVR running={self.running}>"

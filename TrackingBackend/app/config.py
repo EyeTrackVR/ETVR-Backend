@@ -1,13 +1,19 @@
 from __future__ import annotations
+import re
+import sys
 import uuid
 import json
+import time
+import random
 import os.path
-import re
-from pydantic import BaseModel, ValidationError, field_validator
-from .logger import get_logger
+from typing import Callable
+from app.logger import get_logger
+from watchdog.observers import Observer
 from fastapi import Request, HTTPException
+from watchdog.observers.api import BaseObserver
 from app.types import Algorithms, TrackerPosition
-import sys
+from pydantic import BaseModel, ValidationError, field_validator
+from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 
 logger = get_logger()
 
@@ -33,7 +39,7 @@ class BlobConfig(BaseModel):
 
 
 class LeapConfig(BaseModel):
-    blink_threshold: float = 0.2
+    blink_threshold: float = 0.25
 
     @field_validator("blink_threshold")
     def blink_threshold_validator(cls, value: float) -> float:
@@ -138,7 +144,6 @@ class TrackerConfig(BaseModel):
         return value
 
 
-# FIXME: before opening any files we should check if they are locked
 class EyeTrackConfig(BaseModel):
     version: int = 3
     debug: bool = True  # For future use
@@ -172,7 +177,11 @@ class EyeTrackConfig(BaseModel):
             logger.error(f"Permission Denied `{file}`, assuming config has lock, Retrying...")
             self.save(file=file)
 
+    # TODO: refactor how we load config files, this is a mess
     def load(self, file: str = CONFIG_FILE) -> EyeTrackConfig:
+        # FIXME: this hopefully prevents multiple processes opening the config file at the same time
+        time.sleep(random.random())
+
         if not os.path.exists(file):
             logger.info("No config file found, using base settings")
         else:
@@ -180,16 +189,16 @@ class EyeTrackConfig(BaseModel):
                 with open(file, "r", encoding="utf8") as config:
                     data = config.read()
                     self.__dict__.update(self.model_validate_json(data))
+            except PermissionError:
+                logger.error("Permission Denied, assuming config has lock, Retrying...")
+                return self.load(file=file)
             except (json.JSONDecodeError, ValidationError) as e:
                 if type(e) is ValidationError:
                     logger.error(f"Invalid data found in config\n{e}")
                 logger.critical("Config is corrupted, creating backup and regenerating")
                 os.replace(file, f"{file}.backup")
-            except PermissionError:
-                logger.error("Permission Denied, assuming config has lock, Retrying...")
-                return self.load(file=file)
+                self.save(file=file)
 
-        self.save(file=file)
         return self
 
     def update_model(self, obj: BaseModel, data: dict) -> None:
@@ -330,3 +339,28 @@ class EyeTrackConfig(BaseModel):
         return value
 
     # endregion
+
+
+# TODO: the config has become a bit messy, we should split it up into multiple files
+class ConfigWatcher:
+    def __init__(self, name: str, callback: Callable[[FileModifiedEvent], None]):
+        self.__name = name
+        self.__callback = callback
+        # Threads arent pickleable, so we create the observer in the start method
+        self.__observer: BaseObserver = None  # type: ignore[assignment]
+
+    def start(self) -> None:
+        self.__observer = Observer()
+        self.__observer.daemon = True
+        event_handler = FileSystemEventHandler()
+        event_handler.on_modified = self.__callback  # type: ignore[method-assign]
+        self.__observer.name = f"{self.__name} Config Watcher"
+        self.__observer.schedule(
+            event_handler=event_handler,
+            path=".",
+            recursive=False,
+        )
+        self.__observer.start()
+
+    def stop(self) -> None:
+        self.__observer.stop()

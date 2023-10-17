@@ -1,4 +1,4 @@
-from .types import LogLevel
+from app.types import LogLevel
 import logging
 import inspect
 import coloredlogs
