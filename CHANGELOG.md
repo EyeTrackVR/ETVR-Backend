@@ -3,6 +3,13 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.5.0](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.4.1...v1.5.0) (2023-11-07)
+
+
+### 🍕 Features
+
+* **patch:** added ROI cropping ([05bfbff](https://github.com/EyeTrackVR/ETVR-Backend/commit/05bfbff845e8dae0df760361b3175cf375f34215))
+
 ## [1.4.1](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.4.0...v1.4.1) (2023-10-17)
 
 
