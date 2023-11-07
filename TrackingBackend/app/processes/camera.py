@@ -13,6 +13,7 @@ OPENCV_PARAMS = [
     cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2500,
 ]
 BACKEND = cv2.CAP_FFMPEG
+BACKPRESSURE_THRESHOLD = 50
 # fmt: on
 
 
@@ -85,19 +86,30 @@ class Camera(WorkerProcess):
 
     def push_image_to_queue(self, frame: MatLike, frame_number: float, fps: float) -> None:
         try:
-            if self.config.flip_x_axis:
-                frame = cv2.flip(frame, 0)
-
-            if self.config.flip_y_axis:
-                frame = cv2.flip(frame, 1)
-
+            self.window.imshow(self.process_name(), frame)
+            frame = self.preprocess_frame(frame)
             qsize: int = self.image_queue.qsize()
-            if qsize > 50:
+            if qsize > BACKPRESSURE_THRESHOLD:
                 self.logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
                 pass
             self.image_queue.put(frame)
+            # self.image_queue.put(frame, frame_number, fps)
         except Exception:
             self.logger.exception("Failed to push to camera capture queue!")
+
+    def preprocess_frame(self, frame: MatLike) -> MatLike:
+        # flip the frame if needed
+        if self.config.flip_x_axis:
+            frame = cv2.flip(frame, 0)
+        elif self.config.flip_y_axis:
+            frame = cv2.flip(frame, 1)
+
+        # TODO: send frame to frontend before cropping, so the user can more easily adjust the roi
+        roi = [self.config.roi_x, self.config.roi_y, self.config.roi_w, self.config.roi_h]
+        if roi != [0, 0, 0, 0]:
+            frame = frame[roi[1] : roi[1] + roi[3], roi[0] : roi[0] + roi[2]]
+
+        return frame
 
     def get_state(self) -> CameraState:
         return CameraState(self.state.get_obj().value)

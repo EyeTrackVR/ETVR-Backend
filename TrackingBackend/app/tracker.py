@@ -21,19 +21,19 @@ class Tracker:
         self.osc_queue: Queue[EyeData] = self.manager.Queue()
         self.image_queue: Queue[MatLike] = self.manager.Queue()
         # processes
-        self.osc_sender = VRChatOSC(self.config, self.osc_queue)
         self.camera = Camera(self.tracker_config, self.image_queue)
-        self.eye_processor = EyeProcessor(self.tracker_config, self.image_queue, self.osc_queue)
+        self.osc_sender = VRChatOSC(self.config, self.osc_queue, self.tracker_config.name)
+        self.processor = EyeProcessor(self.tracker_config, self.image_queue, self.osc_queue)
 
     def start(self) -> None:
-        self.camera.start()
         self.osc_sender.start()
-        self.eye_processor.start()
+        self.processor.start()
+        self.camera.start()
 
     def stop(self) -> None:
         self.camera.stop()
+        self.processor.stop()
         self.osc_sender.stop()
-        self.eye_processor.stop()
         # if we dont do this we memory leak :3
         clear_queue(self.osc_queue)
         clear_queue(self.image_queue)
@@ -41,4 +41,4 @@ class Tracker:
     def restart(self) -> None:
         self.camera.restart()
         self.osc_sender.restart()
-        self.eye_processor.restart()
+        self.processor.restart()

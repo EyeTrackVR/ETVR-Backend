@@ -27,3 +27,6 @@ class BaseAlgorithm:
         ty: float = y / height
 
         return tx, ty
+
+    def get_name(self) -> str:
+        return self.__class__.__name__

@@ -28,7 +28,6 @@ class EyeProcessor(WorkerProcess):
     def run(self) -> None:
         try:
             current_frame = self.image_queue.get(block=True, timeout=0.5)
-            self.window.imshow(f"{self.process_name()}", current_frame)
             current_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
         except Exception:
             return
@@ -38,12 +37,12 @@ class EyeProcessor(WorkerProcess):
             result = algorithm.run(current_frame)
 
             if result == TRACKING_FAILED:
-                self.logger.debug(f"Algorithm {algorithm.__class__.__name__} failed to find a result")
+                self.logger.debug(f"Algorithm {algorithm.get_name()} failed to find a result")
                 continue
             break
 
         self.osc_queue.put(result)
-        self.window.imshow(f"{self.process_name()}, output", current_frame)
+        self.window.imshow(self.process_name(), current_frame)
 
     def shutdown(self) -> None:
         pass

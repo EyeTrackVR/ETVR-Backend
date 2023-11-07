@@ -18,8 +18,8 @@ logger = get_logger()
 
 
 class VRChatOSC(WorkerProcess):
-    def __init__(self, config: EyeTrackConfig, osc_queue: Queue[EyeData]):
-        super().__init__(name="VRChat OSC")
+    def __init__(self, config: EyeTrackConfig, osc_queue: Queue[EyeData], name: str):
+        super().__init__(name=f"OSC {name}")
         # Synced variables
         self.osc_queue: Queue[EyeData] = osc_queue
         # Unsynced variables
@@ -88,7 +88,7 @@ class VRChatOSC(WorkerProcess):
         cv2.circle(frame, (x2, y2), 5, (255, 0, 0), -1)
         cv2.putText(frame, "original", (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 1)
         cv2.putText(frame, "smoothed", (0, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 1)
-        self.window.imshow("OSC", frame)
+        self.window.imshow(self.process_name(), frame)
 
 
 # TODO: refactor this
