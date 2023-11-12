@@ -104,6 +104,10 @@ class Camera(WorkerProcess):
         if self.config.flip_y_axis:
             frame = cv2.flip(frame, 1)
 
+        row, col, _ = frame.shape
+        matrix = cv2.getRotationMatrix2D((col / 2, row / 2), self.config.rotation_angle, 1)
+        frame = cv2.warpAffine(frame, matrix, (col, row), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
+
         # TODO: send frame to frontend before cropping, so the user can more easily adjust the roi
         roi = [self.config.roi_x, self.config.roi_y, self.config.roi_w, self.config.roi_h]
         if roi != [0, 0, 0, 0]:
