@@ -2,9 +2,12 @@ from app.utils import WorkerProcess, mat_crop, mat_rotate
 from app.config import CameraConfig, TrackerConfig
 from app.types import CameraState
 from multiprocessing import Value
+import serial.tools.list_ports
 from cv2.typing import MatLike
 from queue import Queue
+import numpy as np
 import ctypes
+import serial
 import cv2
 
 # fmt: off
@@ -22,6 +25,9 @@ BACKPRESSURE_THRESHOLD = 50
 # header-type (2 bytes)
 # packet-size (2 bytes)
 # packet (packet-size bytes)
+RX_SIZE = 32768
+TX_SIZE = 32768
+BAUDRATE = 3000000
 ETVR_HEADER_LENGTH = 6
 ETVR_HEADER = b"\xff\xa0"
 ETVR_HEADER_NAME = b"\xff\xa1"
@@ -37,11 +43,16 @@ class Camera(WorkerProcess):
         # Unsynced variables
         self.config: CameraConfig = tracker_config.camera
         self.current_capture_source: str = self.config.capture_source
+        # these objects are None by default, because they arent picklable
         self.camera: cv2.VideoCapture = None  # type: ignore[assignment]
+        self.serial_camera: serial.Serial = None  # type: ignore[assignment]
 
     def startup(self) -> None:
         if self.camera is None:
             self.camera = cv2.VideoCapture()
+        # FIXME: this might break things
+        if self.serial_camera is None:
+            self.serial_camera = serial.Serial()
 
         if self.config.capture_source == "" or self.current_capture_source == "":
             self.logger.info("No capture source set, waiting for config update")
@@ -50,18 +61,30 @@ class Camera(WorkerProcess):
         if self.config.capture_source != "":
             # if the camera is disconnected or the capture source has changed, reconnect
             if self.get_state() == CameraState.DISCONNECTED or self.current_capture_source != self.config.capture_source:
-                self.connect_camera()
+                if self.config.capture_source.upper().startswith("COM"):
+                    self.connect_serial_camera()
+                else:
+                    self.connect_camera()
             else:
-                self.get_camera_image()
+                self.get_image()
         else:
             self.set_state(CameraState.DISCONNECTED)
 
     def shutdown(self) -> None:
-        if self.camera.isOpened():
+        if self.camera.isOpened() and self.camera is not None:
             self.camera.release()
+
+        if self.serial_camera.is_open and self.serial_camera is not None:
+            self.serial_camera.close()
 
     def on_tracker_config_update(self, tracker_config: TrackerConfig) -> None:
         self.config = tracker_config.camera
+
+    def get_image(self) -> None:
+        if self.config.capture_source.upper().startswith("COM"):
+            self.get_serial_image()
+        else:
+            self.get_camera_image()
 
     def connect_camera(self) -> None:
         self.set_state(CameraState.CONNECTING)
@@ -96,23 +119,61 @@ class Camera(WorkerProcess):
             self.logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
 
     def connect_serial_camera(self) -> None:
-        pass
+        if not any(p for p in serial.tools.list_ports.comports() if self.config.capture_source in p):
+            self.logger.warning(f"Serial port `{self.config.capture_source}` not found, waiting for reconnect.")
+            self.set_state(CameraState.DISCONNECTED)
+            return
+
+        try:
+            self.serial_camera = serial.Serial(
+                port=self.config.capture_source, baudrate=BAUDRATE, xonxoff=False, dsrdtr=False, rtscts=False
+            )
+            self.serial_camera.set_buffer_size(rx_size=RX_SIZE, tx_size=TX_SIZE)
+            self.logger.info(f"Serial camera connected to `{self.config.capture_source}`")
+            self.set_state(CameraState.CONNECTED)
+        except Exception:
+            self.logger.exception(f"Failed to connect to serial port `{self.config.capture_source}`")
+            self.set_state(CameraState.DISCONNECTED)
+
+    # TODO: maybe move this into `get_serial_image`?
+    def serial_get_next_frame(self) -> bytes:
+        buffer = b""
+        while True:
+            buffer += self.serial_camera.read(2048)
+            beg = buffer.find(ETVR_HEADER + ETVR_HEADER_NAME)
+            if beg != -1:
+                break
+
+        # discard any data before header
+        if beg > 0:
+            buffer = buffer[beg:]
+            beg = 0
+        end = int.from_bytes(buffer[4:6], byteorder="little")
+        buffer += self.serial_camera.read(end - len(buffer))
+
+        frame = buffer[beg + ETVR_HEADER_LENGTH : end + ETVR_HEADER_LENGTH]
+        buffer = buffer[end + ETVR_HEADER_LENGTH :]
+        return frame
 
     def get_serial_image(self) -> None:
-        pass
+        if self.serial_camera is None or not self.serial_camera.is_open:
+            self.logger.warning("Serial camera disconnected, waiting for reconnect.")
+            self.set_state(CameraState.DISCONNECTED)
+            return
 
-    def push_image_to_queue(self, frame: MatLike, frame_number: float, fps: float) -> None:
         try:
-            self.window.imshow(self.process_name(), frame)
-            frame = self.preprocess_frame(frame)
-            qsize: int = self.image_queue.qsize()
-            if qsize > BACKPRESSURE_THRESHOLD:
-                self.logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
-                pass
-            self.image_queue.put(frame)
-            # self.image_queue.put(frame, frame_number, fps)
+            if self.serial_camera.in_waiting:
+                image = self.serial_get_next_frame()
+                frame = cv2.imdecode(np.frombuffer(image, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+                if frame is None:
+                    self.logger.warning("Failed to decode serial camera frame, discarding")
+                    return
+                # TODO: calculate frame number and fps
+                self.push_image_to_queue(frame, 0, 0)
         except Exception:
-            self.logger.exception("Failed to push to camera capture queue!")
+            self.logger.exception("Serial capture error, assuming disconnect, waiting for reconnect.")
+            self.set_state(CameraState.DISCONNECTED)
+            self.serial_camera.close()
 
     def preprocess_frame(self, frame: MatLike) -> MatLike:
         # flip the frame if needed
@@ -126,6 +187,19 @@ class Camera(WorkerProcess):
         frame = mat_crop(self.config.roi_x, self.config.roi_y, self.config.roi_w, self.config.roi_h, frame)
 
         return frame
+
+    def push_image_to_queue(self, frame: MatLike, frame_number: float, fps: float) -> None:
+        try:
+            self.window.imshow(self.process_name(), frame)
+            frame = self.preprocess_frame(frame)
+            qsize: int = self.image_queue.qsize()
+            if qsize > BACKPRESSURE_THRESHOLD:
+                self.logger.warning(f"CAPTURE QUEUE BACKPRESSURE OF {qsize}. CHECK FOR CRASH OR TIMING ISSUES IN ALGORITHM.")
+                pass
+            self.image_queue.put(frame)
+            # self.image_queue.put(frame, frame_number, fps)
+        except Exception:
+            self.logger.exception("Failed to push to camera capture queue!")
 
     def get_state(self) -> CameraState:
         return CameraState(self.state.get_obj().value)

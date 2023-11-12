@@ -122,10 +122,16 @@ class CameraConfig(BaseModel):
 
     @field_validator("capture_source")
     def capture_source_validator(cls, value: str) -> str:
-        if not value == "":
-            if re.match(IP_ADDRESS_REGEX, value) is None:
-                raise ValueError("Invalid IP Address, must be localhost or a valid IPv4 address")
-        return value
+        if re.match(IP_ADDRESS_REGEX, value) is not None:
+            return value
+        elif "com" in value.lower():
+            return value
+        elif "/dev/" in value.lower():
+            return value
+        elif value == "":
+            return value
+        else:
+            raise ValueError("Invalid capture source, must be a valid IP address or COM port")
 
 
 class TrackerConfig(BaseModel):
