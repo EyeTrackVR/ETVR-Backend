@@ -1,5 +1,5 @@
+from app.utils import WorkerProcess, mat_crop, mat_rotate
 from app.config import CameraConfig, TrackerConfig
-from app.utils import WorkerProcess
 from app.types import CameraState
 from multiprocessing import Value
 from cv2.typing import MatLike
@@ -14,6 +14,17 @@ OPENCV_PARAMS = [
 ]
 BACKEND = cv2.CAP_FFMPEG
 BACKPRESSURE_THRESHOLD = 50
+# fmt: on
+
+
+# fmt: off
+# header-begin (2 bytes)
+# header-type (2 bytes)
+# packet-size (2 bytes)
+# packet (packet-size bytes)
+ETVR_HEADER_LENGTH = 6
+ETVR_HEADER = b"\xff\xa0"
+ETVR_HEADER_NAME = b"\xff\xa1"
 # fmt: on
 
 
@@ -84,6 +95,12 @@ class Camera(WorkerProcess):
             self.set_state(CameraState.DISCONNECTED)
             self.logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
 
+    def connect_serial_camera(self) -> None:
+        pass
+
+    def get_serial_image(self) -> None:
+        pass
+
     def push_image_to_queue(self, frame: MatLike, frame_number: float, fps: float) -> None:
         try:
             self.window.imshow(self.process_name(), frame)
@@ -104,14 +121,9 @@ class Camera(WorkerProcess):
         if self.config.flip_y_axis:
             frame = cv2.flip(frame, 1)
 
-        row, col, _ = frame.shape
-        matrix = cv2.getRotationMatrix2D((col / 2, row / 2), self.config.rotation_angle, 1)
-        frame = cv2.warpAffine(frame, matrix, (col, row), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
-
+        frame = mat_rotate(frame, self.config.rotation)
         # TODO: send frame to frontend before cropping, so the user can more easily adjust the roi
-        roi = [self.config.roi_x, self.config.roi_y, self.config.roi_w, self.config.roi_h]
-        if roi != [0, 0, 0, 0]:
-            frame = frame[roi[1] : roi[1] + roi[3], roi[0] : roi[0] + roi[2]]
+        frame = mat_crop(self.config.roi_x, self.config.roi_y, self.config.roi_w, self.config.roi_h, frame)
 
         return frame
 

@@ -104,9 +104,9 @@ class OSCConfig(BaseModel):
 
 class CameraConfig(BaseModel):
     capture_source: str = ""
+    rotation: int = 0
     threshold: int = 50
     focal_length: int = 30
-    rotation_angle: int = 0
     flip_x_axis: bool = False
     flip_y_axis: bool = False
     roi_x: int = 0

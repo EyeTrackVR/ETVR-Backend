@@ -3,6 +3,7 @@ from app.config import AlgorithmConfig, TrackerConfig
 from app.utils import WorkerProcess, BaseAlgorithm
 from cv2.typing import MatLike
 from queue import Queue
+import queue
 import cv2
 
 
@@ -29,7 +30,10 @@ class EyeProcessor(WorkerProcess):
         try:
             current_frame = self.image_queue.get(block=True, timeout=0.5)
             current_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
+        except queue.Empty:
+            return
         except Exception:
+            self.logger.exception("Failed to get image from queue")
             return
 
         result = EyeData(0, 0, 0, self.tracker_position)
