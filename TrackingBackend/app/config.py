@@ -20,9 +20,11 @@ logger = get_logger()
 # TODO: we should store this in the same folder as the GUI config, we might not have write access to the executable folder
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     # remove the executable name from the path, and replace it with the config file name
-    CONFIG_FILE = os.path.dirname(sys.executable) + os.path.sep + "tracker-config.json"
+    CONFIG_PATH = os.path.dirname(sys.executable)
+    CONFIG_FILE = CONFIG_PATH + os.path.sep + "tracker-config.json"
 else:
-    CONFIG_FILE = "tracker-config.json"
+    CONFIG_PATH = "."
+    CONFIG_FILE = CONFIG_PATH + os.path.sep + "tracker-config.json"
 
 
 # https://regex101.com/r/qlLITU/1
@@ -150,6 +152,7 @@ class TrackerConfig(BaseModel):
         return value
 
 
+# TODO: abstract this into a manager class / thread to handle config changes and saving / loading
 class EyeTrackConfig(BaseModel):
     version: int = 3
     debug: bool = True  # For future use
@@ -357,6 +360,7 @@ class ConfigWatcher:
         self.__observer: BaseObserver = None  # type: ignore[assignment]
 
     def start(self) -> None:
+        logger.info(f"Starting config watcher for `{self.__name}`")
         self.__observer = Observer()
         self.__observer.daemon = True
         event_handler = FileSystemEventHandler()
@@ -364,7 +368,7 @@ class ConfigWatcher:
         self.__observer.name = f"{self.__name} Config Watcher"
         self.__observer.schedule(
             event_handler=event_handler,
-            path=".",
+            path=CONFIG_PATH,
             recursive=False,
         )
         self.__observer.start()

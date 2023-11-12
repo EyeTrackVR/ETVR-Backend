@@ -4,7 +4,6 @@ from multiprocessing import Manager
 from app.logger import get_logger
 from fastapi import APIRouter
 from app.tracker import Tracker
-from os import path
 
 logger = get_logger()
 
@@ -27,7 +26,7 @@ class ETVR:
         self.router: APIRouter = APIRouter()
 
     def config_update(self, event) -> None:
-        if event.src_path == f".{path.sep}{CONFIG_FILE}":
+        if event.src_path == CONFIG_FILE:
             logger.debug("Master config updated")
             self.config.load()
 

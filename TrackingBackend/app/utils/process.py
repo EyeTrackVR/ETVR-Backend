@@ -1,5 +1,4 @@
 import time
-from os import path
 from copy import deepcopy
 from app.window import Window
 from multiprocessing import Process, Event
@@ -84,7 +83,7 @@ class WorkerProcess:
                 continue
 
     def _config_update(self, event: FileModifiedEvent) -> None:
-        if event.src_path == f".{path.sep}{CONFIG_FILE}":
+        if event.src_path == CONFIG_FILE:
             old_config = deepcopy(self.base_config)
             self.base_config.load()
             if self.base_config != old_config:
