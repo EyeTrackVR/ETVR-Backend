@@ -101,7 +101,7 @@ class Camera(WorkerProcess):
         # flip the frame if needed
         if self.config.flip_x_axis:
             frame = cv2.flip(frame, 0)
-        elif self.config.flip_y_axis:
+        if self.config.flip_y_axis:
             frame = cv2.flip(frame, 1)
 
         # TODO: send frame to frontend before cropping, so the user can more easily adjust the roi
