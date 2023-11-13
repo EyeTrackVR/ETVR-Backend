@@ -97,9 +97,13 @@ class VRChatOSCReceiver:
         self.main_config: EyeTrackConfig = config
         self.endpoints = config.osc.endpoints
         self.config: OSCConfig = config.osc
-        self.dispatcher: Dispatcher = Dispatcher()
-        self.server: ThreadingOSCUDPServer = ThreadingOSCUDPServer((self.config.address, self.config.receiver_port), self.dispatcher)
-        self.thread: threading.Thread = threading.Thread()
+        # FIXME: this is a hack
+        if self.config.enable_receiving:
+            self.dispatcher: Dispatcher = Dispatcher()
+            self.server: ThreadingOSCUDPServer = ThreadingOSCUDPServer(
+                (self.config.address, self.config.receiver_port), self.dispatcher
+            )
+            self.thread: threading.Thread = threading.Thread()
 
     def __del__(self):
         if self.thread.is_alive():
