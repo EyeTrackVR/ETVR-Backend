@@ -30,7 +30,7 @@ black = "^22.10.0"
 pytest = "^7.2.0"
 viztracer = "^0.15.6"
 mypy = "^1.4.1"
-ruff = "^0.1.0"
+ruff = "^0.1.5"
 
 [tool.black]
 line-length = 135
@@ -43,7 +43,7 @@ src = ["TrackingBackend", "test"]
 respect-gitignore = true
 target-version = "py311"
 output-format = "grouped"
-tab-size = 4
+indent-width = 4
 exclude = ["__pycache__", ".ruff_cache", ".vscode", ".idea", ".venv", "build", "dist", ".git", ".env", "venv"]
 line-length = 135
 
