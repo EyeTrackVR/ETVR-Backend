@@ -27,8 +27,8 @@ This project is licensed under the MIT License. See LICENSE for more details.
 ------------------------------------------------------------------------------------------------------
 """
 
-import math
 import cv2
+import math
 import numpy as np
 import onnxruntime as rt
 from app.types import EyeData
@@ -97,9 +97,7 @@ class Leap(BaseAlgorithm):
         return pre_landmark
 
     def draw_landmarks(self, frame: MatLike, landmarks: np.ndarray) -> None:
-        width, height = frame.shape[:2]
-        height -= 112
-        width += 112
+        height, width = frame.shape[:2]
 
         for point in landmarks:
             x, y = point
