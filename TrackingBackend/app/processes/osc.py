@@ -127,12 +127,12 @@ class VRChatOSCReceiver:
         self.dispatcher.map(self.endpoints.sync_blink, self.toggle_sync_blink)
 
     def start(self) -> None:
-        # don't start a thread if one already exists
-        if self.thread.is_alive():
-            logger.debug(f"Thread `{self.thread.name}` requested to start but is already running")
-            return
-
         if self.config.enable_receiving:
+            # don't start a thread if one already exists
+            if self.thread.is_alive():
+                logger.debug(f"Thread `{self.thread.name}` requested to start but is already running")
+                return
+
             logger.info("Starting OSC receiver thread")
             # we redefine the OSC server here just incase the address or port changed
             self.server.socket.close()  # close the old socket so we don't get a "address already in use" error
@@ -145,11 +145,11 @@ class VRChatOSCReceiver:
             logger.info("OSC receiver is disabled, skipping start")
 
     def stop(self) -> None:
-        if not self.thread.is_alive():
-            logger.debug("Request to kill dead thread was made!")
-            return
-
         if self.config.enable_receiving:
+            if not self.thread.is_alive():
+                logger.debug("Request to kill dead thread was made!")
+                return
+
             logger.info("Stopping OSC receiver thread")
             self.server.shutdown()
             self.thread.join(timeout=5)
