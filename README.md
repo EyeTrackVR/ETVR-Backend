@@ -1,90 +1,74 @@
-# EyeTrackVR App Python Backend
+# EyeTrackVR Python Tracking Backend
 
-This is the Python backend for the [new EyeTrackVR App](https://github.com/EyeTrackVR/EyeTrackVR/tree/SolidJSGUI). It is a FastAPI app that runs as an `exe` and communicates with the EyeTrackVR App via WebSockets.
+This is the eye tracking backend for the [new EyeTrackVR App](https://github.com/EyeTrackVR/EyeTrackVR/tree/SolidJSGUI). \
+As this project is still in heavy development its API can and will change without warning!
 
-## Setup Dev Environment
+## Setting up a development enviroment
+### Requirements
+- [Git CLI](https://git-scm.com/downloads)
+- [Python ~3.11](https://www.python.org/downloads/)
+- [Poetry <1.6.0](https://python-poetry.org/docs/#installation)
+- [A good text editor](https://neovim.io/)
 
-The cleanest way to setup the dev-environment for the python-backend is to use Virtual Environments.
+### Setup
+1. Install the latest version of the [Git CLI](https://git-scm.com/downloads)
 
-First, install `virtualenv` to your local machines python interpreter.
+2. Install and setup a version of [Python 3.11](https://www.python.org/downloads/)
 
+3. Install [Poetry](https://python-poetry.org/docs/#installation) (*it is recomened you install poetry globally with the shell script and not pip*)
+
+4. Clone this repository with
 ```bash
-pip install virtualenv
+git clone --recusive https://github.com/EyeTrackVR/ETVR-Backend.git
 ```
 
-Next, navigate to the root of the project and enable the `virtualenv` module.
-
+5. navigate into the cloned repository
 ```bash
-python<version> -m venv <virtual-environment-name>
+cd ETVR-Backend
 ```
 
-Example:
-
-```bash
-python3.10 -m venv venv
-```
-
-> [!NOTE]\
-> You may need to run `python venv` or `python -m venv` without the python version depending on your setup.
-
-Now that you have created the virtual environment, you will need to activate it before you can use it.
-
-You don’t specifically need to activate a virtual environment, as you can just specify the full path to that environment’s Python interpreter when invoking Python. Furthermore, all scripts installed in the environment should be runnable without activating it.
-
-In order to achieve this, scripts installed into virtual environments have a “shebang” line which points to the environment’s Python interpreter, i.e. `#!/<path-to-venv>/bin/python`. This means that the script will run with that interpreter regardless of the value of PATH. On Windows, “shebang” line processing is supported if you have the `Python Launcher for Windows` installed. Thus, double-clicking an installed script in a Windows Explorer window should run it with the correct interpreter without the environment needing to be activated or on the PATH.
-
-When a virtual environment has been activated, the VIRTUAL_ENV environment variable is set to the path of the environment. Since explicitly activating a virtual environment is not required to use it, VIRTUAL_ENV cannot be relied upon to determine whether a virtual environment is being used.
-
-```bash
-source <path_to_venv>/bin/activate
-```
-
-or
-
-```bash
-<path_to_venv>\Scripts\Activate.ps1
-```
-
-or
-
-```bash
-<path_to_venv>\Scripts\activate
-```
-
-One the virtual environment is install and activated, or you have selected its interpreter, you need to install the project dependencies.
-
-We will proceed as if you have activated the virtual environment, as that is the most common usage.
-
-First, install poetry.
-
-```bash
-pip install poetry
-```
-
-Next, use poetry to install and manage project dependencies.
-
+6. Install project dependencies with poetry
 ```bash
 poetry install
 ```
 
-## Running the app
+### Running a development server
+By default the development server will be hosted on `http://127.0.0.1:8000/` \
+The backend is controlled entirely through its rest API by itself this backend does not provide a GUI, i recomend reading the docs located at `http://127.0.0.1:8000/docs#/` to get a better understanding of how the app and it's API works.
 
-> [!NOTE]\
-> Make sure `poetry` and `python ^3.10.0` is installed on your system.  
-> **Development**: For development run uvicorn with the `--reload` flag.
+Please note that by default hot reloading is enabled, saving code while processes are active can result in undefined behavour! \
+To start the local development server run either of the following commands.
+```bash
+python build.py run
+```
+```bash
+cd TrackingBackend/ && poetry run uvicorn --factory main:setup_app --reload --port 8000
+```
 
-1. Clone the repository
-2. Open up a terminal
-3. Run `poetry install` in the root directory
-4. Change into the app's directory `cd TrackingBackend`
-5. Start the app `poetry run uvicorn --factory main:setup_app`
+### Profiling
+If you encounter any performance issues you can profile the backend using [viztracer](https://github.com/gaogaotiantian/viztracer). \
+To start profiling run the following command, this will start the backend and generate a `result.json` which can be opened with `vizviewer` \
+If you dont like viztracer you can use almost any other profiler (multi-processing and multi-threading support is required)\
+*currently using the build script to start profiling is broken*
+```bash
+cd TrackingBackend/ && poetry run viztracer main.py
+```
 
-## Building the app
->
-> [!NOTE]\
-> Make sure `poetry` and `python ^3.10.0` is installed on your system.
+### Running the CI/CD pipeline locally
+This project utilizes the following in its automated CI/CD pipeline: \
+`black` for code formatting, `ruff` for linting, `pytest` for unit testing and `mypy` for type checking. \
+To run the CI/CD pipeline locally you can use the lint command in the build script.
+```bash
+python build.py lint
+```
 
-1. Clone the repository
-2. Open up a terminal
-3. Run `poetry install` in the root directory
-4. Build the app with `poetry run pyinstaller ETVR.spec TrackingBackend/main.py`
+### Building the backend
+Building the backend is done with pyinstaller, the build script will automatically install pyinstaller and bundle the backend into a single executable. \
+*On linux you may need to install pyinstaller using your package manager*
+```bash
+python build.py build
+```
+If you want to build the backend manually you can do so with the following command.
+```bash
+poetry run pyinstaller ETVR.spec TrackingBackend/main.py
+```
