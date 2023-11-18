@@ -8,7 +8,12 @@ a = Analysis(
     ['TrackingBackend/main.py'],
     pathex=[],
     binaries=[],
-    datas=[("TrackingBackend/assets/*", "assets/")],
+    # WTF, wildcard doesnt apply to sub folders???
+    datas=[
+        ("TrackingBackend/assets/*", "assets/"),
+        ("TrackingBackend/assets/models/*", "assets/models/"),
+        ("TrackingBackend/assets/images/*", "assets/images/")
+    ],
     hiddenimports=["cv2", "numpy"],
     hookspath=[],
     hooksconfig={},
