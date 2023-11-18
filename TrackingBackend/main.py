@@ -3,6 +3,8 @@ import os
 if os.pardir != os.path.dirname(__file__):
     os.chdir(os.path.dirname(__file__))
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from app.logger import setup_logger
 from fastapi import FastAPI
 from app.etvr import ETVR
@@ -14,6 +16,9 @@ def setup_app():
     etvr_app.add_routes()
     app = FastAPI()
     app.include_router(etvr_app.router)
+    app.mount("/images", StaticFiles(directory="assets/images"))
+    app.add_route("/", FileResponse("assets/index.html"), methods=["GET"])
+
     return app
 
 
