@@ -1,4 +1,4 @@
-from app.utils import WorkerProcess, mat_crop, mat_rotate, clear_queue
+from app.utils import WorkerProcess, mat_crop, mat_rotate, clear_queue, is_serial
 from app.config import CameraConfig, TrackerConfig
 from app.types import CameraState
 from multiprocessing import Value
@@ -10,6 +10,7 @@ import ctypes
 import serial
 import time
 import cv2
+import os
 
 # fmt: off
 OPENCV_PARAMS = [
@@ -61,12 +62,12 @@ class Camera(WorkerProcess):
         if self.get_state() == CameraState.DISCONNECTED or self.current_capture_source != self.config.capture_source:
             self.set_state(CameraState.CONNECTING)
             self.current_capture_source = self.config.capture_source
-            if self.config.capture_source.lower().startswith("com"):
+            if is_serial(self.current_capture_source):
                 self.connect_serial_camera()
             else:
                 self.connect_camera()
         else:
-            if self.config.capture_source.lower().startswith("com"):
+            if is_serial(self.current_capture_source):
                 self.get_serial_image()
             else:
                 self.get_camera_image()
@@ -108,7 +109,9 @@ class Camera(WorkerProcess):
             self.serial_camera = serial.Serial(
                 port=self.current_capture_source, baudrate=3000000, xonxoff=False, dsrdtr=False, rtscts=False
             )
-            self.serial_camera.set_buffer_size(rx_size=32768, tx_size=32768)
+            # The `set_buffer_size` method is only available on Windows
+            if os.name == "nt":
+                self.serial_camera.set_buffer_size(rx_size=32768, tx_size=32768)
             self.logger.info(f"Serial camera connected to `{self.current_capture_source}`")
             self.set_state(CameraState.CONNECTED)
         except Exception:

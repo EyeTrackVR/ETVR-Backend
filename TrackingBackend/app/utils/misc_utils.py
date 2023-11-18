@@ -3,6 +3,11 @@ from queue import Queue, Empty
 from cv2.typing import MatLike
 
 
+def is_serial(source: str) -> bool:
+    serial_prefixes = ["com", "/dev/tty"]
+    return any(source.lower().startswith(prefix) for prefix in serial_prefixes)
+
+
 def clamp(x, low, high):
     return max(low, min(x, high))
 
