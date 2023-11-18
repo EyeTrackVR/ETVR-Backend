@@ -41,7 +41,7 @@ ONNX_OPTIONS = rt.SessionOptions()
 ONNX_OPTIONS.inter_op_num_threads = 1
 ONNX_OPTIONS.intra_op_num_threads = 1
 ONNX_OPTIONS.graph_optimization_level = rt.GraphOptimizationLevel.ORT_ENABLE_ALL
-MODEL_PATH = "assets/leap.onnx"
+MODEL_PATH = "assets/models/leap.onnx"
 
 
 class Leap(BaseAlgorithm):
