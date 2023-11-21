@@ -97,8 +97,8 @@ class Leap(BaseAlgorithm):
         return pre_landmark
 
     def draw_landmarks(self, frame: MatLike, landmarks: np.ndarray) -> None:
-        height, width = frame.shape[:2]
+        width, height = frame.shape[:2]
 
         for point in landmarks:
             x, y = point
-            cv2.circle(frame, (int(x * width), int(y * height)), 2, (0, 0, 50), -1)
+            cv2.circle(frame, (int(x * height), int(y * width)), 2, (0, 0, 50), -1)
