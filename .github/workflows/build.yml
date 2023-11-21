@@ -3,9 +3,7 @@ on:
     workflow_dispatch:
     push:
         tags:
-            - "v*"
-        tags-ignore:
-            - "v*.*.*rc*."
+            - "v*.*.*"
         branches:
             - main
             - master
