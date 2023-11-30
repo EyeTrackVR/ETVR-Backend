@@ -29,7 +29,7 @@ cd ETVR-Backend
 
 6. Install project dependencies with poetry
 ```bash
-poetry install
+poetry install --no-root
 ```
 
 ### Running a development server
