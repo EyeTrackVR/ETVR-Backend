@@ -4,6 +4,7 @@ from app.types import EyeData, TrackerPosition
 from app.logger import get_logger
 from queue import Queue, Empty
 from copy import deepcopy
+from typing import Final
 import numpy as np
 import threading
 import cv2
@@ -11,8 +12,8 @@ from pythonosc.dispatcher import Dispatcher
 from pythonosc.udp_client import SimpleUDPClient
 from pythonosc.osc_server import ThreadingOSCUDPServer
 
-WIDTH = 256
-HEIGHT = 256
+WIDTH: Final = 256
+HEIGHT: Final = 256
 
 logger = get_logger()
 

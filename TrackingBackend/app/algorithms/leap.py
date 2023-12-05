@@ -31,6 +31,7 @@ import cv2
 import math
 import numpy as np
 import onnxruntime as rt
+from typing import Final
 from app.types import EyeData
 from cv2.typing import MatLike
 from app.processes import EyeProcessor
@@ -41,7 +42,7 @@ ONNX_OPTIONS = rt.SessionOptions()
 ONNX_OPTIONS.inter_op_num_threads = 1
 ONNX_OPTIONS.intra_op_num_threads = 1
 ONNX_OPTIONS.graph_optimization_level = rt.GraphOptimizationLevel.ORT_ENABLE_ALL
-MODEL_PATH = "assets/models/leap.onnx"
+MODEL_PATH: Final = "assets/models/leap.onnx"
 
 
 class Leap(BaseAlgorithm):

@@ -4,6 +4,7 @@ from app.types import CameraState
 from multiprocessing import Value
 import serial.tools.list_ports
 from cv2.typing import MatLike
+from typing import Final
 from queue import Queue
 import numpy as np
 import ctypes
@@ -13,21 +14,20 @@ import cv2
 import os
 
 # fmt: off
-OPENCV_PARAMS = [
+OPENCV_PARAMS: Final = [
     cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 2500,
     cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2500,
 ]
-OPENCV_BACKEND = cv2.CAP_FFMPEG
-QUEUE_BACKPRESSURE_THRESHOLD = 50
-
+OPENCV_BACKEND: Final = cv2.CAP_FFMPEG
+QUEUE_BACKPRESSURE_THRESHOLD: Final = 50
 # header-begin (2 bytes)
 # header-type (2 bytes)
 # packet-size (2 bytes)
 # packet (packet-size bytes)
-ETVR_HEADER_LENGTH = 6
-ETVR_HEADER = b"\xff\xa0"
-ETVR_HEADER_NAME = b"\xff\xa1"
-COM_PORT_NOT_FOUND_TIMEOUT = 2.5
+ETVR_HEADER_LENGTH: Final = 6
+ETVR_HEADER: Final = b"\xff\xa0"
+ETVR_HEADER_NAME: Final = b"\xff\xa1"
+COM_PORT_NOT_FOUND_TIMEOUT: Final = 2.5
 # fmt: on
 
 

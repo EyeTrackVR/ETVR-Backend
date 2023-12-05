@@ -6,8 +6,8 @@ import json
 import time
 import random
 import os.path
-from typing import Callable
 from app.logger import get_logger
+from typing import Callable, Final
 from watchdog.observers import Observer
 from fastapi import Request, HTTPException
 from watchdog.observers.api import BaseObserver
@@ -19,16 +19,12 @@ logger = get_logger()
 
 # TODO: we should store this in the same folder as the GUI config, we might not have write access to the executable folder
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-    # remove the executable name from the path, and replace it with the config file name
     CONFIG_PATH = os.path.dirname(sys.executable)
-    CONFIG_FILE = CONFIG_PATH + os.path.sep + "tracker-config.json"
 else:
     CONFIG_PATH = "."
-    CONFIG_FILE = CONFIG_PATH + os.path.sep + "tracker-config.json"
-
-
+CONFIG_FILE: Final = CONFIG_PATH + os.path.sep + "tracker-config.json"
 # https://regex101.com/r/qlLITU/1
-IP_ADDRESS_REGEX = (
+IP_ADDRESS_REGEX: Final = (
     r"(\b(?:http:\/\/)?(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)"
     r"(?::\d{1,5})?\b|localhost(?::\d{1,5})?|http:\/\/localhost(?::\d{1,5})?|[\w-]+\.local(?::\d{1,5})?)"
 )
