@@ -1,6 +1,6 @@
 # EyeTrackVR Python Tracking Backend
 
-This is the eye tracking backend for the [new EyeTrackVR App](https://github.com/EyeTrackVR/EyeTrackVR/tree/SolidJSGUI). \
+This is the eye tracking backend for the [new EyeTrackVR App](https://github.com/EyeTrackVR/SolidJSGUI). \
 As this project is still in heavy development its API can and will change without warning!
 
 ## Setting up a development enviroment
