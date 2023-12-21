@@ -38,14 +38,14 @@ meaning in total the backend will have 7 processes running, this may seem like a
 Rundown of the processes:
 * Main Process (Only 1 will ever exist): \
     This process is responsible for spawning and managing all other processes, it also handles the rest API and config management
-- Manager Process (Only 1 will ever exist): \
+* Manager Process (Only 1 will ever exist): \
     This process is responsible for managing all IPC (Inter Process Communication) between the main process and all sub-processes
--  Camera Process (Each active tracker will have 1): \
+*  Camera Process (Each active tracker will have 1): \
     This process is responsible for capturing images from the camera and sending them to the `tracker` process
-- Tracker Process (Each active tracker will have 1): \
+* Tracker Process (Each active tracker will have 1): \
     This process is responsible for processing the images sent by the `camera` process, it does this by running algorithms
     (defined in the config) on the image and then sending the results to the `OSC` process
-- OSC Process (Each active tracker will have 1): \
+* OSC Process (Each active tracker will have 1): \
     This process is responsible for sending the results from the `tracker` process to the OSC server defined in the config
 
 All processes communicate with each other using IPC (Inter Process Communication) and are completely isolated from each other,
