@@ -19,12 +19,12 @@ logger = get_logger()
 
 
 class VRChatOSC(WorkerProcess):
-    def __init__(self, config: EyeTrackConfig, osc_queue: Queue[EyeData], name: str):
+    def __init__(self, osc_queue: Queue[EyeData], name: str):
         super().__init__(name=f"OSC {name}")
         # Synced variables
         self.osc_queue: Queue[EyeData] = osc_queue
         # Unsynced variables
-        self.config: EyeTrackConfig = config
+        self.config: EyeTrackConfig = self.base_config
         self.client = SimpleUDPClient(self.config.osc.address, self.config.osc.sending_port)
         self.filter = OneEuroFilter(np.random.rand(2), 0.9, 5.0)
 

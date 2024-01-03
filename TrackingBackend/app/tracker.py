@@ -22,7 +22,7 @@ class Tracker:
         self.image_queue: Queue[MatLike] = self.manager.Queue()
         # processes
         self.camera = Camera(self.tracker_config, self.image_queue)
-        self.osc_sender = VRChatOSC(self.config, self.osc_queue, self.tracker_config.name)
+        self.osc_sender = VRChatOSC(self.osc_queue, self.tracker_config.name)
         self.processor = EyeProcessor(self.tracker_config, self.image_queue, self.osc_queue)
 
     def start(self) -> None:
