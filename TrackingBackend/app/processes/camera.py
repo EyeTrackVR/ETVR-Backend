@@ -20,10 +20,13 @@ OPENCV_PARAMS: Final = [
 ]
 OPENCV_BACKEND: Final = cv2.CAP_FFMPEG
 QUEUE_BACKPRESSURE_THRESHOLD: Final = 50
-# header-begin (2 bytes)
-# header-type (2 bytes)
-# packet-size (2 bytes)
-# packet (packet-size bytes)
+
+"""
+header-begin (2 bytes)
+header-type (2 bytes)
+packet-size (2 bytes)
+packet (packet-size bytes)
+"""
 ETVR_HEADER_LENGTH: Final = 6
 ETVR_HEADER: Final = b"\xff\xa0"
 ETVR_HEADER_NAME: Final = b"\xff\xa1"
@@ -82,6 +85,7 @@ class Camera(WorkerProcess):
     def on_tracker_config_update(self, tracker_config: TrackerConfig) -> None:
         self.config = tracker_config.camera
 
+    # region: OpenCV camera implementation
     def connect_camera(self) -> None:
         self.logger.info(f"Connecting to capture source {self.current_capture_source}")
         try:
@@ -97,6 +101,24 @@ class Camera(WorkerProcess):
             self.set_state(CameraState.DISCONNECTED)
             self.logger.info(f"Capture source {self.current_capture_source} not found, retrying")
 
+    def get_camera_image(self) -> None:
+        try:
+            ret, frame = self.camera.read()
+            if not ret:
+                self.logger.warning("Capture source problem, assuming camera disconnected, waiting for reconnect.")
+                self.camera.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                self.set_state(CameraState.DISCONNECTED)
+                return
+            frame_number: float = self.camera.get(cv2.CAP_PROP_POS_FRAMES)
+            fps: float = self.camera.get(cv2.CAP_PROP_FPS)
+            self.push_image_to_queue(frame, frame_number, fps)
+        except (cv2.error, Exception):
+            self.set_state(CameraState.DISCONNECTED)
+            self.logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
+
+    # endregion
+
+    # region: Serial camera implementation
     def connect_serial_camera(self) -> None:
         self.logger.info(f"Connecting to serial capture source {self.current_capture_source}")
         if not any(p for p in serial.tools.list_ports.comports() if self.config.capture_source in p):
@@ -118,23 +140,8 @@ class Camera(WorkerProcess):
             self.logger.exception(f"Failed to connect to serial port `{self.current_capture_source}`")
             self.set_state(CameraState.DISCONNECTED)
 
-    def get_camera_image(self) -> None:
-        try:
-            ret, frame = self.camera.read()
-            if not ret:
-                self.logger.warning("Capture source problem, assuming camera disconnected, waiting for reconnect.")
-                self.camera.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                self.set_state(CameraState.DISCONNECTED)
-                return
-            frame_number: float = self.camera.get(cv2.CAP_PROP_POS_FRAMES)
-            fps: float = self.camera.get(cv2.CAP_PROP_FPS)
-            self.push_image_to_queue(frame, frame_number, fps)
-        except (cv2.error, Exception):
-            self.set_state(CameraState.DISCONNECTED)
-            self.logger.warning("Failed to retrieve or push frame to queue, Assuming camera disconnected, waiting for reconnect.")
-
     # TODO: maybe move this into `get_serial_image`?
-    def serial_get_next_frame(self) -> bytes:
+    def serial_fetch_frame(self) -> bytes:
         buffer = b""
         while True:
             buffer += self.serial_camera.read(2048)
@@ -161,7 +168,7 @@ class Camera(WorkerProcess):
 
         try:
             if self.serial_camera.in_waiting:
-                image = self.serial_get_next_frame()
+                image = self.serial_fetch_frame()
                 frame = cv2.imdecode(np.frombuffer(image, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
                 if frame is None:
                     self.logger.warning("Failed to decode serial camera frame, discarding")
@@ -178,6 +185,8 @@ class Camera(WorkerProcess):
             self.logger.exception("Serial capture error, assuming disconnect, waiting for reconnect.")
             self.set_state(CameraState.DISCONNECTED)
             self.serial_camera.close()
+
+    # endregion
 
     def preprocess_frame(self, frame: MatLike) -> MatLike:
         # flip the frame if needed
