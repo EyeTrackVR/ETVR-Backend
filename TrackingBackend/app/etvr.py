@@ -1,5 +1,5 @@
-from app.config import EyeTrackConfig, ConfigWatcher, CONFIG_FILE
 from app.processes import VRChatOSCReceiver
+from app.config import ConfigManager
 from multiprocessing import Manager
 from app.logger import get_logger
 from fastapi import APIRouter
@@ -10,13 +10,10 @@ logger = get_logger()
 
 class ETVR:
     def __init__(self):
-        self.config: EyeTrackConfig = EyeTrackConfig()
-        self.config.load()
         self.running: bool = False
+        self.config: ConfigManager = ConfigManager(self.config_updater).start()
         # IPC stuff
         self.manager = Manager()
-        self.config_watcher = ConfigWatcher("Master", self.config_update)
-        self.config_watcher.start()
         # OSC stuff
         self.osc_receiver = VRChatOSCReceiver(self.config)
         # Trackers
@@ -25,10 +22,8 @@ class ETVR:
         # Object for fastapi routes
         self.router: APIRouter = APIRouter()
 
-    def config_update(self, event) -> None:
-        if event.src_path == CONFIG_FILE:
-            logger.debug("Master config updated")
-            self.config.load()
+    def config_updater(self, config: ConfigManager, other) -> None:
+        print(config != other)
 
     def setup_trackers(self) -> None:
         if not self.running:
@@ -129,7 +124,7 @@ class ETVR:
         self.router.add_api_route(
             name="Return Config",
             path="/etvr/config",
-            endpoint=self.config.return_config,
+            endpoint=self.config.model_dump_json,
             methods=["GET"],
             tags=["Config"],
             description="""
@@ -233,7 +228,7 @@ class ETVR:
 
     def __del__(self):
         self.stop()
-        self.config_watcher.stop()
+        self.config.stop()
 
     def __repr__(self) -> str:
         return f"<ETVR running={self.running}>"
