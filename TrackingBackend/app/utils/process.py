@@ -1,7 +1,9 @@
 import time
+import psutil
 from app.window import Window
 from multiprocessing import Process, Event
 from app.logger import get_logger, setup_logger
+from app.utils.misc_utils import mask_to_cpu_list
 from app.config import EyeTrackConfig, ConfigManager, TrackerConfig
 
 # Welcome to assassin's multiprocessing realm
@@ -61,9 +63,10 @@ class WorkerProcess:
 
     # region: Internal methods
     def _run(self) -> None:
+        setup_logger()
+        self.set_affinity()
         self.base_config.start()
         try:
-            setup_logger()
             self.startup()
             self._mainloop()
             self.shutdown()
@@ -85,6 +88,12 @@ class WorkerProcess:
                 self.logger.exception("Unhandled exception in child process! Continuing...")
                 continue
             self._last_time = current_time
+
+    def set_affinity(self) -> None:
+        cpu_list = mask_to_cpu_list(self.base_config.affinity_mask)
+        if cpu_list != []:
+            self.logger.info(f"affinity={cpu_list} for process `{self.name}`")
+            psutil.Process().cpu_affinity(cpu_list)
 
     def on_config_modified(self, config: ConfigManager, old_config: EyeTrackConfig) -> None:
         if config != old_config:

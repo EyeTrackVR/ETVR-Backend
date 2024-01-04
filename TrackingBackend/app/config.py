@@ -7,9 +7,11 @@ import json
 import time
 import random
 import os.path
+import multiprocessing
 from copy import deepcopy
 from app.logger import get_logger
 from typing import Callable, Final
+from app.utils import mask_to_cpu_list
 from watchdog.observers import Observer
 from fastapi import Request, HTTPException
 from watchdog.observers.api import BaseObserver
@@ -156,7 +158,8 @@ class TrackerConfig(BaseModel):
 # TODO: move management code into `ConfigManager` class
 class EyeTrackConfig(BaseModel):
     version: int = 3
-    debug: bool = True  # For future use
+    debug: bool = True
+    affinity_mask: str = ""
     osc: OSCConfig = OSCConfig()
     trackers: list[TrackerConfig] = [
         TrackerConfig(
@@ -190,6 +193,21 @@ class EyeTrackConfig(BaseModel):
             if tracker.uuid == uuid:
                 return index
         raise ValueError(f"No tracker found with UUID `{uuid}`")
+
+    @field_validator("affinity_mask")
+    def affinity_mask_validator(cls, value: str) -> str:
+        try:
+            cpu_count = multiprocessing.cpu_count() - 1  # CPU indexing starts at 0
+            cpus = mask_to_cpu_list(value)
+            for cpu_index in cpus:
+                if cpu_index > cpu_count:
+                    logger.warning(f"CPU mask contains invalid CPU `{cpu_index}`, only `{cpu_count}` CPUs available")
+                    raise ValueError
+            return value
+        except ValueError:
+            logger.warning("Invalid CPU mask")
+
+        return ""
 
     @field_validator("trackers")
     def trackers_uuid_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:

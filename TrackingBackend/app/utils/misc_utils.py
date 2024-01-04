@@ -35,3 +35,19 @@ class BaseAlgorithm:
 
     def get_name(self) -> str:
         return self.__class__.__name__
+
+
+def mask_to_cpu_list(cpu_mask: str) -> list[int]:
+    """Converts a hex mask to a list of cpu ids"""
+    cpu_list: list[int] = []
+    if cpu_mask != "":
+        mask = int(cpu_mask, 16)
+
+        bit_position = 0
+        while mask > 0:
+            if mask & 1:
+                cpu_list.append(bit_position)
+            mask >>= 1
+            bit_position += 1
+
+    return cpu_list
