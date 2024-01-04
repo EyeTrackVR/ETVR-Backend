@@ -157,7 +157,7 @@ class TrackerConfig(BaseModel):
 
 # TODO: move management code into `ConfigManager` class
 class EyeTrackConfig(BaseModel):
-    version: int = 3
+    version: int = 4
     debug: bool = True
     affinity_mask: str = ""
     osc: OSCConfig = OSCConfig()
