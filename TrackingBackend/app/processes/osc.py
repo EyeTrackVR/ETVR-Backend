@@ -42,7 +42,7 @@ class VRChatOSC(WorkerProcess):
             self.smooth(eye_data)
             # "normalize" the data to be between -1 and 1
             eye_data.y = -(2 * (eye_data.y - 0.5))
-            # perspective correction
+            # flip output for right eye to account for perspective
             if eye_data.position == TrackerPosition.RIGHT_EYE:
                 eye_data.x = 2 * (eye_data.x - 0.5)
             elif eye_data.position == TrackerPosition.LEFT_EYE:
