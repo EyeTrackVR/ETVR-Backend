@@ -25,6 +25,8 @@ class WorkerProcess:
         self.base_config = ConfigManager(self.on_config_modified).load()
 
         self.uuid = uuid
+        self.delta_time: float = 0
+        self._last_time = time.time()
         self.debug = self.base_config.debug
         self.logger = get_logger(self.__module__)
         self.window = Window(self.base_config.debug)
@@ -70,6 +72,8 @@ class WorkerProcess:
 
     def _mainloop(self) -> None:
         while not self.__shutdown_event.is_set():
+            current_time = time.time()
+            self.delta_time = current_time - self._last_time
             try:
                 self.run()
                 self.window._waitkey(1)
@@ -80,6 +84,7 @@ class WorkerProcess:
             except Exception:
                 self.logger.exception("Unhandled exception in child process! Continuing...")
                 continue
+            self._last_time = current_time
 
     def on_config_modified(self, config: ConfigManager, old_config: EyeTrackConfig) -> None:
         if config != old_config:
