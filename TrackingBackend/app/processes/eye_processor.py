@@ -13,9 +13,11 @@ class EyeProcessor(WorkerProcess):
         tracker_config: TrackerConfig,
         image_queue: Queue[MatLike],
         osc_queue: Queue[EyeData],
+        frontend_queue: Queue[MatLike],
     ):
         super().__init__(name=f"Eye Processor {str(tracker_config.name)}", uuid=tracker_config.uuid)
         # Synced variables
+        self.frontend_queue = frontend_queue
         self.image_queue = image_queue
         self.osc_queue = osc_queue
         # Unsynced variables
@@ -46,6 +48,7 @@ class EyeProcessor(WorkerProcess):
             break
 
         self.osc_queue.put(result)
+        self.frontend_queue.put(current_frame)
         self.window.imshow(self.process_name(), current_frame)
 
     def shutdown(self) -> None:

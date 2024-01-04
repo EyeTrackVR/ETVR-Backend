@@ -35,10 +35,11 @@ COM_PORT_NOT_FOUND_TIMEOUT: Final = 2.5
 
 
 class Camera(WorkerProcess):
-    def __init__(self, tracker_config: TrackerConfig, image_queue: Queue[MatLike]):
+    def __init__(self, tracker_config: TrackerConfig, image_queue: Queue[MatLike], frontend_queue: Queue[MatLike]):
         super().__init__(name=f"Capture {str(tracker_config.name)}", uuid=tracker_config.uuid)
         # Synced variables
         self.image_queue = image_queue
+        self.frontend_queue = frontend_queue
         self.state = Value(ctypes.c_int, CameraState.DISCONNECTED.value)
         # Unsynced variables
         self.serial_frame_number: int = 0  # if we ever get a bug report where this overflows I will cry
@@ -199,7 +200,8 @@ class Camera(WorkerProcess):
             frame = cv2.flip(frame, 1)
 
         frame = mat_rotate(frame, self.config.rotation)
-        # TODO: send frame to frontend before cropping, so the user can more easily adjust the roi
+        # send frame to frontend
+        self.frontend_queue.put(frame)
         frame = mat_crop(self.config.roi_x, self.config.roi_y, self.config.roi_w, self.config.roi_h, frame)
 
         return frame

@@ -11,6 +11,7 @@ logger = get_logger()
 class ETVR:
     def __init__(self):
         self.running: bool = False
+        self.router: APIRouter = APIRouter()
         self.config: ConfigManager = ConfigManager().start()
         # IPC stuff
         self.manager = Manager()
@@ -19,8 +20,18 @@ class ETVR:
         # Trackers
         self.trackers: list[Tracker] = []
         self.setup_trackers()
-        # Object for fastapi routes
-        self.router: APIRouter = APIRouter()
+
+    async def camera_feed(self, uuid: str):
+        for tracker in self.trackers:
+            if tracker.uuid == uuid:
+                return tracker.camera_visualizer()
+        return None
+
+    async def algorithm_feed(self, uuid: str):
+        for tracker in self.trackers:
+            if tracker.uuid == uuid:
+                return tracker.algorithm_visualizer()
+        return None
 
     def setup_trackers(self) -> None:
         if not self.running:
@@ -28,10 +39,11 @@ class ETVR:
             for tracker in self.trackers:
                 tracker.stop()
 
-            self.trackers.clear()
             for tracker_config in self.config.trackers:
                 if tracker_config.enabled:
-                    self.trackers.append(Tracker(self.config, tracker_config.uuid, self.manager))
+                    # no need to create a new tracker if we already have one with the same uuid
+                    if tracker_config.uuid not in [tracker.uuid for tracker in self.trackers]:
+                        self.trackers.append(Tracker(self.config, tracker_config.uuid, self.manager, self.router))
         else:
             logger.error("Cannot setup trackers while ETVR is running!")
 
@@ -64,6 +76,22 @@ class ETVR:
 
     def add_routes(self) -> None:
         logger.debug("Adding routes to ETVR")
+        # region: Image streaming endpoints
+        self.router.add_api_route(
+            name="Get raw camera feed before ROI cropping",
+            tags=["streaming"],
+            path="/etvr/feed/{uuid}/camera",
+            endpoint=self.camera_feed,
+            methods=["GET"],
+        )
+        self.router.add_api_route(
+            name="Get camera feed after algorithms have run",
+            tags=["streaming"],
+            path="/etvr/feed/{uuid}/algorithm",
+            endpoint=self.algorithm_feed,
+            methods=["GET"],
+        )
+        # endregion
         # region: General Endpoints
         self.router.add_api_route(
             name="Start ETVR",
@@ -106,7 +134,6 @@ class ETVR:
             """,
         )
         # endregion
-
         # region: Config Endpoints
         self.router.add_api_route(
             name="Update Config",
@@ -159,7 +186,6 @@ class ETVR:
             """,
         )
         # endregion
-
         # region: Tracker Config Endpoints
         self.router.add_api_route(
             name="Reset a trackers config",

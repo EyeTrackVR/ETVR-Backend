@@ -1,29 +1,35 @@
 from queue import Queue
+from fastapi import APIRouter
 from app.types import EyeData
 from cv2.typing import MatLike
-from app.logger import get_logger
 from app.utils import clear_queue
 from app.config import EyeTrackConfig
+from app.visualizer import Visualizer
 from multiprocessing.managers import SyncManager
 from app.processes import EyeProcessor, Camera, VRChatOSC
-
-logger = get_logger()
 
 
 # TODO: when we start to integrate babble this should become a common interface that eye trackers and mouth trackers inherit from
 class Tracker:
-    def __init__(self, config: EyeTrackConfig, uuid: str, manager: SyncManager):
+    def __init__(self, config: EyeTrackConfig, uuid: str, manager: SyncManager, router: APIRouter):
         self.uuid = uuid
         self.config = config
         self.tracker_config = config.get_tracker_by_uuid(uuid)
+        self.router = router
         # IPC stuff
         self.manager = manager
         self.osc_queue: Queue[EyeData] = self.manager.Queue()
         self.image_queue: Queue[MatLike] = self.manager.Queue()
+        # Used purely for visualization in the frontend
+        self.camera_queue: Queue[MatLike] = self.manager.Queue()
+        self.algo_frame_queue: Queue[MatLike] = self.manager.Queue()
         # processes
-        self.camera = Camera(self.tracker_config, self.image_queue)
+        self.processor = EyeProcessor(self.tracker_config, self.image_queue, self.osc_queue, self.algo_frame_queue)
+        self.camera = Camera(self.tracker_config, self.image_queue, self.camera_queue)
         self.osc_sender = VRChatOSC(self.osc_queue, self.tracker_config.name)
-        self.processor = EyeProcessor(self.tracker_config, self.image_queue, self.osc_queue)
+        # Visualization
+        self.camera_visualizer = Visualizer(self.camera_queue)
+        self.algorithm_visualizer = Visualizer(self.algo_frame_queue)
 
     def start(self) -> None:
         self.osc_sender.start()
