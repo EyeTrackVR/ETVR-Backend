@@ -274,6 +274,9 @@ class ConfigManager(EyeTrackConfig, FileSystemEventHandler):
         try:
             file = open(CONFIG_FILE, "rt", encoding="utf8").read()
             self.__dict__.update(self.model_validate_json(file))
+            if file != json.dumps(self.model_dump(), indent=4):
+                self.__logger.warning("Config had validation errors, saving validated config")
+                self.save()
         except PermissionError:
             self.__logger.error("Permission Denied, assuming config has lock, retrying...")
             self.load()
