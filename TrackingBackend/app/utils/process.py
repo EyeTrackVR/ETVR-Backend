@@ -76,7 +76,8 @@ class WorkerProcess:
     def _mainloop(self) -> None:
         while not self.__shutdown_event.is_set():
             current_time = time.time()
-            self.delta_time = current_time - self._last_time
+            # hack to prevent a divide by zero error
+            self.delta_time = (current_time - self._last_time) + 0.0000001
             try:
                 self.run()
                 self.window._waitkey(1)
