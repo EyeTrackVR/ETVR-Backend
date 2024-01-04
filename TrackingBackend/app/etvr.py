@@ -11,7 +11,7 @@ logger = get_logger()
 class ETVR:
     def __init__(self):
         self.running: bool = False
-        self.config: ConfigManager = ConfigManager(self.config_updater).start()
+        self.config: ConfigManager = ConfigManager().start()
         # IPC stuff
         self.manager = Manager()
         # OSC stuff
@@ -21,9 +21,6 @@ class ETVR:
         self.setup_trackers()
         # Object for fastapi routes
         self.router: APIRouter = APIRouter()
-
-    def config_updater(self, config: ConfigManager, other) -> None:
-        print(config != other)
 
     def setup_trackers(self) -> None:
         if not self.running:
