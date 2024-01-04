@@ -25,6 +25,7 @@ colorama = "^0.4.6"
 watchdog = "^3.0.0"
 onnxruntime = "^1.16.0"
 pyserial = "^3.5"
+psutil = "^5.9.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest-asyncio = "^0.21.1"
