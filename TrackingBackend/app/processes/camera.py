@@ -41,6 +41,7 @@ class Camera(WorkerProcess):
         self.image_queue = image_queue
         self.state = Value(ctypes.c_int, CameraState.DISCONNECTED.value)
         # Unsynced variables
+        self.serial_frame_number: int = 0  # if we ever get a bug report where this overflows I will cry
         self.config: CameraConfig = tracker_config.camera
         self.current_capture_source: str = self.config.capture_source
         # these objects are None by default, because they arent picklable
@@ -158,6 +159,12 @@ class Camera(WorkerProcess):
 
         frame = buffer[beg + ETVR_HEADER_LENGTH : end + ETVR_HEADER_LENGTH]
         buffer = buffer[end + ETVR_HEADER_LENGTH :]
+
+        # drop any potentially outdated frames
+        if self.serial_camera.in_waiting > 32768:
+            self.logger.warning(f"Discarding serial buffer ({self.serial_camera.in_waiting} bytes)")
+            self.serial_camera.reset_input_buffer()
+
         return frame
 
     def get_serial_image(self) -> None:
@@ -174,13 +181,9 @@ class Camera(WorkerProcess):
                     self.logger.warning("Failed to decode serial camera frame, discarding")
                     return
 
-                # drop any potentially outdated frames
-                if self.serial_camera.in_waiting > 32768:
-                    self.logger.warning(f"Discarding serial buffer ({self.serial_camera.in_waiting} bytes)")
-                    self.serial_camera.reset_input_buffer()
-
-                # TODO: calculate frame number and fps
-                self.push_image_to_queue(frame, 0, 0)
+                self.serial_frame_number += 1
+                fps = round(1.0 / self.delta_time)
+                self.push_image_to_queue(frame, self.serial_frame_number, fps)
         except Exception:
             self.logger.exception("Serial capture error, assuming disconnect, waiting for reconnect.")
             self.set_state(CameraState.DISCONNECTED)
