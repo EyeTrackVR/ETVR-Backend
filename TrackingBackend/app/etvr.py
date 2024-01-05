@@ -39,11 +39,11 @@ class ETVR:
             for tracker in self.trackers:
                 tracker.stop()
 
+            self.trackers = []
             for tracker_config in self.config.trackers:
                 if tracker_config.enabled:
-                    # no need to create a new tracker if we already have one with the same uuid
-                    if tracker_config.uuid not in [tracker.uuid for tracker in self.trackers]:
-                        self.trackers.append(Tracker(self.config, tracker_config.uuid, self.manager, self.router))
+                    self.trackers.append(Tracker(self.config, tracker_config.uuid, self.manager, self.router))
+
         else:
             logger.error("Cannot setup trackers while ETVR is running!")
 

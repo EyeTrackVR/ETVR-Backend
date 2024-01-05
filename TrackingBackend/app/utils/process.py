@@ -96,18 +96,17 @@ class WorkerProcess:
             self.logger.info(f"affinity={cpu_list} for process `{self.name}`")
             psutil.Process().cpu_affinity(cpu_list)
 
-    def on_config_modified(self, config: ConfigManager, old_config: EyeTrackConfig) -> None:
-        if config != old_config:
-            self.logger.debug(f"Config updated for process `{self.name}`")
-            self.debug = self.base_config.debug
-            self.on_config_update(self.base_config)
-            self.window._debug = self.base_config.debug
-            for tracker in self.base_config.trackers:
-                if tracker.uuid == self.uuid:
-                    old_tracker = old_config.get_tracker_by_uuid(self.uuid)
-                    if tracker != old_tracker:
-                        self.logger.info(f"Tracker config updated for process `{self.name}`")
-                        self.on_tracker_config_update(tracker)
+    def on_config_modified(self, old_config: EyeTrackConfig) -> None:
+        self.logger.debug(f"Config updated for process `{self.name}`")
+        self.debug = self.base_config.debug
+        self.on_config_update(self.base_config)
+        self.window._debug = self.base_config.debug
+        for tracker_config in self.base_config.trackers:
+            if tracker_config.uuid == self.uuid:
+                old_tracker = old_config.get_tracker_by_uuid(self.uuid)
+                if tracker_config != old_tracker:
+                    self.logger.info(f"Tracker config updated for process `{self.name}`")
+                    self.on_tracker_config_update(tracker_config)
 
     # endregion
 
@@ -119,6 +118,7 @@ class WorkerProcess:
             return
 
         try:
+            self.base_config.load()
             self.__shutdown_event.clear()
             self.logger.info(f"Starting Process `{self.name}`")
             self.__process = Process(target=self._run, name=f"{self.name}")

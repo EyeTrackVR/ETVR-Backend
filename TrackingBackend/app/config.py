@@ -245,8 +245,8 @@ class EyeTrackConfig(BaseModel):
 
 
 class ConfigManager(EyeTrackConfig, FileSystemEventHandler):
-    # TODO: Should the callback return the manager or the config?
-    def __init__(self, callback: Callable[[ConfigManager, EyeTrackConfig], None] | None = None, *args, **kwargs):
+    # callback function will a copy of the old config, the manager will have the new config
+    def __init__(self, callback: Callable[[EyeTrackConfig], None] | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__callback = callback
         self.__logger = get_logger()
@@ -266,7 +266,8 @@ class ConfigManager(EyeTrackConfig, FileSystemEventHandler):
         )
         self.__observer.start()
 
-        self.load()
+        # fire callbacks incase the config was modified while the server was offline
+        self.on_modified(FileModifiedEvent(CONFIG_FILE))  # this also loads the config
         return self
 
     def stop(self) -> None:
@@ -317,7 +318,7 @@ class ConfigManager(EyeTrackConfig, FileSystemEventHandler):
             if self.load().model_dump() != old_config:
                 self.__logger.info("Config update detected, calling callbacks")
                 if self.__callback is not None:
-                    self.__callback(self, EyeTrackConfig(**old_config))
+                    self.__callback(EyeTrackConfig(**old_config))
 
     # endregion
 
