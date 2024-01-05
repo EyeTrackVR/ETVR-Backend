@@ -13,9 +13,9 @@ from app.processes import EyeProcessor, Camera, VRChatOSC
 class Tracker:
     def __init__(self, config: EyeTrackConfig, uuid: str, manager: SyncManager, router: APIRouter):
         self.uuid = uuid
+        self.router = router
         self.config = config
         self.tracker_config = config.get_tracker_by_uuid(uuid)
-        self.router = router
         # IPC stuff
         self.manager = manager
         self.osc_queue: Queue[EyeData] = self.manager.Queue()
@@ -40,9 +40,13 @@ class Tracker:
         self.camera.stop()
         self.processor.stop()
         self.osc_sender.stop()
+        self.camera_visualizer.stop()
+        self.algorithm_visualizer.stop()
         # if we dont do this we memory leak :3
         clear_queue(self.osc_queue)
         clear_queue(self.image_queue)
+        clear_queue(self.camera_queue)
+        clear_queue(self.algo_frame_queue)
 
     def restart(self) -> None:
         self.camera.restart()

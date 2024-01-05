@@ -9,9 +9,10 @@ OFLINE_IMAGE = cv2.imread("assets/images/camera_offline.png")
 class Visualizer:
     def __init__(self, image_queue: Queue):
         self.image_queue: Queue = image_queue
+        self.running: bool = True
 
     def gen_frame(self):
-        while True:
+        while self.running:
             try:
                 frame = self.image_queue.get(timeout=1)
             except Exception:
@@ -21,6 +22,9 @@ class Visualizer:
 
     def video_feed(self) -> StreamingResponse:
         return StreamingResponse(self.gen_frame(), media_type="multipart/x-mixed-replace; boundary=frame")
+
+    def stop(self):
+        self.running = False
 
     def __call__(self, *args: Any, **kwds: Any) -> StreamingResponse:
         return self.video_feed()
