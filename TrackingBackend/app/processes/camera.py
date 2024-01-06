@@ -4,8 +4,8 @@ from app.types import CameraState
 from multiprocessing import Value
 import serial.tools.list_ports
 from cv2.typing import MatLike
+from queue import Queue, Full
 from typing import Final
-from queue import Queue
 import numpy as np
 import ctypes
 import serial
@@ -201,7 +201,10 @@ class Camera(WorkerProcess):
 
         frame = mat_rotate(frame, self.config.rotation)
         # send frame to frontend
-        self.frontend_queue.put(frame)
+        try:
+            self.frontend_queue.put(frame, block=False)
+        except Full:
+            pass
         frame = mat_crop(self.config.roi_x, self.config.roi_y, self.config.roi_w, self.config.roi_h, frame)
 
         return frame

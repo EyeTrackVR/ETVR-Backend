@@ -2,7 +2,7 @@ from app.types import EyeData, Algorithms, TRACKING_FAILED
 from app.config import AlgorithmConfig, TrackerConfig
 from app.utils import WorkerProcess, BaseAlgorithm
 from cv2.typing import MatLike
-from queue import Queue
+from queue import Queue, Full
 import queue
 import cv2
 
@@ -48,7 +48,10 @@ class EyeProcessor(WorkerProcess):
             break
 
         self.osc_queue.put(result)
-        self.frontend_queue.put(current_frame)
+        try:
+            self.frontend_queue.put(current_frame, block=False)
+        except Full:
+            pass
         self.window.imshow(self.process_name(), current_frame)
 
     def shutdown(self) -> None:

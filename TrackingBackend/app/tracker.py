@@ -21,8 +21,8 @@ class Tracker:
         self.osc_queue: Queue[EyeData] = self.manager.Queue()
         self.image_queue: Queue[MatLike] = self.manager.Queue()
         # Used purely for visualization in the frontend
-        self.camera_queue: Queue[MatLike] = self.manager.Queue()
-        self.algo_frame_queue: Queue[MatLike] = self.manager.Queue()
+        self.camera_queue: Queue[MatLike] = self.manager.Queue(maxsize=15)
+        self.algo_frame_queue: Queue[MatLike] = self.manager.Queue(maxsize=15)
         # processes
         self.processor = EyeProcessor(self.tracker_config, self.image_queue, self.osc_queue, self.algo_frame_queue)
         self.camera = Camera(self.tracker_config, self.image_queue, self.camera_queue)
