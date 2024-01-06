@@ -111,8 +111,9 @@ class VRChatOSCReceiver:
             self.thread: threading.Thread = threading.Thread()
 
     def __del__(self):
-        if self.thread.is_alive():
-            self.stop()
+        if self.thread is not None:
+            if self.thread.is_alive():
+                self.stop()
 
     def is_alive(self) -> bool:
         return self.thread.is_alive()
