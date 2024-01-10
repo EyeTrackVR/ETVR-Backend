@@ -1,32 +1,30 @@
-# FIXME: this sucks and is slow, it doesnt even work, and it blocks the event loop.
 import cv2
+from typing import Any
 from queue import Queue
 from fastapi.responses import StreamingResponse
 
-OFLINE_IMAGE = cv2.imread("assets/images/CameraOffline.png")
+OFLINE_IMAGE = cv2.imread("assets/images/camera_offline.png")
 
 
 class Visualizer:
-    def __init__(self, image_queue: Queue, remove_from_queue: bool = False):
+    def __init__(self, image_queue: Queue):
         self.image_queue: Queue = image_queue
-        self.remove_from_queue: bool = remove_from_queue
-        print("YOU ARE MAKING A MISTAKE DONT USE THIS CLASS")
-        assert False
+        self.running: bool = True
 
-    async def gen_frame(self):
-        while True:
-            if self.remove_from_queue:
-                frame = self.image_queue.get()
-            else:
-                frame = self.image_queue.queue[0]
-
+    def gen_frame(self):
+        while self.running:
+            try:
+                frame = self.image_queue.get(timeout=1)
+            except Exception:
+                frame = OFLINE_IMAGE
             ret, frame = cv2.imencode(".jpg", frame)
-            if not ret:
-                continue
-            frame = frame.tobytes()
-            yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
-            # sleep so we dont block the event loop
-            # await asyncio.sleep(0.01)
+            yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + bytearray(frame) + b"\r\n")
 
-    async def video_feed(self):
+    def video_feed(self) -> StreamingResponse:
         return StreamingResponse(self.gen_frame(), media_type="multipart/x-mixed-replace; boundary=frame")
+
+    def stop(self):
+        self.running = False
+
+    def __call__(self, *args: Any, **kwds: Any) -> StreamingResponse:
+        return self.video_feed()

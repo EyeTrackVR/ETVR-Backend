@@ -1,3 +1,4 @@
+# TODO: split this package into multiple files, its getting too big
 from __future__ import annotations
 import re
 import sys
@@ -6,8 +7,11 @@ import json
 import time
 import random
 import os.path
-from typing import Callable
+import multiprocessing
+from copy import deepcopy
 from app.logger import get_logger
+from typing import Callable, Final
+from app.utils import mask_to_cpu_list
 from watchdog.observers import Observer
 from fastapi import Request, HTTPException
 from watchdog.observers.api import BaseObserver
@@ -19,14 +23,15 @@ logger = get_logger()
 
 # TODO: we should store this in the same folder as the GUI config, we might not have write access to the executable folder
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-    # remove the executable name from the path, and replace it with the config file name
-    CONFIG_FILE = os.path.dirname(sys.executable) + os.path.sep + "tracker-config.json"
+    CONFIG_PATH = os.path.dirname(sys.executable)
+elif os.environ.get("ETVR_UNITTEST") is not None:
+    CONFIG_PATH = ".pytest_cache"
 else:
-    CONFIG_FILE = "tracker-config.json"
-
-
+    CONFIG_PATH = "."
+CONFIG_NAME: Final = "tracker-config.json"
+CONFIG_FILE: Final = CONFIG_PATH + os.path.sep + CONFIG_NAME
 # https://regex101.com/r/qlLITU/1
-IP_ADDRESS_REGEX = (
+IP_ADDRESS_REGEX: Final = (
     r"(\b(?:http:\/\/)?(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)"
     r"(?::\d{1,5})?\b|localhost(?::\d{1,5})?|http:\/\/localhost(?::\d{1,5})?|[\w-]+\.local(?::\d{1,5})?)"
 )
@@ -104,9 +109,9 @@ class OSCConfig(BaseModel):
 
 class CameraConfig(BaseModel):
     capture_source: str = ""
+    rotation: int = 0
     threshold: int = 50
     focal_length: int = 30
-    rotation_angle: int = 0
     flip_x_axis: bool = False
     flip_y_axis: bool = False
     roi_x: int = 0
@@ -122,10 +127,16 @@ class CameraConfig(BaseModel):
 
     @field_validator("capture_source")
     def capture_source_validator(cls, value: str) -> str:
-        if not value == "":
-            if re.match(IP_ADDRESS_REGEX, value) is None:
-                raise ValueError("Invalid IP Address, must be localhost or a valid IPv4 address")
-        return value
+        if re.match(IP_ADDRESS_REGEX, value) is not None:
+            return value
+        elif "com" in value.lower():
+            return value
+        elif "/dev/" in value.lower():
+            return value
+        elif value == "":
+            return value
+        else:
+            raise ValueError("Invalid capture source, must be a valid IP address or COM port")
 
 
 class TrackerConfig(BaseModel):
@@ -144,9 +155,11 @@ class TrackerConfig(BaseModel):
         return value
 
 
+# TODO: move management code into `ConfigManager` class
 class EyeTrackConfig(BaseModel):
-    version: int = 3
-    debug: bool = True  # For future use
+    version: int = 4
+    debug: bool = True
+    affinity_mask: str = ""
     osc: OSCConfig = OSCConfig()
     trackers: list[TrackerConfig] = [
         TrackerConfig(
@@ -169,54 +182,6 @@ class EyeTrackConfig(BaseModel):
         ),
     ]
 
-    def save(self, file: str = CONFIG_FILE) -> None:
-        try:
-            with open(file, "w+", encoding="utf8") as settings_file:
-                json.dump(obj=self.model_dump(), fp=settings_file, indent=4)
-        except PermissionError:
-            logger.error(f"Permission Denied `{file}`, assuming config has lock, Retrying...")
-            self.save(file=file)
-
-    # TODO: refactor how we load config files, this is a mess
-    def load(self, file: str = CONFIG_FILE) -> EyeTrackConfig:
-        # FIXME: this hopefully prevents multiple processes opening the config file at the same time
-        time.sleep(random.random())
-
-        if not os.path.exists(file):
-            logger.info("No config file found, using base settings")
-            self.save(file=file)
-        else:
-            try:
-                with open(file, "r", encoding="utf8") as config:
-                    data = config.read()
-                    self.__dict__.update(self.model_validate_json(data))
-            except PermissionError:
-                logger.error("Permission Denied, assuming config has lock, Retrying...")
-                return self.load(file=file)
-            except (json.JSONDecodeError, ValidationError) as e:
-                if type(e) is ValidationError:
-                    logger.error(f"Invalid data found in config\n{e}")
-                logger.critical("Config is corrupted, creating backup and regenerating")
-                os.replace(file, f"{file}.backup")
-                self.save(file=file)
-
-        return self
-
-    def update_model(self, obj: BaseModel, data: dict) -> None:
-        if isinstance(obj, BaseModel):
-            for key, value in data.items():
-                if hasattr(obj, key):
-                    if key == "trackers":
-                        logger.warning("Skiping input validation for trackers array, this may cause unexpected behaviour!")
-                        logger.warning("Use the `/etvr/config/tracker` endpoints to update individual trackers")
-                    current_value = getattr(obj, key)
-                    if isinstance(current_value, BaseModel):
-                        self.update_model(current_value, value)
-                    else:
-                        setattr(obj, key, value)
-                else:
-                    logger.debug(f"Config has no attribute `{key}`")
-
     def get_tracker_by_uuid(self, uuid: str) -> TrackerConfig:
         for tracker in self.trackers:
             if tracker.uuid == uuid:
@@ -229,9 +194,150 @@ class EyeTrackConfig(BaseModel):
                 return index
         raise ValueError(f"No tracker found with UUID `{uuid}`")
 
-    def return_config(self) -> dict:
-        return self.model_dump()
+    @field_validator("affinity_mask")
+    def affinity_mask_validator(cls, value: str) -> str:
+        try:
+            cpu_count = multiprocessing.cpu_count() - 1  # CPU indexing starts at 0
+            cpus = mask_to_cpu_list(value)
+            for cpu_index in cpus:
+                if cpu_index > cpu_count:
+                    logger.warning(f"CPU mask contains invalid CPU `{cpu_index}`, only `{cpu_count}` CPUs available")
+                    raise ValueError
+            return value
+        except ValueError:
+            logger.warning("Invalid CPU mask")
 
+        return ""
+
+    @field_validator("trackers")
+    def trackers_uuid_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
+        uuids = []
+        for tracker in value:
+            if tracker.uuid in uuids:
+                logger.warning(f"Duplicate UUID found for tracker {tracker.name}, generating new UUID")
+                tracker.uuid = str(uuid.uuid4())
+            uuids.append(tracker.uuid)
+        return value
+
+    @field_validator("trackers")
+    def trackers_enabled_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
+        # make sure we only have one tracker per position active at one time,
+        # if we have multiple we disable all occurences after the first
+        enabled = []
+        for tracker in value:
+            if tracker.enabled:
+                if tracker.tracker_position in enabled:
+                    logger.warning(f"Multiple devices found with position `{tracker.tracker_position.name}`")
+                    logger.warning(f"Disabling tracker `{tracker.name}`, with UUID `{tracker.uuid}`")
+                    tracker.enabled = False
+                else:
+                    enabled.append(tracker.tracker_position)
+        return value
+
+    @field_validator("trackers")
+    def trackers_position_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
+        # if the tracker has no position we disable it
+        for tracker in value:
+            if tracker.tracker_position == TrackerPosition.UNDEFINED and tracker.enabled:
+                logger.warning(f"Tracker `{tracker.name}` with uuid `{tracker.uuid}` has no position, disabling it")
+                tracker.enabled = False
+        return value
+
+
+class ConfigManager(EyeTrackConfig, FileSystemEventHandler):
+    # callback function will a copy of the old config, the manager will have the new config
+    def __init__(self, callback: Callable[[EyeTrackConfig], None] | None = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__callback = callback
+        self.__logger = get_logger()
+        # None by default because threads arent pickable
+        self.__observer: BaseObserver | None = None
+
+    # region: Config file management
+    def start(self) -> ConfigManager:
+        self.__logger.info("Starting config manager and watcher thread")
+        self.__observer = Observer()
+        self.__observer.daemon = True
+        self.__observer.name = "Config Manager"
+        self.__observer.schedule(
+            event_handler=self,
+            path=CONFIG_PATH,
+            recursive=False,
+        )
+        self.__observer.start()
+
+        # fire callbacks incase the config was modified while the server was offline
+        self.on_modified(FileModifiedEvent(CONFIG_FILE))  # this also loads the config
+        return self
+
+    def stop(self) -> None:
+        self.__logger.info("Stopping config manager and watcher thread")
+        if self.__observer is not None:
+            self.__observer.stop()
+
+    def save(self) -> None:
+        try:
+            self.__logger.debug("Config save requested")
+            with open(CONFIG_FILE, "wt", encoding="utf8") as file:
+                json.dump(obj=self.model_dump(), fp=file, indent=4)
+            self.__logger.info("Current config saved to disk")
+        except PermissionError:
+            self.__logger.error(f"`{CONFIG_FILE}` Permission Denied, assuming config has lock, Retrying...")
+            self.save()
+
+    def load(self) -> ConfigManager:
+        # FIXME: hack to stop multiple processes open the config at the exact same time
+        # if this ever happens on windows one of the processes will receive a empty file, WTF?
+        time.sleep(random.random())
+
+        try:
+            file = open(CONFIG_FILE, "rt", encoding="utf8").read()
+            self.__dict__.update(self.model_validate_json(file))
+            if file != json.dumps(self.model_dump(), indent=4):
+                self.__logger.warning("Config had validation errors, saving validated config")
+                self.save()
+        except PermissionError:
+            self.__logger.error("Permission Denied, assuming config has lock, retrying...")
+            self.load()
+        except FileNotFoundError:
+            self.__logger.error("Config file not found, using base settings")
+            self.save()
+        except (json.JSONDecodeError, ValidationError):
+            self.__logger.exception("Failed to load config file!")
+            self.__logger.critical("Creating backup and regenerating")
+            os.replace(CONFIG_FILE, f"{CONFIG_FILE}.backup")
+            self.save()
+
+        return self
+
+    def on_modified(self, event: FileModifiedEvent) -> None:
+        if event.src_path == CONFIG_FILE:
+            self.__logger.debug(f"Config modified event fired `{event.src_path}`")
+            # we cant deepcopy the whole class because threads contains multiple `AuthenticationString` objects
+            old_config = deepcopy(self.model_dump())
+            if self.load().model_dump() != old_config:
+                self.__logger.info("Config update detected, calling callbacks")
+                if self.__callback is not None:
+                    self.__callback(EyeTrackConfig(**old_config))
+
+    # endregion
+
+    def update_model(self, obj: BaseModel, data: dict) -> None:  # TODO: make our own base model class
+        if isinstance(obj, BaseModel):
+            for key, value in data.items():
+                if hasattr(obj, key):
+                    if key == "trackers":
+                        self.__logger.warning("Skiping input validation for trackers array, this may cause unexpected behaviour!")
+                        self.__logger.warning("Use the `/etvr/config/tracker` endpoints to update individual trackers")
+                    current_value = getattr(obj, key)
+                    if isinstance(current_value, BaseModel):
+                        self.update_model(current_value, value)
+                    else:
+                        setattr(obj, key, value)
+                else:
+                    self.__logger.debug(f"Config has no attribute `{key}`")
+
+    # TODO: dont use request objects, use the actual dataclasses
     # region: FastAPI routes
     async def update(self, request: Request) -> None:
         try:
@@ -304,64 +410,17 @@ class EyeTrackConfig(BaseModel):
 
     # endregion
 
-    # region: Model validation
-    @field_validator("trackers")
-    def trackers_uuid_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
-        uuids = []
-        for tracker in value:
-            if tracker.uuid in uuids:
-                logger.warning(f"Duplicate UUID found for tracker {tracker.name}, generating new UUID")
-                tracker.uuid = str(uuid.uuid4())
-            uuids.append(tracker.uuid)
-        return value
+    def __del__(self) -> None:
+        # the observer has a copy of this class, when it detects a change in the config file it will delete a reference
+        # calling the destructor, but the copy class isnt *real* so to avoid log spam we check if the observer exists
+        if self.__observer is not None:
+            self.stop()
 
-    @field_validator("trackers")
-    def trackers_enabled_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
-        # make sure we only have one tracker per position active at one time,
-        # if we have multiple we disable all occurences after the first
-        enabled = []
-        for tracker in value:
-            if tracker.enabled:
-                if tracker.tracker_position in enabled:
-                    logger.warning(f"Multiple devices found with position `{tracker.tracker_position.name}`")
-                    logger.warning(f"Disabling tracker `{tracker.name}`, with UUID `{tracker.uuid}`")
-                    tracker.enabled = False
-                else:
-                    enabled.append(tracker.tracker_position)
-        return value
+    # for reasons only god knows, ASGI wants this class to be hashable
+    def __hash__(self) -> int:
+        return hash(self.__class__)
 
-    @field_validator("trackers")
-    def trackers_position_validator(cls, value: list[TrackerConfig]) -> list[TrackerConfig]:
-        # if the tracker has no position we disable it
-        for tracker in value:
-            if tracker.tracker_position == TrackerPosition.UNDEFINED and tracker.enabled:
-                logger.warning(f"Tracker `{tracker.name}` with uuid `{tracker.uuid}` has no position, disabling it")
-                tracker.enabled = False
-        return value
-
-    # endregion
-
-
-# TODO: the config has become a bit messy, we should split it up into multiple files
-class ConfigWatcher:
-    def __init__(self, name: str, callback: Callable[[FileModifiedEvent], None]):
-        self.__name = name
-        self.__callback = callback
-        # Threads arent pickleable, so we create the observer in the start method
-        self.__observer: BaseObserver = None  # type: ignore[assignment]
-
-    def start(self) -> None:
-        self.__observer = Observer()
-        self.__observer.daemon = True
-        event_handler = FileSystemEventHandler()
-        event_handler.on_modified = self.__callback  # type: ignore[method-assign]
-        self.__observer.name = f"{self.__name} Config Watcher"
-        self.__observer.schedule(
-            event_handler=event_handler,
-            path=".",
-            recursive=False,
-        )
-        self.__observer.start()
-
-    def stop(self) -> None:
-        self.__observer.stop()
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, EyeTrackConfig):
+            return NotImplemented
+        return self.model_dump() == other.model_dump()

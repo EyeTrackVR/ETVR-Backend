@@ -27,10 +27,11 @@ This project is licensed under the MIT License. See LICENSE for more details.
 ------------------------------------------------------------------------------------------------------
 """
 
-import math
 import cv2
+import math
 import numpy as np
 import onnxruntime as rt
+from typing import Final
 from app.types import EyeData
 from cv2.typing import MatLike
 from app.processes import EyeProcessor
@@ -41,7 +42,7 @@ ONNX_OPTIONS = rt.SessionOptions()
 ONNX_OPTIONS.inter_op_num_threads = 1
 ONNX_OPTIONS.intra_op_num_threads = 1
 ONNX_OPTIONS.graph_optimization_level = rt.GraphOptimizationLevel.ORT_ENABLE_ALL
-MODEL_PATH = "assets/leap.onnx"
+MODEL_PATH: Final = "assets/models/leap.onnx"
 
 
 class Leap(BaseAlgorithm):
@@ -98,9 +99,7 @@ class Leap(BaseAlgorithm):
 
     def draw_landmarks(self, frame: MatLike, landmarks: np.ndarray) -> None:
         width, height = frame.shape[:2]
-        height -= 112
-        width += 112
 
         for point in landmarks:
             x, y = point
-            cv2.circle(frame, (int(x * width), int(y * height)), 2, (0, 0, 50), -1)
+            cv2.circle(frame, (int(x * height), int(y * width)), 2, (0, 0, 50), -1)

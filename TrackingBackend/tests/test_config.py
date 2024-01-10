@@ -1,8 +1,13 @@
-from app.config import IP_ADDRESS_REGEX, EyeTrackConfig, TrackerConfig
+from app.config import IP_ADDRESS_REGEX, EyeTrackConfig, TrackerConfig, ConfigManager, CONFIG_FILE
 import pytest
 import json
 import re
 import os
+
+
+def remove_test_config():
+    if os.path.exists(CONFIG_FILE):
+        os.remove(CONFIG_FILE)
 
 
 @pytest.mark.parametrize(
@@ -24,64 +29,59 @@ def test_ip_address_regex(ip_list):
 
 
 def test_config_save():
-    # remove the test config if it exists
-    if os.path.exists(".pytest_cache/test_config.json"):
-        os.remove(".pytest_cache/test_config.json")
+    remove_test_config()
 
-    config = EyeTrackConfig()
-    config.save(".pytest_cache/test_config.json")
-    assert os.path.exists(".pytest_cache/test_config.json")
-    with open(".pytest_cache/test_config.json", "r") as f:
+    config = ConfigManager()
+    config.save()
+    assert os.path.exists(CONFIG_FILE)
+    with open(CONFIG_FILE, "rt") as f:
         config_data = f.read()
-        assert config_data == json.dumps(config.return_config(), indent=4)
+        assert config_data == json.dumps(config.model_dump(), indent=4)
 
 
 def test_config_load():
-    if os.path.exists(".pytest_cache/test_config.json"):
-        os.remove(".pytest_cache/test_config.json")
+    remove_test_config()
 
-    config = EyeTrackConfig()
-    config.load(".pytest_cache/test_config.json")
+    config = ConfigManager()
+    config.load()
     assert config == EyeTrackConfig()
 
 
 def test_config_load_modified():
-    if os.path.exists(".pytest_cache/test_config.json"):
-        os.remove(".pytest_cache/test_config.json")
+    remove_test_config()
 
-    original_config = EyeTrackConfig()
+    original_config = ConfigManager()
     original_config.version = 3
-    original_config.save(".pytest_cache/test_config.json")
-    assert os.path.exists(".pytest_cache/test_config.json")
+    original_config.save()
+    assert os.path.exists(CONFIG_FILE)
 
-    config = EyeTrackConfig()
-    config.load(".pytest_cache/test_config.json")
+    config = ConfigManager()
+    config.load()
     assert config == original_config
 
 
 def test_config_load_invalid():
-    if os.path.exists(".pytest_cache/test_config.json"):
-        os.remove(".pytest_cache/test_config.json")
+    remove_test_config()
 
-    with open(".pytest_cache/test_config.json", "w") as f:
+    with open(CONFIG_FILE, "wt") as f:
         f.write("invalid json")
 
-    config = EyeTrackConfig()
-    config.load(".pytest_cache/test_config.json")
+    config = ConfigManager()
+    config.load()
     assert config == EyeTrackConfig()
 
 
 def test_config_upate_attributes():
-    config = EyeTrackConfig()
+    config = ConfigManager()
 
     config.update_model(config, {"version": 3})
-    assert config.return_config()["version"] == 3
+    assert config.model_dump()["version"] == 3
 
     config.update_model(config, {"osc": {"address": "localhost"}})
-    assert config.return_config()["osc"]["address"] == "localhost"
+    assert config.model_dump()["osc"]["address"] == "localhost"
 
     config.update_model(config, {"osc": {"endpoints": {"eyes_y": "/avatar/parameters/EyesPytest"}}})
-    assert config.return_config()["osc"]["endpoints"]["eyes_y"] == "/avatar/parameters/EyesPytest"
+    assert config.model_dump()["osc"]["endpoints"]["eyes_y"] == "/avatar/parameters/EyesPytest"
 
 
 def test_get_tracker_by_uuid():
@@ -104,15 +104,14 @@ def test_get_uuid_index():
 # region: Endpoint tests
 @pytest.mark.asyncio
 async def test_config_reset():
-    if os.path.exists(".pytest_cache/test_config.json"):
-        os.remove(".pytest_cache/test_config.json")
+    remove_test_config()
 
-    config = EyeTrackConfig()
+    config = ConfigManager()
     config.version = 100
     config.osc.address = "localhost"
     config.osc.receiver_port = 8081
     config.debug = not config.debug
-    config.save(".pytest_cache/test_config.json")
+    config.save()
 
     await config.reset()
     assert config == EyeTrackConfig()
@@ -120,18 +119,17 @@ async def test_config_reset():
 
 @pytest.mark.asyncio
 async def test_config_tracker_reset():
-    if os.path.exists(".pytest_cache/test_config.json"):
-        os.remove(".pytest_cache/test_config.json")
+    remove_test_config()
 
     name = "test"
     uuid = "test_uuid"
 
-    config = EyeTrackConfig()
+    config = ConfigManager()
     tracker = config.trackers[0]
     tracker.name = name
     tracker.uuid = uuid
     tracker.camera.threshold = 100
-    config.save(".pytest_cache/test_config.json")
+    config.save()
 
     await config.reset_tracker(uuid)
     assert config.trackers[0].uuid == uuid
@@ -141,7 +139,7 @@ async def test_config_tracker_reset():
 
 @pytest.mark.asyncio
 async def test_create_tracker():
-    config = EyeTrackConfig()
+    config = ConfigManager()
     len_before = len(config.trackers)
 
     await config.create_tracker(TrackerConfig())
@@ -151,7 +149,7 @@ async def test_create_tracker():
 
 @pytest.mark.asyncio
 async def test_delete_tracker():
-    config = EyeTrackConfig()
+    config = ConfigManager()
     len_before = len(config.trackers)
 
     await config.delete_tracker(config.trackers[0].uuid)

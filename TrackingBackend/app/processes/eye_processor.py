@@ -2,7 +2,8 @@ from app.types import EyeData, Algorithms, TRACKING_FAILED
 from app.config import AlgorithmConfig, TrackerConfig
 from app.utils import WorkerProcess, BaseAlgorithm
 from cv2.typing import MatLike
-from queue import Queue
+from queue import Queue, Full
+import queue
 import cv2
 
 
@@ -12,9 +13,11 @@ class EyeProcessor(WorkerProcess):
         tracker_config: TrackerConfig,
         image_queue: Queue[MatLike],
         osc_queue: Queue[EyeData],
+        frontend_queue: Queue[MatLike],
     ):
         super().__init__(name=f"Eye Processor {str(tracker_config.name)}", uuid=tracker_config.uuid)
         # Synced variables
+        self.frontend_queue = frontend_queue
         self.image_queue = image_queue
         self.osc_queue = osc_queue
         # Unsynced variables
@@ -29,7 +32,10 @@ class EyeProcessor(WorkerProcess):
         try:
             current_frame = self.image_queue.get(block=True, timeout=0.5)
             current_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
+        except queue.Empty:
+            return
         except Exception:
+            self.logger.exception("Failed to get image from queue")
             return
 
         result = EyeData(0, 0, 0, self.tracker_position)
@@ -42,6 +48,10 @@ class EyeProcessor(WorkerProcess):
             break
 
         self.osc_queue.put(result)
+        try:
+            self.frontend_queue.put(current_frame, block=False)
+        except Full:
+            pass
         self.window.imshow(self.process_name(), current_frame)
 
     def shutdown(self) -> None:

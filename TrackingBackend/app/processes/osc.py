@@ -4,6 +4,7 @@ from app.types import EyeData, TrackerPosition
 from app.logger import get_logger
 from queue import Queue, Empty
 from copy import deepcopy
+from typing import Final
 import numpy as np
 import threading
 import cv2
@@ -11,19 +12,19 @@ from pythonosc.dispatcher import Dispatcher
 from pythonosc.udp_client import SimpleUDPClient
 from pythonosc.osc_server import ThreadingOSCUDPServer
 
-WIDTH = 256
-HEIGHT = 256
+WIDTH: Final = 256
+HEIGHT: Final = 256
 
 logger = get_logger()
 
 
 class VRChatOSC(WorkerProcess):
-    def __init__(self, config: EyeTrackConfig, osc_queue: Queue[EyeData], name: str):
+    def __init__(self, osc_queue: Queue[EyeData], name: str):
         super().__init__(name=f"OSC {name}")
         # Synced variables
         self.osc_queue: Queue[EyeData] = osc_queue
         # Unsynced variables
-        self.config: EyeTrackConfig = config
+        self.config: EyeTrackConfig = self.base_config
         self.client = SimpleUDPClient(self.config.osc.address, self.config.osc.sending_port)
         self.filter = OneEuroFilter(np.random.rand(2), 0.9, 5.0)
 
@@ -40,8 +41,12 @@ class VRChatOSC(WorkerProcess):
 
             self.smooth(eye_data)
             # "normalize" the data to be between -1 and 1
-            eye_data.x = 2 * (eye_data.x - 0.5)
             eye_data.y = -(2 * (eye_data.y - 0.5))
+            # flip output for right eye to account for perspective
+            if eye_data.position == TrackerPosition.RIGHT_EYE:
+                eye_data.x = 2 * (eye_data.x - 0.5)
+            elif eye_data.position == TrackerPosition.LEFT_EYE:
+                eye_data.x = -(2 * (eye_data.x - 0.5))
         except Empty:
             return
         except Exception:
@@ -97,13 +102,18 @@ class VRChatOSCReceiver:
         self.main_config: EyeTrackConfig = config
         self.endpoints = config.osc.endpoints
         self.config: OSCConfig = config.osc
-        self.dispatcher: Dispatcher = Dispatcher()
-        self.server: ThreadingOSCUDPServer = ThreadingOSCUDPServer((self.config.address, self.config.receiver_port), self.dispatcher)
-        self.thread: threading.Thread = threading.Thread()
+        # FIXME: this is a hack
+        if self.config.enable_receiving:
+            self.dispatcher: Dispatcher = Dispatcher()
+            self.server: ThreadingOSCUDPServer = ThreadingOSCUDPServer(
+                (self.config.address, self.config.receiver_port), self.dispatcher
+            )
+            self.thread: threading.Thread = threading.Thread()
 
     def __del__(self):
-        if self.thread.is_alive():
-            self.stop()
+        if self.thread is not None:
+            if self.thread.is_alive():
+                self.stop()
 
     def is_alive(self) -> bool:
         return self.thread.is_alive()
@@ -123,12 +133,12 @@ class VRChatOSCReceiver:
         self.dispatcher.map(self.endpoints.sync_blink, self.toggle_sync_blink)
 
     def start(self) -> None:
-        # don't start a thread if one already exists
-        if self.thread.is_alive():
-            logger.debug(f"Thread `{self.thread.name}` requested to start but is already running")
-            return
-
         if self.config.enable_receiving:
+            # don't start a thread if one already exists
+            if self.thread.is_alive():
+                logger.debug(f"Thread `{self.thread.name}` requested to start but is already running")
+                return
+
             logger.info("Starting OSC receiver thread")
             # we redefine the OSC server here just incase the address or port changed
             self.server.socket.close()  # close the old socket so we don't get a "address already in use" error
@@ -141,11 +151,11 @@ class VRChatOSCReceiver:
             logger.info("OSC receiver is disabled, skipping start")
 
     def stop(self) -> None:
-        if not self.thread.is_alive():
-            logger.debug("Request to kill dead thread was made!")
-            return
-
         if self.config.enable_receiving:
+            if not self.thread.is_alive():
+                logger.debug("Request to kill dead thread was made!")
+                return
+
             logger.info("Stopping OSC receiver thread")
             self.server.shutdown()
             self.thread.join(timeout=5)

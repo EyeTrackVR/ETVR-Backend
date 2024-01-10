@@ -1,11 +1,10 @@
 import time
-from os import path
-from copy import deepcopy
+import psutil
 from app.window import Window
 from multiprocessing import Process, Event
-from watchdog.events import FileModifiedEvent
 from app.logger import get_logger, setup_logger
-from app.config import EyeTrackConfig, CONFIG_FILE, TrackerConfig, ConfigWatcher
+from app.utils.misc_utils import mask_to_cpu_list
+from app.config import EyeTrackConfig, ConfigManager, TrackerConfig
 
 # Welcome to assassin's multiprocessing realm
 # To not repeat the same mistakes I made, here are some tips:
@@ -25,10 +24,11 @@ class WorkerProcess:
         self.name = name
         self.__process = Process()
         self.__shutdown_event = Event()
-        self.base_config = EyeTrackConfig().load()
-        self.__config_watcher = ConfigWatcher(name, self._config_update)
+        self.base_config = ConfigManager(self.on_config_modified).load()
 
         self.uuid = uuid
+        self.delta_time: float = 0
+        self._last_time = time.time()
         self.debug = self.base_config.debug
         self.logger = get_logger(self.__module__)
         self.window = Window(self.base_config.debug)
@@ -36,11 +36,9 @@ class WorkerProcess:
 
     # region: Child class overrides and callbacks
     def run(self) -> None:
-        """run the child process main loop.
-        * Should not include a while loop this parent class should handle lifecycles.
+        """run a single iteration of the main loop
         * All children must override this method and implement their own main loop
-        * Although its better to handle all errors in the child process, this parent class will take care of unhandled exceptions
-        * Unless necessary, do not call cv2.waitkey(1) this parent class handle all debug windows
+        * Should not include a infinite loop this parent class should handle lifecycles.
         """
         self.logger.critical("WorkerProcess.run() must be overridden in child class!")
         raise NotImplementedError
@@ -52,18 +50,23 @@ class WorkerProcess:
         """cleanup code that is run inside the child process right after the main loop ends."""
 
     def on_config_update(self, config: EyeTrackConfig) -> None:
-        """callback function that is called when any part of the config is updated."""
+        """callback function that is called when any part of the config is updated.
+        * All callback code must be thread safe as they are called from a different thread within the child process
+        """
 
     def on_tracker_config_update(self, tracker_config: TrackerConfig) -> None:
-        """callback function that is called when the tracker with the given uuid is updated."""
+        """callback function that is called when the tracker with the given uuid is updated.
+        * All callback code must be thread safe as they are called from a different thread within the child process
+        """
 
     # endregion
 
     # region: Internal methods
     def _run(self) -> None:
+        setup_logger()
+        self.set_affinity()
+        self.base_config.start()
         try:
-            self.__config_watcher.start()
-            setup_logger()
             self.startup()
             self._mainloop()
             self.shutdown()
@@ -72,6 +75,9 @@ class WorkerProcess:
 
     def _mainloop(self) -> None:
         while not self.__shutdown_event.is_set():
+            current_time = time.time()
+            # hack to prevent a divide by zero error
+            self.delta_time = (current_time - self._last_time) + 0.0000001
             try:
                 self.run()
                 self.window._waitkey(1)
@@ -82,31 +88,37 @@ class WorkerProcess:
             except Exception:
                 self.logger.exception("Unhandled exception in child process! Continuing...")
                 continue
+            self._last_time = current_time
 
-    def _config_update(self, event: FileModifiedEvent) -> None:
-        if event.src_path == f".{path.sep}{CONFIG_FILE}":
-            old_config = deepcopy(self.base_config)
-            self.base_config.load()
-            if self.base_config != old_config:
-                self.logger.debug(f"Config updated for process `{self.name}`")
-                self.debug = self.base_config.debug
-                self.on_config_update(self.base_config)
-                self.window._debug = self.base_config.debug
-                for tracker in self.base_config.trackers:
-                    if tracker.uuid == self.uuid:
-                        old_tracker = old_config.get_tracker_by_uuid(self.uuid)
-                        if tracker != old_tracker:
-                            self.logger.info(f"Tracker config updated for process `{self.name}`")
-                            self.on_tracker_config_update(tracker)
+    def set_affinity(self) -> None:
+        cpu_list = mask_to_cpu_list(self.base_config.affinity_mask)
+        if cpu_list != []:
+            self.logger.info(f"affinity={cpu_list} for process `{self.name}`")
+            psutil.Process().cpu_affinity(cpu_list)
+
+    def on_config_modified(self, old_config: EyeTrackConfig) -> None:
+        self.logger.debug(f"Config updated for process `{self.name}`")
+        self.debug = self.base_config.debug
+        self.on_config_update(self.base_config)
+        self.window._debug = self.base_config.debug
+        for tracker_config in self.base_config.trackers:
+            if tracker_config.uuid == self.uuid:
+                old_tracker = old_config.get_tracker_by_uuid(self.uuid)
+                if tracker_config != old_tracker:
+                    self.logger.info(f"Tracker config updated for process `{self.name}`")
+                    self.on_tracker_config_update(tracker_config)
 
     # endregion
 
+    # region: Object owner methods
+    # These methods should be called from the process which owns this object
     def start(self) -> None:
         if self.is_alive():
             self.logger.debug(f"Process `{self.name}` requested to start but is already running")
             return
 
         try:
+            self.base_config.load()
             self.__shutdown_event.clear()
             self.logger.info(f"Starting Process `{self.name}`")
             self.__process = Process(target=self._run, name=f"{self.name}")
@@ -147,6 +159,8 @@ class WorkerProcess:
             return False
         else:
             return self.__process.is_alive()
+
+    # endregion
 
     def __del__(self) -> None:
         if self.is_alive():

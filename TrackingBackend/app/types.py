@@ -1,6 +1,7 @@
 # This file exists purely because circular imports are a thing and im too lazy to come up with a better
 # solution that doesnt involve a bunch of refactoring.
 import logging
+from typing import Final
 from enum import Enum, StrEnum
 from dataclasses import dataclass
 
@@ -43,5 +44,5 @@ class EyeData:
     position: TrackerPosition
 
 
-DEBUG_FLAG = "ETVR_DEBUG"
-TRACKING_FAILED = EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
+DEBUG_FLAG: Final = "ETVR_DEBUG"
+TRACKING_FAILED: Final = EyeData(0, 0, 0, TrackerPosition.UNDEFINED)
