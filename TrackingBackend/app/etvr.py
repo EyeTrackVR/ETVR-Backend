@@ -148,11 +148,11 @@ class ETVR:
         self.router.add_api_route(
             name="Return Config",
             path="/etvr/config",
-            endpoint=self.config.model_dump_json,
+            endpoint=self.config.model_dump,
             methods=["GET"],
             tags=["Config"],
             description="""
-            Return the currently loadeed config
+            Return the currently loaded config
             """,
         )
         self.router.add_api_route(
