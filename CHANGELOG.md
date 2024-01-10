@@ -3,6 +3,69 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.6.0](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.5.0...v1.6.0) (2024-01-10)
+
+
+### 🍕 Features
+
+* added default index page ([b5ce133](https://github.com/EyeTrackVR/ETVR-Backend/commit/b5ce133d9d64ced0c020752e4b9072bf8bd7720f))
+* added delta time to process class ([df2886a](https://github.com/EyeTrackVR/ETVR-Backend/commit/df2886a96de89e6a95be5d9c4feaa9fe78399e92))
+* added frame number and fps to serial cams ([2568118](https://github.com/EyeTrackVR/ETVR-Backend/commit/2568118915810be642e2f031661038d978827719))
+* added optional process afifnity masking ([ab6f8f0](https://github.com/EyeTrackVR/ETVR-Backend/commit/ab6f8f08e0373d8add78e147feef150396cc3f90))
+* implemented camera streams for frontend ([3ec2772](https://github.com/EyeTrackVR/ETVR-Backend/commit/3ec2772e64443808811cdd15e07360952ce2d1f7))
+* implemented frame rotation again ([7617abe](https://github.com/EyeTrackVR/ETVR-Backend/commit/7617abe8746c49d9b67a6aa77caab9db3408479a))
+* implemented serial camera support ([7adcbd6](https://github.com/EyeTrackVR/ETVR-Backend/commit/7adcbd683d38306b0ceaed919f5f0326ad20de98))
+* Linux support for serial cameras ([f702c59](https://github.com/EyeTrackVR/ETVR-Backend/commit/f702c59257501b53cf693ce4c301d989751d3ebf))
+
+
+### 🐛 Bug Fixes
+
+* asset subfolders are now included in builds ([d61c84d](https://github.com/EyeTrackVR/ETVR-Backend/commit/d61c84dc89b898d0b1636e1b87bbb3896e75047d))
+* dont pass duplicate config to OSC ([31a819f](https://github.com/EyeTrackVR/ETVR-Backend/commit/31a819faae071203a549076bc43fbadeca7d0b1d))
+* fix visualizer memory leak ([3c67478](https://github.com/EyeTrackVR/ETVR-Backend/commit/3c6747810c05691c46bc2cd7c4fe0884142c80c7))
+* fixed bug where config wasnt monitored ([0f475fc](https://github.com/EyeTrackVR/ETVR-Backend/commit/0f475fcc569ad432ebd0b976b138579f6f052f6d))
+* fixed config json string encoding ([832e4a5](https://github.com/EyeTrackVR/ETVR-Backend/commit/832e4a5a3a8bf619ffb2674374b5b41a69b355ea))
+* fixed delta time being 0 on rare occasions ([7562c79](https://github.com/EyeTrackVR/ETVR-Backend/commit/7562c7950602b3346ae2316b14f41774baf7d14f))
+* fixed incorrect perspective on left eye ([8c8ce5e](https://github.com/EyeTrackVR/ETVR-Backend/commit/8c8ce5e4e795649b2ab456d7eaa076f76ad90208))
+* fixed leap visualization with ROI cropping ([408afdd](https://github.com/EyeTrackVR/ETVR-Backend/commit/408afdd0c5e724cb517b0a8f4672ab73b4f77b9d))
+* fixed OpenCV dumbness ([53a3a36](https://github.com/EyeTrackVR/ETVR-Backend/commit/53a3a361a266c6d7394ac703c6a09c1b29d45365))
+* fixed OSC receiver port collisions ([7366ede](https://github.com/EyeTrackVR/ETVR-Backend/commit/7366edebd01e234a9af31123da361604e956c874))
+* Fixed OSC receiver thread not being created ([5b768cf](https://github.com/EyeTrackVR/ETVR-Backend/commit/5b768cfb72ceb9f9560f7651c8ecae8fa003bbdd))
+* fixed process config mismatches ([18cb6b1](https://github.com/EyeTrackVR/ETVR-Backend/commit/18cb6b1e19000cfd4c89a9d1fb01e8a85870d67e))
+* fixed streams not closing when trackers stop ([871024c](https://github.com/EyeTrackVR/ETVR-Backend/commit/871024c3e36bf8569266461189743a0cb79113da))
+* fixed validation correction not being saved ([c7c3daa](https://github.com/EyeTrackVR/ETVR-Backend/commit/c7c3daadc25eb9b23457bb9ac2d210efc1d53e31))
+* fixed visualizer blocking the event loop ([a835b3b](https://github.com/EyeTrackVR/ETVR-Backend/commit/a835b3bfbfbbb185dfad4d5942533ebb9ac1ee07))
+* move `pytest-asyncio` to dev dependencies ([71b2e27](https://github.com/EyeTrackVR/ETVR-Backend/commit/71b2e27e6b98fba223865ea7b6f8bd7ccf3ec326))
+* Queues are cleared if there is backpressure ([cb19c43](https://github.com/EyeTrackVR/ETVR-Backend/commit/cb19c43a8906208e9f81d37d24b4be117fa2b40c))
+* removed unused debug code ([0ed63e0](https://github.com/EyeTrackVR/ETVR-Backend/commit/0ed63e06bf1c74cd3b46e9e37ca0d05509ccc1cc))
+* thread shutdown error with pyinstaller ([b5075f3](https://github.com/EyeTrackVR/ETVR-Backend/commit/b5075f3647885b848c8ebe546e5c4395662dc4d6))
+* y axis flipping ([66c50bb](https://github.com/EyeTrackVR/ETVR-Backend/commit/66c50bbaca78905b263dd7950f8513d107d53eaa))
+
+
+### 📝 Documentation
+
+* added a bunch of info to the README ([57392b6](https://github.com/EyeTrackVR/ETVR-Backend/commit/57392b64e057e035bfd21e54f1158555045477f4))
+
+
+### 🧑‍💻 Code Refactoring
+
+* abstracted and simplified config code ([2c2f2a4](https://github.com/EyeTrackVR/ETVR-Backend/commit/2c2f2a4503ed69b50188d2a5354bc1e2af1bf28d))
+* added image utils ([a6a02b7](https://github.com/EyeTrackVR/ETVR-Backend/commit/a6a02b77f2f612675e961019732bb1b5f39869f8))
+* mark all constants as `Final` ([7d61c65](https://github.com/EyeTrackVR/ETVR-Backend/commit/7d61c65085cfa68a641810ab90f8a646fd6a5f5a))
+* redid asset folder structure ([056bd59](https://github.com/EyeTrackVR/ETVR-Backend/commit/056bd590496625cfa3992a47d2641ecbbfbab4de))
+* update tests to work with new config ([f884c3b](https://github.com/EyeTrackVR/ETVR-Backend/commit/f884c3b1d47e777ff153e2b2b2f9f2b194969c7e))
+
+
+### 🤖 Build System
+
+* added `pyserial` ([f5bdb6c](https://github.com/EyeTrackVR/ETVR-Backend/commit/f5bdb6c35cf4e37bd90869364b2889489069a589))
+* added psutil ([f270cc0](https://github.com/EyeTrackVR/ETVR-Backend/commit/f270cc0bf73b015bac4feab97a3403e5d33c979a))
+* dont run CI/CD twice on pull requests ([c3b32ce](https://github.com/EyeTrackVR/ETVR-Backend/commit/c3b32ce432b72a269a4480d1860a0a330cae98e0))
+* **fix:** fixed CI/CD tag ignores ([9301182](https://github.com/EyeTrackVR/ETVR-Backend/commit/93011820ef96a3f08298eeb2d4da5165910056c4))
+* ignore release candidates ([9e2aab9](https://github.com/EyeTrackVR/ETVR-Backend/commit/9e2aab9dc5af2a17e56b60f1633f2ca55b0035ba))
+* remove unused dependencies ([b417734](https://github.com/EyeTrackVR/ETVR-Backend/commit/b4177340d08f1da9a503efcdb3347fd993db9033))
+* Updated ruff to latest version ([1e24e5a](https://github.com/EyeTrackVR/ETVR-Backend/commit/1e24e5a0586845c09035a7da3de891e2768f8c58))
+
 ## [1.5.0](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.4.1...v1.5.0) (2023-11-07)
 
 
