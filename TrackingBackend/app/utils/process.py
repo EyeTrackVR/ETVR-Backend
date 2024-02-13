@@ -96,7 +96,7 @@ class WorkerProcess:
             cpu_list = mask_to_cpu_list(self.base_config.affinity_mask)
             if cpu_list != []:
                 self.logger.info(f"affinity={cpu_list} for process `{self.name}`")
-                psutil.Process().cpu_affinity(cpu_list) # type: ignore
+                psutil.Process().cpu_affinity(cpu_list)  # type: ignore
         else:
             self.logger.warning(f"cpu_affinity not supported for process `{self.name}`")
 
