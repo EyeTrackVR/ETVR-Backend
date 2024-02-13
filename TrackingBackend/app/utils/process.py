@@ -91,10 +91,14 @@ class WorkerProcess:
             self._last_time = current_time
 
     def set_affinity(self) -> None:
-        cpu_list = mask_to_cpu_list(self.base_config.affinity_mask)
-        if cpu_list != []:
-            self.logger.info(f"affinity={cpu_list} for process `{self.name}`")
-            psutil.Process().cpu_affinity(cpu_list)
+        # The MacOS kernel does not export the CPU affinity API to user space
+        if callable(getattr(psutil.Process(), "cpu_affinity", None)):
+            cpu_list = mask_to_cpu_list(self.base_config.affinity_mask)
+            if cpu_list != []:
+                self.logger.info(f"affinity={cpu_list} for process `{self.name}`")
+                psutil.Process().cpu_affinity(cpu_list) # type: ignore
+        else:
+            self.logger.warning(f"cpu_affinity not supported for process `{self.name}`")
 
     def on_config_modified(self, old_config: EyeTrackConfig) -> None:
         self.logger.debug(f"Config updated for process `{self.name}`")
