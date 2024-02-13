@@ -311,7 +311,8 @@ class ConfigManager(EyeTrackConfig, FileSystemEventHandler):
         return self
 
     def on_modified(self, event: FileModifiedEvent) -> None:
-        if event.src_path == CONFIG_FILE:
+        # macos is weird, sometimes returns the absolute path instead of relative
+        if event.src_path == CONFIG_FILE or event.src_path == os.path.abspath(CONFIG_FILE):
             self.__logger.debug(f"Config modified event fired `{event.src_path}`")
             # we cant deepcopy the whole class because threads contains multiple `AuthenticationString` objects
             old_config = deepcopy(self.model_dump())
