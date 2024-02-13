@@ -36,7 +36,7 @@ IP_ADDRESS_REGEX: Final = (
     r"(?::\d{1,5})?\b|localhost(?::\d{1,5})?|http:\/\/localhost(?::\d{1,5})?|[\w-]+\.local(?::\d{1,5})?)"
 )
 
-
+# TODO: move algorithm configs into the same file as the algorithms they control
 class BlobConfig(BaseModel):
     threshold: int = 65
     minsize: int = 10
@@ -245,7 +245,7 @@ class EyeTrackConfig(BaseModel):
 
 
 class ConfigManager(EyeTrackConfig, FileSystemEventHandler):
-    # callback function will a copy of the old config, the manager will have the new config
+    # callback function is called when the config is modified, will return the old config as a parameter
     def __init__(self, callback: Callable[[EyeTrackConfig], None] | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__callback = callback
@@ -286,8 +286,8 @@ class ConfigManager(EyeTrackConfig, FileSystemEventHandler):
             self.save()
 
     def load(self) -> ConfigManager:
-        # FIXME: hack to stop multiple processes open the config at the exact same time
-        # if this ever happens on windows one of the processes will receive a empty file, WTF?
+        # FIXME: hack to stop multiple processes from opening the config at the exact same time
+        # if this ever happens on windows one of the processes will receive an empty file, WTF?
         time.sleep(random.random())
 
         try:
@@ -300,7 +300,7 @@ class ConfigManager(EyeTrackConfig, FileSystemEventHandler):
             self.__logger.error("Permission Denied, assuming config has lock, retrying...")
             self.load()
         except FileNotFoundError:
-            self.__logger.error("Config file not found, using base settings")
+            self.__logger.warning("Config file not found, using base settings")
             self.save()
         except (json.JSONDecodeError, ValidationError):
             self.__logger.exception("Failed to load config file!")
