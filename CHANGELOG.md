@@ -3,6 +3,14 @@
 [![semantic versioning](https://img.shields.io/badge/semantic%20versioning-2.0.0-green.svg)](https://semver.org)
 > All notable changes to this project will be documented in this file
 
+## [1.6.1](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.6.0...v1.6.1) (2024-02-13)
+
+
+### 🐛 Bug Fixes
+
+* fixed config monitoring on linux and macos ([879c9f1](https://github.com/EyeTrackVR/ETVR-Backend/commit/879c9f1b6f35af2ec19ff653af32347c3ffeea91))
+* fixed cpu affinity error on platforms with no support ([c7cb083](https://github.com/EyeTrackVR/ETVR-Backend/commit/c7cb083339cc06d2543e9e0c0e280215e204d609))
+
 ## [1.6.0](https://github.com/EyeTrackVR/ETVR-Backend/compare/v1.5.0...v1.6.0) (2024-01-10)
 
 
