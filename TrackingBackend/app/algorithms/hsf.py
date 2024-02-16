@@ -47,7 +47,7 @@ class HSF(BaseAlgorithm):
     def run(self, frame: MatLike) -> EyeData:
         center_x, center_y, frame, radius = self.er.run(frame)
         center_x = center_x/255     # Find better way to transform this output unless
-        center_y = center_y/255     # minmax calibration takes care of it as a raw value
+        center_y = center_y/255     # minmax calibration takes care of it as a raw value.
         blink = 0                   # Does hsf have a blink method?
         return EyeData(center_x, center_y, blink, self.ep.tracker_position)
 
@@ -130,7 +130,6 @@ class HaarSurroundFeature:
     def __init__(self, r_inner, r_outer=None, val=None):
         if r_outer is None:
             r_outer = r_inner * 3
-        # print(r_outer)
         r_inner2 = r_inner * r_inner
         count_inner = r_inner2
         count_outer = r_outer * r_outer - r_inner2
@@ -793,9 +792,6 @@ class HSF_cls(object):
                 self.now_modeo = self.cv_modeo[2]
             else:
                 self.now_modeo = self.cv_modeo[1]
-
-        # debug code
-        # return center_x,center_y,cropbox,frame
         return center_x, center_y, frame, radius
     
 
@@ -811,8 +807,5 @@ class External_Run_HSF(object):
 
     def run(self, current_image_gray):
         self.algo.current_image_gray = current_image_gray
-        # debug code
-        # center_x, center_y,cropbox, frame = self.algo.single_run()
-        # return center_x, center_y,cropbox, frame
         center_x, center_y, frame, radius = self.algo.single_run()
         return center_x, center_y, frame, radius
