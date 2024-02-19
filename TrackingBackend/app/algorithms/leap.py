@@ -32,9 +32,9 @@ import math
 import numpy as np
 import onnxruntime as rt
 from typing import Final
-from app.types import EyeData
 from cv2.typing import MatLike
 from app.processes import EyeProcessor
+from app.types import EyeData, TrackerPosition
 from app.utils import BaseAlgorithm, OneEuroFilter
 
 rt.disable_telemetry_events()
@@ -53,7 +53,7 @@ class Leap(BaseAlgorithm):
         self.session = rt.InferenceSession(MODEL_PATH, ONNX_OPTIONS, ["CPUExecutionProvider"])
         self.ep.logger.debug(f"Created Inference Session with `{MODEL_PATH}`")
 
-    def run(self, frame: MatLike) -> EyeData:
+    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
         pre_landmark = self.filter(self.run_model(frame.copy()))
         self.draw_landmarks(frame, pre_landmark)
 
@@ -78,7 +78,7 @@ class Leap(BaseAlgorithm):
         x = pre_landmark[6][0]
         y = pre_landmark[6][1]
 
-        return EyeData(x, y, blink, self.ep.tracker_position)
+        return EyeData(x, y, blink, tracker_position)
 
     def run_model(self, frame: MatLike) -> np.ndarray:
         frame = cv2.resize(frame, (112, 112))

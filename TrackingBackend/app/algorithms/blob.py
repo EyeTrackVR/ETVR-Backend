@@ -31,14 +31,14 @@ import cv2
 from cv2.typing import MatLike
 from app.utils import BaseAlgorithm
 from app.processes import EyeProcessor
-from app.types import EyeData, TRACKING_FAILED
+from app.types import EyeData, TrackerPosition, TRACKING_FAILED
 
 
 class Blob(BaseAlgorithm):
     def __init__(self, eye_processor: EyeProcessor):
         self.ep = eye_processor
 
-    def run(self, frame: MatLike) -> EyeData:
+    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
         _, larger_threshold = cv2.threshold(frame, self.ep.config.blob.threshold, 255, cv2.THRESH_BINARY)
 
         try:
@@ -71,6 +71,6 @@ class Blob(BaseAlgorithm):
             cv2.drawContours(frame, [cnt], -1, (0, 255, 0), 3)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
-            return EyeData(x, y, 1, self.ep.tracker_position)
+            return EyeData(x, y, 1, tracker_position)
 
         return TRACKING_FAILED

@@ -26,14 +26,14 @@ Copyright (c) 2023 EyeTrackVR <3
 ------------------------------------------------------------------------------------------------------
 """
 
-from app.processes import EyeProcessor
-from app.utils import BaseAlgorithm
-from cv2.typing import MatLike
-from app.types import EyeData
-import timeit
-from functools import lru_cache
 import cv2
+import timeit
 import numpy as np
+from cv2.typing import MatLike
+from functools import lru_cache
+from app.utils import BaseAlgorithm
+from app.processes import EyeProcessor
+from app.types import EyeData, TrackerPosition
 
 
 class HSF(BaseAlgorithm):
@@ -41,12 +41,12 @@ class HSF(BaseAlgorithm):
         self.ep = eye_processor
         self.er = External_Run_HSF()
 
-    def run(self, frame: MatLike) -> EyeData:
+    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
         center_x, center_y, frame, radius = self.er.run(frame)
         center_x = center_x / 255  # Find better way to transform this output unless
         center_y = center_y / 255  # minmax calibration takes care of it as a raw value.
         blink = 0  # Does hsf have a blink method?
-        return EyeData(center_x, center_y, blink, self.ep.tracker_position)
+        return EyeData(center_x, center_y, blink, tracker_position)
 
 
 skip_autoradius = False

@@ -1,4 +1,4 @@
-from app.types import EyeData, TRACKING_FAILED
+from app.types import EyeData, TrackerPosition, TRACKING_FAILED
 from queue import Queue, Empty
 from cv2.typing import MatLike
 
@@ -23,7 +23,7 @@ def clear_queue(queue: Queue) -> None:
 # Base class for all algorithms
 class BaseAlgorithm:
     # all algorithms must implement this method
-    def run(self, frame: MatLike) -> EyeData:
+    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
         return TRACKING_FAILED
 
     def normalize(self, x: float, y: float, width: int, height: int) -> tuple[float, float]:

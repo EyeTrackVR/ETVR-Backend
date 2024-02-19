@@ -38,9 +38,11 @@ class EyeProcessor(WorkerProcess):
             self.logger.exception("Failed to get image from queue")
             return
 
+        # TODO: if we need to run more than 1 algorithm, each should receive a clean frame and return a frame with visualizations + the eye data
+        # We could keep an array of visualizations and then merge them all at the end for presentation
         result = EyeData(0, 0, 0, self.tracker_position)
         for algorithm in self.algorithms:
-            result = algorithm.run(current_frame)
+            result = algorithm.run(current_frame, self.tracker_position)
 
             if result == TRACKING_FAILED:
                 self.logger.debug(f"Algorithm {algorithm.get_name()} failed to find a result")
