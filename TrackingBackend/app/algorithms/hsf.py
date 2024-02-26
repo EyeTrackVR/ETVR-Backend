@@ -150,9 +150,7 @@ class HSF(BaseAlgorithm):
                     # FIXME: since this is binary blink we should use a smoothing function to avoid flickering from false negatives
                     blink = 0
 
-                # Draw debug visuals
                 cv2.circle(frame, (orig_x, orig_y), 6, (0, 0, 255), -1)
-                cv2.circle(frame, (center_x, center_y), 3, (255, 0, 0), -1)
             case CVMode.BLINK_ADJUST:  # We dont have enough frames yet, gather more data
                 if self.blink_detector.response_len() < blink_init_frames:
                     lower_x = center_x - max(20, radius)
@@ -182,6 +180,7 @@ class HSF(BaseAlgorithm):
                 self.auto_radius_calc.add_response(radius, response)
             case _:
                 self.ep.logger.error(f"Invalid mode: {self.mode}")
+        cv2.circle(frame, (center_x, center_y), 3, (255, 0, 0), -1)
 
         # Moving from first_frame to the next mode
         if self.mode == CVMode.FIRST_FRAME:
