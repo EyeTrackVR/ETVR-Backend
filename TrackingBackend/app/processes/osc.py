@@ -90,8 +90,8 @@ class VRChatOSC(WorkerProcess):
         x2 = int(smoothed.x * WIDTH)
         y2 = int(smoothed.y * HEIGHT)
         # draw blink
-        cv2.rectangle(frame, (0, 0), (WIDTH, int(HEIGHT * (1 - smoothed.blink)/2)), (238,130,238), -1)
-        cv2.rectangle(frame, (0, HEIGHT), (WIDTH, int(HEIGHT * (1 + smoothed.blink)/2)), (238,130,238), -1)
+        cv2.rectangle(frame, (0, 0), (WIDTH, int(HEIGHT * (1 - smoothed.blink) / 2)), (238, 130, 238), -1)
+        cv2.rectangle(frame, (0, HEIGHT), (WIDTH, int(HEIGHT * (1 + smoothed.blink) / 2)), (238, 130, 238), -1)
         # draw max bounds, assuming the user has a round eye
         cv2.circle(frame, (int(WIDTH / 2), int(HEIGHT / 2)), 2, (0, 0, 0), -1)
         cv2.circle(frame, (int(WIDTH / 2), int(HEIGHT / 2)), (WIDTH + HEIGHT) // 4, (0, 0, 0), 1)
