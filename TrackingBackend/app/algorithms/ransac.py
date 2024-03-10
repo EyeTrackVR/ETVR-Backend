@@ -191,7 +191,6 @@ def fit_rotated_ellipse(data, P):
 
     return (cx, cy, w, h, theta)
 
-
 def get_center_noclamp(center_xy, radius):
     center_x, center_y = center_xy
     upper_x = center_x + radius
