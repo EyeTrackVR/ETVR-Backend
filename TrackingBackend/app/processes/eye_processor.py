@@ -65,7 +65,7 @@ class EyeProcessor(WorkerProcess):
         self.setup_algorithms()
 
     def setup_algorithms(self) -> None:
-        from app.algorithms import Blob, HSF, HSRAC, Ransac, Leap, AHSF
+        from app.algorithms import Blob, HSF, HSRAC, RANSAC, Leap, AHSF
 
         self.algorithms.clear()
         for algorithm in self.config.algorithm_order:
@@ -77,7 +77,7 @@ class EyeProcessor(WorkerProcess):
                 case Algorithms.HSRAC:
                     self.algorithms.append(HSRAC(self))
                 case Algorithms.RANSAC:
-                    self.algorithms.append(Ransac(self))
+                    self.algorithms.append(RANSAC(self))
                 case Algorithms.LEAP:
                     self.algorithms.append(Leap(self))
                 case Algorithms.AHSF:
