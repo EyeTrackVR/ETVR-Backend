@@ -26,10 +26,7 @@ Copyright (c) 2023 EyeTrackVR <3
 ------------------------------------------------------------------------------------------------------
 """
 
-import math
 import os
-import time
-import timeit
 from logging import FileHandler, Formatter, INFO, StreamHandler, getLogger
 import cv2
 import numpy as np
@@ -39,28 +36,9 @@ from app.processes import EyeProcessor
 from app.utils import BaseAlgorithm, safe_crop
 from app.types import EyeData, TrackerPosition, TRACKING_FAILED
 
-# memo: Old Name: CPRD
-# memo: New Name: AHSF(Adaptive Haar Surround Feature)
+# memo: AHSF(Adaptive Haar Surround Feature)
 
-this_file_basename = os.path.basename(__file__)
-this_file_name = this_file_basename.replace(".py", "")
-alg_ver = "PallasNekoV3"  # memo: Created by PallasNeko on 230929
-
-##############################
-save_logfile = False  # This setting is disabled when imshow_enable or save_img or save_video is true
-imshow_enable = False
-save_video = False
-
-VideoCapture_SRC = "/Users/prohurtz/Desktop/t3c.mp4"  # "demo2.mp4"
-input_is_webcam = False
-benchmark_flag = (
-    True if not input_is_webcam and not imshow_enable and not save_video else False
-)
-loop_num = 1 if imshow_enable or save_video else 10
-output_video_path = f"./{this_file_name}.mp4"
-logfilename = f"./{this_file_name}.log"
-print_enable = False  # I don't recommend changing to True.
-##############################
+alg_ver = "V4"  # memo: Created by PallasNeko on 230929, edited by Prohurtz 3/10/24
 
 # cache param
 lru_maxsize_vvs = 16
@@ -74,14 +52,6 @@ handler = StreamHandler()
 handler.setLevel(INFO)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-if save_logfile:
-    handler = FileHandler(logfilename, encoding="utf8", mode="w")
-    handler.setLevel(INFO)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-else:
-    save_logfile = False
-video_wr = cv2.VideoWriter if save_video else None
 
 
 def filter_light(img_gray, img_blur, tau):
@@ -92,7 +62,6 @@ def filter_light(img_gray, img_blur, tau):
             else:
                 img_blur[j, i] = img_gray[j, i]
     return img_blur
-
 
 def pupil_detector_haar(img_gray, params):
     frame_num = 0
@@ -241,14 +210,6 @@ def get_empty_array(
     )
     in_h = y_in_h - y_in_n
     in_w = x_in_w - x_in_n
-
-    # # memo: Unelegant code
-    # # memo: Non-transposed version
-    # wh_in_arr = np.hstack([np.full(((roi[3] - h) - (roi[1] + h) - 1) // xy_step + 1,int(h/2),dtype=np_index_dtype) for h in h_arr])[:, np.newaxis] * np.hstack([np.full(((roi[2] - w) - (roi[0] + w) - 1) // xy_step + 1,int(w/2),dtype=np_index_dtype) for w in w_arr])[np.newaxis, :]
-    # wh_out_arr = np.hstack([np.full(((roi[3] - h) - (roi[1] + h) - 1) // xy_step + 1,h,dtype=np_index_dtype) for h in h_arr])[:, np.newaxis] * np.hstack([np.full(((roi[2] - w) - (roi[0] + w) - 1) // xy_step + 1,w,dtype=np_index_dtype) for w in w_arr])[np.newaxis, :]
-
-    # memo: Unelegant code
-    # memo: transposed version
 
     wh_in_arr = (
         np.hstack(
@@ -403,8 +364,6 @@ def coarse_detection(img_gray, params):
     outer_sum = cv2.add(out_p00, out_p11)  # , dst=outer_sum)
     cv2.subtract(outer_sum, out_p01, dst=outer_sum)
     cv2.subtract(outer_sum, out_p10, dst=outer_sum)
-    # outer_sum=outer_sum.astype(np.float64)
-    # outer_sum = cv2.transpose(outer_sum)
 
     in_p_temp = frame_int.take(y_in_n, axis=0, mode="clip")  # , out=in_p_temp)
 
@@ -419,12 +378,9 @@ def coarse_detection(img_gray, params):
     # p10 calc
     in_p10 = in_p_temp.take(x_in_n, axis=0, mode="clip")  # , out=in_p10)
 
-    # inner_sum[:, :] = in_p00 + in_p11 - in_p01 - in_p10
     inner_sum = cv2.add(in_p00, in_p11)
     cv2.subtract(inner_sum, in_p01, dst=inner_sum)
     cv2.subtract(inner_sum, in_p10, dst=inner_sum)
-    # inner_sum=inner_sum.astype(np.float64)
-    # inner_sum = cv2.transpose(inner_sum)
 
     # memo: Multiplication, etc. can be faster by self-assignment, but care must be taken because array initialization is required.
     # https://stackoverflow.com/questions/71204415/opencv-python-fastest-way-to-multiply-pixel-value
@@ -436,28 +392,13 @@ def coarse_detection(img_gray, params):
     response_value = np.empty(outer_sum.shape, dtype=np.float64)
     inout_rect_sum = mu_outer_rect2.copy()
     inout_rect_mul = mu_outer_rect.copy()
-    # outer_sum_rect = cv2.multiply(outer_sum, mu_outer_rect,None,-1.0)
-    # inner_sum_rect = cv2.multiply(inner_sum, mu_outer_rect)
+
     cv2.multiply(inner_sum_f, inout_rect_mul, inout_rect_mul)
     cv2.multiply(outer_sum_f, inout_rect_sum, inout_rect_sum)
     cv2.add(inout_rect_mul, inout_rect_sum, dst=inout_rect_sum)
-    # inout_rect_sum = inout_rect_mul[:,:,0]+inout_rect_mul[:,:,1]
-    # inner_sum_wh = cv2.multiply(inner_sum_f,wh_in_arr,None,kf)
+
     cv2.multiply(inner_sum_f, wh_in_arr, inner_sum_f, kf)
-    # inout_sum = np.empty((*inner_sum.shape,2),dtype=np.float64)
-    # inout_sum[:,:,0]=inner_sum
-    # inout_sum[:,:,1]=outer_sum
-    # # outer_sum_rect = cv2.multiply(outer_sum, mu_outer_rect,None,-1.0)
-    # # inner_sum_rect = cv2.multiply(inner_sum, mu_outer_rect)
-    # inout_rect_mul = cv2.multiply(inout_sum[:,:,0],mu_outer_rect2[:,:,0])
-    # inout_rect_sum=cv2.multiply(inout_sum[:,:,1],mu_outer_rect2[:,:,1])
-    # inout_rect_sum=cv2.add(inout_rect_mul,inout_rect_sum)
-    # # inout_rect_sum = inout_rect_mul[:,:,0]+inout_rect_mul[:,:,1]
-    # inner_sum_wh = cv2.multiply(inout_sum[:,:,0],wh_in_arr,None,kf)
-    # response_value2= outer_sum_rect+inner_sum_rect+inner_sum_wh
-    # response_value = inout_rect_sum + inner_sum_wh
     cv2.add(inout_rect_sum, inner_sum_f, dst=response_value)
-    # mu_outer_left+(kf*inner_sum*wh_in_arr)
 
     # memo: The input image is transposed, so the coordinate output of this function has x and y swapped.
     min_response, max_response, min_loc, max_loc = cv2.minMaxLoc(response_value)
@@ -478,14 +419,6 @@ def coarse_detection(img_gray, params):
     max_response_coarse = -min_response
     pupil_rect_coarse = rec_in
     outer_rect_coarse = rec_o
-
-    rectlist2 = []
-    response2 = []
-
-    # print()
-    # print("rectlist: ", rectlist)
-    # rect_suppression(rectlist, response, rectlist2, response2)
-    # rect_suppression(rectlist2, response2, rectlist, response)
 
     return pupil_rect_coarse, outer_rect_coarse, max_response_coarse, mu_inner, mu_outer
 
@@ -653,131 +586,6 @@ def put_number(img_bgr, number, position, color):
     )
 
 
-if __name__ == "__main__":
-    if not print_enable:
-
-        def print(*args, **kwargs):
-            pass
-
-    logger.info(this_file_basename)
-    if save_logfile:
-        logger.info("log path: {}".format(logfilename))
-    logger.info("alg ver: {}".format(alg_ver))
-    if benchmark_flag:
-        logger.info("loops: {}".format(loop_num))
-
-    if not input_is_webcam:
-        if not os.path.exists(VideoCapture_SRC) or not os.path.isfile(VideoCapture_SRC):
-            raise FileNotFoundError(VideoCapture_SRC)
-        logger.info("input video name: {}".format(os.path.basename(VideoCapture_SRC)))
-    else:
-        logger.info("input video: {}".format(VideoCapture_SRC))
-
-    cap = cv2.VideoCapture(VideoCapture_SRC)
-    if not cap.isOpened():
-        raise IOError("Error opening video stream or file")
-    if not input_is_webcam:
-        logger.info(
-            "video info: size:{}x{} fps:{} frames:{} total:{:.3f} sec".format(
-                int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-                cap.get(cv2.CAP_PROP_FPS),
-                int(cap.get(cv2.CAP_PROP_FRAME_COUNT)),
-                cap.get(cv2.CAP_PROP_FRAME_COUNT) / cap.get(cv2.CAP_PROP_FPS),
-            )
-        )
-    else:
-        logger.info(
-            "video info: size:{}x{} fps:{}".format(
-                int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-                cap.get(cv2.CAP_PROP_FPS),
-            )
-        )
-    # video writer
-    if save_video:
-        # mp4
-        video_wr = video_wr(
-            output_video_path,
-            cv2.VideoWriter_fourcc(*"x264"),
-            cap.get(cv2.CAP_PROP_FPS),
-            (
-                int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-            ),
-        )
-        # avi
-        # video_wr = video_wr(output_video_path, cv2.VideoWriter_fourcc(*"XVID"), cap.get(cv2.CAP_PROP_FPS),
-        #                     (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
-
-    cap.release()
-
-    # Load an image
-    image_path = "image (1).png"
-    if not os.path.exists(image_path) or not os.path.isfile(image_path):
-        cap = cv2.VideoCapture(VideoCapture_SRC)
-        time.sleep(0.1)
-        _, img = cap.read()
-        cap.release()
-    else:
-        img = cv2.imread(image_path)
-    # img = cv2.resize(img, (100, 100))
-    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-    # If using uncropped source
-    # # make the image 100x100
-    # # img_gray = cv2.resize(img_gray, (00, 100))
-    # # remove 20 pixels from the right
-    # img_gray = img_gray[:, :-200]
-    # # remove 30 pixels from the bottom
-    # img_gray = img_gray[:-50, :]
-
-    # Define the parameters for pupil detection
-    # Default
-    # params = {
-    #     "ratio_downsample": 0.5,
-    #     "use_init_rect": False,
-    #     "mu_outer": 200, #aprroximatly how much pupil should be in the outer rect
-    #     "mu_inner": 50, #aprroximatly how much pupil should be in the inner rect
-    #     "ratio_outer": 1, #rectangular ratio. 1 means square (LIKE REGULAR HSF)
-    #     "kf": 5, #noise filter. May lose tracking if too high (or even never start)
-    #     "width_min": 50, #Minimum width of the pupil
-    #     "width_max": 100, #Maximum width of the pupil
-    #     "wh_step": 1, #Pupil width and height step search size
-    #     "xy_step": 5, #Kernel movement step search size
-    #     "roi": (0, 0, img_gray.shape[1], img_gray.shape[0]),
-    #     "init_rect_flag": False,
-    #     "init_rect": (0, 0, img_gray.shape[1], img_gray.shape[0]),
-    # }
-
-    logger.info("params: {}".format(params))
-
-    # Call the pupil_detector_haar function
-    (
-        pupil_rect_coarse,
-        outer_rect_coarse,
-        max_response_coarse,
-        mu_inner,
-        mu_outer,
-    ) = coarse_detection(img_gray, params)
-
-    # show the coarse detection
-
-    image_brg = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2BGR)
-    # show the pupil_rect_coarse
-
-    # upscale it to 200 x 200
-    # show the img
-    cv2.imshow("pppp", image_brg)
-    cv2.waitKey(10)
-    cv2.destroyAllWindows()
-
-
-    timedict = {"to_gray": [], "coarse": [], "fine": [], "total_cv": []}
-    # For measuring total processing time
-    main_start_time = timeit.default_timer()
-
-
 class AHSF(BaseAlgorithm):
     def __init__(self, eye_processor: EyeProcessor):
         self.ep = eye_processor
@@ -785,16 +593,12 @@ class AHSF(BaseAlgorithm):
 
         average_color = np.mean(frame)
         frame_vis = frame.copy()
-
         # Get the dimensions of the rotated image
         height, width = frame.shape
-
         # Determine the size of the square background (choose the larger dimension)
         max_dimension = max(height, width)
-
         # Create a square background with the average color
         square_background = np.full((max_dimension, max_dimension), average_color, dtype=np.uint8)
-
         # Calculate the position to paste the rotated image onto the square background
         x_offset = (max_dimension - width) // 2
         y_offset = (max_dimension - height) // 2
@@ -807,7 +611,7 @@ class AHSF(BaseAlgorithm):
 
         wmax = (frame.shape[1] * 0.5)  # likes to crash, might need more tuning still
         wmin = (frame.shape[1] * 0.08)
-        params = {
+        params = { # these can be tuned more
             "ratio_downsample": 0.5,
             "use_init_rect": False,
             "mu_outer": 250,  # aprroximatly how much pupil should be in the outer rect
@@ -832,28 +636,17 @@ class AHSF(BaseAlgorithm):
             ) = coarse_detection(frame, params)
             ellipse_rect, center_fitting = fine_detection(frame, pupil_rect_coarse)
         except TypeError:
-           # print("[WARN] AHSF NoneType Error")
             return TRACKING_FAILED
 
-
-        x_center = outer_rect_coarse[0] + outer_rect_coarse[2] / 2
-        y_center = outer_rect_coarse[1] + outer_rect_coarse[3] / 2
-        x, y, width, height = outer_rect_coarse
-
-        x = x_center
-        y = y_center
-        # Calculate the major and minor diameters
-        major_diameter = math.sqrt(width**2 + height**2)
-        minor_diameter = min(width, height)
-        average_diameter = (major_diameter + minor_diameter) / 2
+        x = outer_rect_coarse[0] + outer_rect_coarse[2] / 2
+        y = outer_rect_coarse[1] + outer_rect_coarse[3] / 2
 
         height, width = frame.shape
 
         frame = cv2.rectangle(frame_vis, (int(x), int(y)), (int(x + width), int(y + height)), (255, 0, 0), thickness=10)
-        frame = cv2.circle(frame, (int(x_center), int(y_center)), 2, (255, 255, 255), -1)
+        frame = cv2.circle(frame, (int(x), int(y)), 2, (255, 255, 255), -1)
         # TODO: fix visualization?
         x = x / frame.shape[1]
         y = y / frame.shape[0]
-
 
         return EyeData(x, y, 1, tracker_position)
