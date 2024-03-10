@@ -12,6 +12,7 @@ class Algorithms(StrEnum):
     LEAP = "LEAP"
     HSRAC = "HSRAC"
     RANSAC = "RANSAC"
+    AHSF = "AHSF"
 
 
 class TrackerPosition(StrEnum):

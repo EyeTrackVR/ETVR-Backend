@@ -26,6 +26,8 @@ Copyright (c) 2023 EyeTrackVR <3
 This project is licensed under the MIT License. See LICENSE for more details.
 ------------------------------------------------------------------------------------------------------
 """
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
 
 import cv2
 import math

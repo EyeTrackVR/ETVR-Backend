@@ -199,6 +199,7 @@ class HSF(BaseAlgorithm):
         # Maybe callibration / ROI cropping plays a role in this?
         x = center_x / frame.shape[1]
         y = center_y / frame.shape[0]
+
         return EyeData(x, y, blink, tracker_position)
 
 
