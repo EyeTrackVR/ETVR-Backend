@@ -18,8 +18,8 @@ class Tracker:
         self.tracker_config = config.get_tracker_by_uuid(uuid)
         # IPC stuff
         self.manager = manager
-        self.osc_queue: Queue[EyeData] = self.manager.Queue()
-        self.image_queue: Queue[MatLike] = self.manager.Queue()
+        self.osc_queue: Queue[EyeData] = self.manager.Queue(maxsize=60)
+        self.image_queue: Queue[MatLike] = self.manager.Queue(maxsize=60)
         # Used purely for visualization in the frontend
         self.camera_queue: Queue[MatLike] = self.manager.Queue(maxsize=15)
         self.algo_frame_queue: Queue[MatLike] = self.manager.Queue(maxsize=15)

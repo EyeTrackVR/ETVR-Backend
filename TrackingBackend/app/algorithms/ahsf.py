@@ -1,138 +1,122 @@
 """
 ------------------------------------------------------------------------------------------------------
 
-                                               ,@@@@@@
-                                            @@@@@@@@@@@            @@@
-                                          @@@@@@@@@@@@      @@@@@@@@@@@
-                                        @@@@@@@@@@@@@   @@@@@@@@@@@@@@
-                                      @@@@@@@/         ,@@@@@@@@@@@@@
-                                         /@@@@@@@@@@@@@@@  @@@@@@@@
-                                    @@@@@@@@@@@@@@@@@@@@@@@@ @@@@@
-                                @@@@@@@@                @@@@@
-                              ,@@@                        @@@@&
-                                             @@@@@@.       @@@@
-                                   @@@     @@@@@@@@@/      @@@@@
-                                   ,@@@.     @@@@@@((@     @@@@(
-                                   //@@@        ,,  @@@@  @@@@@
-                                   @@@(                @@@@@@@
-                                   @@@  @          @@@@@@@@#
-                                       @@@@@@@@@@@@@@@@@
-                                      @@@@@@@@@@@@@(
+                                            ,@@@@@@
+                                        @@@@@@@@@@@            @@@
+                                        @@@@@@@@@@@@      @@@@@@@@@@@
+                                    @@@@@@@@@@@@@   @@@@@@@@@@@@@@
+                                    @@@@@@@/         ,@@@@@@@@@@@@@
+                                        /@@@@@@@@@@@@@@@  @@@@@@@@
+                                @@@@@@@@@@@@@@@@@@@@@@@@ @@@@@
+                            @@@@@@@@                @@@@@
+                            ,@@@                        @@@@&
+                                            @@@@@@.       @@@@
+                                @@@     @@@@@@@@@/      @@@@@
+                                ,@@@.     @@@@@@((@     @@@@(
+                                //@@@        ,,  @@@@  @@@@@
+                                @@@(                @@@@@@@
+                                @@@  @          @@@@@@@@#
+                                    @@@@@@@@@@@@@@@@@
+                                    @@@@@@@@@@@@@(
 
-Adaptive Haar Surround Feature: Summer, PallasNeko (Optimization)
-Algorithm App Implementations and Tweaks By: Prohurtz
+Adaptive Haar Surround Feature by: Summer, PallasNeko
+Algorithm App Implementation By: Prohurtz, ShyAssassin
 
-Copyright (c) 2023 EyeTrackVR <3
+Copyright (c) 2024 EyeTrackVR <3
+This project is licensed under the MIT License. See LICENSE for more details.
 ------------------------------------------------------------------------------------------------------
 """
 
-import os
-from logging import FileHandler, Formatter, INFO, StreamHandler, getLogger
 import cv2
 import numpy as np
 from cv2.typing import MatLike
 from functools import lru_cache
+from app.utils import BaseAlgorithm
 from app.processes import EyeProcessor
-from app.utils import BaseAlgorithm, safe_crop
 from app.types import EyeData, TrackerPosition, TRACKING_FAILED
-
-# memo: AHSF(Adaptive Haar Surround Feature)
-
-alg_ver = "V4"  # memo: Created by PallasNeko on 230929, edited by Prohurtz 3/10/24
 
 # cache param
 lru_maxsize_vvs = 16
 lru_maxsize_vs = 64
 lru_maxsize_s = 128
 
-logger = getLogger(__name__)
-logger.setLevel(INFO)
-formatter = Formatter("%(message)s")
-handler = StreamHandler()
-handler.setLevel(INFO)
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
+class AHSF(BaseAlgorithm):
+    def __init__(self, eye_processor: EyeProcessor):
+        self.ep = eye_processor
 
-def filter_light(img_gray, img_blur, tau):
-    for i in range(img_gray.shape[1]):
-        for j in range(img_gray.shape[0]):
-            if img_gray[j, i] > tau:
-                img_blur[j, i] = tau
-            else:
-                img_blur[j, i] = img_gray[j, i]
-    return img_blur
+    def draw_coarse(self, frame, pupil_rect, outer_rect, center_fitting):
+        cv2.rectangle(
+            frame,
+            (pupil_rect[0], pupil_rect[1]),
+            (pupil_rect[0] + pupil_rect[2], pupil_rect[1] + pupil_rect[3]),
+            (0, 0, 0),
+            1,
+        )
+        cv2.rectangle(
+            frame,
+            (outer_rect[0], outer_rect[1]),
+            (outer_rect[0] + outer_rect[2], outer_rect[1] + outer_rect[3]),
+            (105, 105, 105),
+            1,
+        )
+        cv2.drawMarker(frame, center_fitting, (255, 255, 255), cv2.MARKER_CROSS, 15, 1)
 
+    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
+        average_color = np.mean(frame)
+        # Get the dimensions of the rotated image
+        height, width = frame.shape
+        # Determine the size of the square background (choose the larger dimension)
+        max_dimension = max(height, width)
+        # Create a square background with the average color
+        square_background = np.full((max_dimension, max_dimension), average_color, dtype=np.uint8)
+        # Calculate the position to paste the rotated image onto the square background
+        x_offset = (max_dimension - width) // 2
+        y_offset = (max_dimension - height) // 2
 
-def pupil_detector_haar(img_gray, params):
-    frame_num = 0
-    mu_inner0 = 50
-    mu_outer0 = 200
-    img_down = cv2.resize(
-        img_gray,
-        (
-            img_gray.shape[1] // params["ratio_downsample"],
-            img_gray.shape[0] // params["ratio_downsample"],
-        ),
-    )
-    img_boundary = (0, 0, img_down.shape[1], img_down.shape[0])
+        # Paste the rotated image onto the square background
+        square_background[y_offset : y_offset + height, x_offset : x_offset + width] = frame
+        frame = square_background
 
-    if params["use_init_rect"]:
-        tau = max(params["mu_outer"], params["mu_inner"] + 30)
-        filter_light(img_down, img_down, tau)
+        params = {  # these can be tuned more
+            "ratio_downsample": 0.5,
+            "use_init_rect": False,
+            "mu_outer": 250,  # aprroximatly how much pupil should be in the outer rect
+            "mu_inner": 50,  # aprroximatly how much pupil should be in the inner rect
+            "ratio_outer": 1.0,  # rectangular ratio. 1 means square (LIKE REGULAR HSF)
+            "kf": 2,  # noise filter. May lose tracking if too high (or even never start)
+            "width_min": frame.shape[1] * 0.5,  # Minimum width of the pupil
+            "width_max": frame.shape[1] * 0.08,  # Maximum width of the pupil
+            "wh_step": 5,  # Pupil width and height step search size
+            "xy_step": 10,  # Kernel movement step search size
+            "roi": (0, 0, frame.shape[1], frame.shape[0]),
+            "init_rect_flag": False,
+            "init_rect": (0, 0, frame.shape[1], frame.shape[0]),
+        }
+        try:
+            (
+                pupil_rect_coarse,
+                outer_rect_coarse,
+                max_response_coarse,
+                mu_inner,
+                mu_outer,
+            ) = coarse_detection(frame, params)
+            ellipse_rect, center_fitting = fine_detection(frame, pupil_rect_coarse)
+        except TypeError:
+            return TRACKING_FAILED
 
-    # Coarse Detection
-    (
-        pupil_rect_coarse,
-        outer_rect_coarse,
-        max_response_coarse,
-        mu_inner,
-        mu_outer,
-    ) = coarse_detection(img_down, params)
-    print(
-        "Coarse Detection: ",
-        pupil_rect_coarse,
-        outer_rect_coarse,
-        max_response_coarse,
-        mu_inner,
-        mu_outer,
-    )
+        # x = outer_rect_coarse[0] + outer_rect_coarse[2] / 2
+        # y = outer_rect_coarse[1] + outer_rect_coarse[3] / 2
+        x = center_fitting[0]
+        y = center_fitting[1]
+        self.draw_coarse(frame, pupil_rect_coarse, outer_rect_coarse, center_fitting)
 
-    if params["use_init_rect"] and frame_num == 0:
-        mu_inner0 = mu_inner
-        mu_outer0 = mu_outer
-        kf = 2 - 0.01 * mu_inner0
+        self.ep.window.imshow("cuck", frame)
+        # TODO: fix visualization?
+        x = x / frame.shape[1]
+        y = y / frame.shape[0]
 
-    img_coarse = cv2.cvtColor(img_down, cv2.COLOR_GRAY2BGR)
-    # show image
-
-    # Fine Detection
-    if mu_outer - mu_inner >= 5:
-        pupil_rect_fine = fine_detection(img_down, pupil_rect_coarse)
-    else:
-        pupil_rect_fine = pupil_rect_coarse
-
-    # Postprocessing
-    pupil_rect_coarse = rect_scale(pupil_rect_coarse, params["ratio_downsample"], False)
-    outer_rect_coarse = rect_scale(outer_rect_coarse, params["ratio_downsample"], False)
-    pupil_rect_fine = rect_scale(pupil_rect_fine, params["ratio_downsample"], False)
-
-    center_coarse = (
-        pupil_rect_coarse[0] + pupil_rect_coarse[2] // 2,
-        pupil_rect_coarse[1] + pupil_rect_coarse[3] // 2,
-    )
-    center_fine = (
-        pupil_rect_fine[0] + pupil_rect_fine[2] // 2,
-        pupil_rect_fine[1] + pupil_rect_fine[3] // 2,
-    )
-
-    return (
-        pupil_rect_coarse,
-        outer_rect_coarse,
-        pupil_rect_fine,
-        center_coarse,
-        center_fine,
-    )
+        return EyeData(x, y, 1, tracker_position)
 
 
 @lru_cache(maxsize=lru_maxsize_vvs)
@@ -238,7 +222,6 @@ def get_empty_array(frame_shape, width_min, width_max, wh_step, xy_step, roi, ra
     )
 
 
-# @profile
 def coarse_detection(img_gray, params):
     ratio_outer = params["ratio_outer"]
     kf = params["kf"]
@@ -255,8 +238,6 @@ def coarse_detection(img_gray, params):
 
     imgboundary = (0, 0, img_gray.shape[1], img_gray.shape[0])
     img_blur = np.copy(img_gray)
-    rectlist = []
-    response = []
 
     # Assign values to avoid unassigned errors
     pupil_rect_coarse = (10, 10, 10, 10)
@@ -291,7 +272,7 @@ def coarse_detection(img_gray, params):
     ) = get_empty_array(img_blur.shape, width_min, width_max, wh_step, xy_step, roi, ratio_outer)
     cv2.integral(
         img_blur, sum=frame_int, sdepth=cv2.CV_32S
-    )  # memo: It becomes slower when using float64, probably because the increase in bits from 32 to 64 causes the arrays to be larger.
+    )  # memo: It becomes slower when using float64, probably because the increase in bits from 32 to 64 causes the arrays to be larger
 
     # memo: If axis=1 is too slow, just transpose and "take" with axis=0.
     # memo: This URL gave me an idea.  https://numpy.org/doc/1.25/dev/internals.html#multidimensional-array-indexing-order-issues
@@ -370,11 +351,11 @@ def coarse_detection(img_gray, params):
     return pupil_rect_coarse, outer_rect_coarse, max_response_coarse, mu_inner, mu_outer
 
 
-def fine_detection(img_gray, pupil_rect_coarse):
-    boundary = (0, 0, img_gray.shape[1], img_gray.shape[0])
+def fine_detection(frame, pupil_rect_coarse):
     valid_ratio = 1.2
+    boundary = (0, 0, frame.shape[1], frame.shape[0])
     valid_rect = intersect_rect(rect_scale(pupil_rect_coarse, valid_ratio), boundary)
-    img_pupil = img_gray[
+    img_pupil = frame[
         valid_rect[1] : valid_rect[1] + valid_rect[3],
         valid_rect[0] : valid_rect[0] + valid_rect[2],
     ]
@@ -413,16 +394,13 @@ def fine_detection(img_gray, pupil_rect_coarse):
                 int(pupil_rect_fine[0] + pupil_rect_fine[2] / 2),
                 int(pupil_rect_fine[1] + pupil_rect_fine[3] / 2),
             )
-    except:
-        pass
-    try:
         return pupil_rect_fine, center_fitting
-    except:
-        pass
+    except Exception:
+        center = (pupil_rect_coarse[0] + pupil_rect_coarse[2] / 2, pupil_rect_coarse[1] + pupil_rect_coarse[3] / 2)
+        return pupil_rect_coarse, center
 
 
 def detect_edges(img_pupil_blur):
-    tau1 = 1 - 20.0 / img_pupil_blur.shape[1]
     edges = cv2.Canny(img_pupil_blur, 64, 128)
 
     # img_bw = np.zeros_like(img_pupil_blur)
@@ -435,24 +413,6 @@ def detect_edges(img_pupil_blur):
     # or
     edges_filter = cv2.bitwise_and(edges, cv2.bitwise_not(img_bw))
     return edges_filter
-
-
-def fit_pupil_ellipse_swirski(img_pupil, edges_filter):
-    contours, hierarchy = cv2.findContours(edges_filter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    max_contour_area = 0
-    max_contour = None
-    print("contours: ", contours)
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area > max_contour_area:
-            max_contour_area = area
-            max_contour = contour
-
-    if max_contour is None:
-        return (0, 0, 0, 0), None
-
-    ellipse = cv2.fitEllipse(max_contour)
-    return ellipse
 
 
 def rect_scale(rect, scale, round_up=True):
@@ -475,122 +435,3 @@ def intersect_rect(rect1, rect2):
     w = min(x1 + w1, x2 + w2) - x
     h = min(y1 + h1, y2 + h2) - y
     return x, y, w, h
-
-
-def draw_coarse(img_bgr, pupil_rect, outer_rect, max_response, color):
-    thickness = 1
-    cv2.rectangle(
-        img_bgr,
-        (pupil_rect[0], pupil_rect[1]),
-        (pupil_rect[0] + pupil_rect[2], pupil_rect[1] + pupil_rect[3]),
-        color,
-        thickness,
-    )
-    cv2.rectangle(
-        img_bgr,
-        (outer_rect[0], outer_rect[1]),
-        (outer_rect[0] + outer_rect[2], outer_rect[1] + outer_rect[3]),
-        color,
-        thickness,
-    )
-    center = (pupil_rect[0] + pupil_rect[2] // 2, pupil_rect[1] + pupil_rect[3] // 2)
-    cv2.drawMarker(img_bgr, center, color, cv2.MARKER_CROSS, 20, thickness)
-    put_number(img_bgr, max_response, center, color)
-
-
-def rect_suppression(rectlist, response, rectlist_out, response_out):
-    for i in range(len(rectlist)):
-        flag_intersect = False
-        for j in range(len(rectlist_out)):
-            tmp = intersect_rect(rectlist[i], rectlist_out[j])
-            if tmp[2] > 0 and tmp[3] > 0:
-                flag_intersect = True
-                if response[i] > response_out[j]:
-                    rectlist_out[j] = rectlist[i]
-                    response_out[j] = response[i]
-                else:
-                    continue
-        if not flag_intersect:
-            rectlist_out.append(rectlist[i])
-            response_out.append(response[i])
-        return rectlist_out, response_out
-
-
-def put_number(img_bgr, number, position, color):
-    cv2.putText(
-        img_bgr,
-        str(number),
-        (int(position[0]) + 10, int(position[1]) - 10),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.5,
-        color,
-        1,
-        cv2.LINE_AA,
-    )
-
-
-class AHSF(BaseAlgorithm):
-    def __init__(self, eye_processor: EyeProcessor):
-        self.ep = eye_processor
-
-    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
-
-        average_color = np.mean(frame)
-        frame_vis = frame.copy()
-        # Get the dimensions of the rotated image
-        height, width = frame.shape
-        # Determine the size of the square background (choose the larger dimension)
-        max_dimension = max(height, width)
-        # Create a square background with the average color
-        square_background = np.full((max_dimension, max_dimension), average_color, dtype=np.uint8)
-        # Calculate the position to paste the rotated image onto the square background
-        x_offset = (max_dimension - width) // 2
-        y_offset = (max_dimension - height) // 2
-
-        # Paste the rotated image onto the square background
-        square_background[y_offset : y_offset + height, x_offset : x_offset + width] = frame
-
-        frame = square_background
-        frame_clear_resize = frame.copy()
-
-        wmax = frame.shape[1] * 0.5  # likes to crash, might need more tuning still
-        wmin = frame.shape[1] * 0.08
-        params = {  # these can be tuned more
-            "ratio_downsample": 0.5,
-            "use_init_rect": False,
-            "mu_outer": 250,  # aprroximatly how much pupil should be in the outer rect
-            "mu_inner": 50,  # aprroximatly how much pupil should be in the inner rect
-            "ratio_outer": 1.0,  # rectangular ratio. 1 means square (LIKE REGULAR HSF)
-            "kf": 2,  # noise filter. May lose tracking if too high (or even never start)
-            "width_min": wmin,  # Minimum width of the pupil
-            "width_max": wmax,  # Maximum width of the pupil
-            "wh_step": 5,  # Pupil width and height step search size
-            "xy_step": 10,  # Kernel movement step search size
-            "roi": (0, 0, frame.shape[1], frame.shape[0]),
-            "init_rect_flag": False,
-            "init_rect": (0, 0, frame.shape[1], frame.shape[0]),
-        }
-        try:
-            (
-                pupil_rect_coarse,
-                outer_rect_coarse,
-                max_response_coarse,
-                mu_inner,
-                mu_outer,
-            ) = coarse_detection(frame, params)
-            ellipse_rect, center_fitting = fine_detection(frame, pupil_rect_coarse)
-        except TypeError:
-            return TRACKING_FAILED
-
-        x = outer_rect_coarse[0] + outer_rect_coarse[2] / 2
-        y = outer_rect_coarse[1] + outer_rect_coarse[3] / 2
-
-        height, width = frame.shape
-
-        frame = cv2.rectangle(frame_vis, (int(x), int(y)), (int(x + width), int(y + height)), (255, 0, 0), thickness=10)
-        frame = cv2.circle(frame, (int(x), int(y)), 2, (255, 255, 255), -1)
-        # TODO: fix visualization?
-        x = x / frame.shape[1]
-        y = y / frame.shape[0]
-
-        return EyeData(x, y, 1, tracker_position)

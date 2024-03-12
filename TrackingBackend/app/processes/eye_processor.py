@@ -49,8 +49,8 @@ class EyeProcessor(WorkerProcess):
                 continue
             break
 
-        self.osc_queue.put(result)
         try:
+            self.osc_queue.put(result)
             self.frontend_queue.put(current_frame, block=False)
         except Full:
             pass
@@ -65,7 +65,7 @@ class EyeProcessor(WorkerProcess):
         self.setup_algorithms()
 
     def setup_algorithms(self) -> None:
-        from app.algorithms import Blob, HSF, HSRAC, RANSAC, Leap, AHSF
+        from app.algorithms import Blob, HSF, HSRAC, Leap, AHSF
 
         self.algorithms.clear()
         for algorithm in self.config.algorithm_order:
@@ -76,8 +76,8 @@ class EyeProcessor(WorkerProcess):
                     self.algorithms.append(HSF(self))
                 case Algorithms.HSRAC:
                     self.algorithms.append(HSRAC(self))
-                case Algorithms.RANSAC:
-                    self.algorithms.append(RANSAC(self))
+                # case Algorithms.RANSAC:
+                #     self.algorithms.append(RANSAC(self))
                 case Algorithms.LEAP:
                     self.algorithms.append(Leap(self))
                 case Algorithms.AHSF:
