@@ -129,4 +129,4 @@ cd TrackingBackend/ && poetry run viztracer main.py
 
 
 ## License
-Unless explicitly stated otherwise all code contained within this repository is under the [MIT License](./LICENSE)
+Unless explicitly stated otherwise all code contained within this repository is under the [MIT License](./LICENSE-MIT)
