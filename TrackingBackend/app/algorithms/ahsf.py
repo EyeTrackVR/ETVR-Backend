@@ -63,6 +63,7 @@ def filter_light(img_gray, img_blur, tau):
                 img_blur[j, i] = img_gray[j, i]
     return img_blur
 
+
 def pupil_detector_haar(img_gray, params):
     frame_num = 0
     mu_inner0 = 50
@@ -135,9 +136,7 @@ def pupil_detector_haar(img_gray, params):
 
 
 @lru_cache(maxsize=lru_maxsize_vvs)
-def get_empty_array(
-    frame_shape, width_min, width_max, wh_step, xy_step, roi, ratio_outer
-):
+def get_empty_array(frame_shape, width_min, width_max, wh_step, xy_step, roi, ratio_outer):
     frame_int_dtype = np.intc
     np_index_dtype = (
         np.intc
@@ -151,63 +150,17 @@ def get_empty_array(
     h_arr = (w_arr / ratio_outer).astype(np.int16)
 
     # memo: It is not smart code and needs to be changed.
-    y_out_n = np.hstack(
-        [
-            np.arange(roi[1] + h, roi[3] - h, xy_step, dtype=np_index_dtype)
-            for h in h_arr
-        ]
-    )
-    x_out_n = np.hstack(
-        [
-            np.arange(roi[0] + w, roi[2] - w, xy_step, dtype=np_index_dtype)
-            for w in w_arr
-        ]
-    )
-    y_out_h = np.hstack(
-        [
-            np.arange(roi[1] + h, roi[3] - h, xy_step, dtype=np_index_dtype) + h
-            for h in h_arr
-        ]
-    )
-    x_out_w = np.hstack(
-        [
-            np.arange(roi[0] + w, roi[2] - w, xy_step, dtype=np_index_dtype) + w
-            for w in w_arr
-        ]
-    )
+    y_out_n = np.hstack([np.arange(roi[1] + h, roi[3] - h, xy_step, dtype=np_index_dtype) for h in h_arr])
+    x_out_n = np.hstack([np.arange(roi[0] + w, roi[2] - w, xy_step, dtype=np_index_dtype) for w in w_arr])
+    y_out_h = np.hstack([np.arange(roi[1] + h, roi[3] - h, xy_step, dtype=np_index_dtype) + h for h in h_arr])
+    x_out_w = np.hstack([np.arange(roi[0] + w, roi[2] - w, xy_step, dtype=np_index_dtype) + w for w in w_arr])
     out_h = y_out_h - y_out_n
     out_w = x_out_w - x_out_n
 
-    y_in_n = np.hstack(
-        [
-            np.arange(roi[1] + h, roi[3] - h, xy_step, dtype=np_index_dtype)
-            + int(h / 4)
-            for h in h_arr
-        ]
-    )
-    x_in_n = np.hstack(
-        [
-            np.arange(roi[0] + w, roi[2] - w, xy_step, dtype=np_index_dtype)
-            + int(w / 4)
-            for w in w_arr
-        ]
-    )
-    y_in_h = np.hstack(
-        [
-            np.arange(roi[1] + h, roi[3] - h, xy_step, dtype=np_index_dtype)
-            + int(h / 4)
-            + int(h / 2)
-            for h in h_arr
-        ]
-    )
-    x_in_w = np.hstack(
-        [
-            np.arange(roi[0] + w, roi[2] - w, xy_step, dtype=np_index_dtype)
-            + int(w / 4)
-            + int(w / 2)
-            for w in w_arr
-        ]
-    )
+    y_in_n = np.hstack([np.arange(roi[1] + h, roi[3] - h, xy_step, dtype=np_index_dtype) + int(h / 4) for h in h_arr])
+    x_in_n = np.hstack([np.arange(roi[0] + w, roi[2] - w, xy_step, dtype=np_index_dtype) + int(w / 4) for w in w_arr])
+    y_in_h = np.hstack([np.arange(roi[1] + h, roi[3] - h, xy_step, dtype=np_index_dtype) + int(h / 4) + int(h / 2) for h in h_arr])
+    x_in_w = np.hstack([np.arange(roi[0] + w, roi[2] - w, xy_step, dtype=np_index_dtype) + int(w / 4) + int(w / 2) for w in w_arr])
     in_h = y_in_h - y_in_n
     in_w = x_in_w - x_in_n
 
@@ -256,16 +209,12 @@ def get_empty_array(
         )[np.newaxis, :]
     )
 
-    mu_outer_rect = cv2.subtract(
-        wh_out_arr, wh_in_arr
-    )  # ,dst=) # == (outer_rect[2] * outer_rect[3] - inner_rect[2] * inner_rect[3])
+    mu_outer_rect = cv2.subtract(wh_out_arr, wh_in_arr)  # ,dst=) # == (outer_rect[2] * outer_rect[3] - inner_rect[2] * inner_rect[3])
 
     wh_in_arr = 1 / wh_in_arr  # .astype(np.float32)
     # wh_out_arr=wh_out_arr.astype(np.float64)
     mu_outer_rect = 1 / mu_outer_rect  # .astype(np.float32)
-    mu_outer_rect2 = (
-        -1.0 * mu_outer_rect
-    )  # cv2.merge([mu_outer_rect,-1.0*mu_outer_rect])
+    mu_outer_rect2 = -1.0 * mu_outer_rect  # cv2.merge([mu_outer_rect,-1.0*mu_outer_rect])
 
     # 1/wh_in_arr == wh_in_arr_mul
     return (
@@ -339,9 +288,7 @@ def coarse_detection(img_gray, params):
         wh_out_arr,
         mu_outer_rect,
         mu_outer_rect2,
-    ) = get_empty_array(
-        img_blur.shape, width_min, width_max, wh_step, xy_step, roi, ratio_outer
-    )
+    ) = get_empty_array(img_blur.shape, width_min, width_max, wh_step, xy_step, roi, ratio_outer)
     cv2.integral(
         img_blur, sum=frame_int, sdepth=cv2.CV_32S
     )  # memo: It becomes slower when using float64, probably because the increase in bits from 32 to 64 causes the arrays to be larger.
@@ -434,9 +381,7 @@ def fine_detection(img_gray, pupil_rect_coarse):
     img_pupil_blur = cv2.GaussianBlur(img_pupil, (5, 5), 0, 0)
     edges_filter = detect_edges(img_pupil_blur)
     # fit ellipse to edges
-    contours, hierarchy = cv2.findContours(
-        edges_filter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
-    )
+    contours, hierarchy = cv2.findContours(edges_filter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     # sort contours by area
     contours = sorted(contours, key=lambda x: cv2.contourArea(x), reverse=True)
     # fit ellipse to largest contour
@@ -493,9 +438,7 @@ def detect_edges(img_pupil_blur):
 
 
 def fit_pupil_ellipse_swirski(img_pupil, edges_filter):
-    contours, hierarchy = cv2.findContours(
-        edges_filter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
-    )
+    contours, hierarchy = cv2.findContours(edges_filter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     max_contour_area = 0
     max_contour = None
     print("contours: ", contours)
@@ -589,6 +532,7 @@ def put_number(img_bgr, number, position, color):
 class AHSF(BaseAlgorithm):
     def __init__(self, eye_processor: EyeProcessor):
         self.ep = eye_processor
+
     def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
 
         average_color = np.mean(frame)
@@ -604,14 +548,14 @@ class AHSF(BaseAlgorithm):
         y_offset = (max_dimension - height) // 2
 
         # Paste the rotated image onto the square background
-        square_background[y_offset:y_offset + height, x_offset:x_offset + width] = frame
+        square_background[y_offset : y_offset + height, x_offset : x_offset + width] = frame
 
         frame = square_background
         frame_clear_resize = frame.copy()
 
-        wmax = (frame.shape[1] * 0.5)  # likes to crash, might need more tuning still
-        wmin = (frame.shape[1] * 0.08)
-        params = { # these can be tuned more
+        wmax = frame.shape[1] * 0.5  # likes to crash, might need more tuning still
+        wmin = frame.shape[1] * 0.08
+        params = {  # these can be tuned more
             "ratio_downsample": 0.5,
             "use_init_rect": False,
             "mu_outer": 250,  # aprroximatly how much pupil should be in the outer rect

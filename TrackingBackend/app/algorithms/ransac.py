@@ -167,17 +167,17 @@ def fit_rotated_ellipse(data, P):
     theta = 0.5 * np.arctan(b / (a - c), dtype=np.float64)
     theta_sin = np.sin(theta, dtype=np.float64)
     theta_cos = np.cos(theta, dtype=np.float64)
-    tc2 = theta_cos ** 2
-    ts2 = theta_sin ** 2
+    tc2 = theta_cos**2
+    ts2 = theta_sin**2
     b_tcs = b * theta_cos * theta_sin
 
     # Do the calculation only once
-    cxy = b ** 2 - 4 * a * c
+    cxy = b**2 - 4 * a * c
     cx = (2 * c * d - b * e) / cxy
     cy = (2 * a * e - b * d) / cxy
 
     # I just want to clear things up around here.
-    cu = a * cx ** 2 + b * cx * cy + c * cy ** 2 - f
+    cu = a * cx**2 + b * cx * cy + c * cy**2 - f
     cu_r = np.array([(a * tc2 + b_tcs + c * ts2), (a * ts2 - b_tcs + c * tc2)])
     if cu > 1:  # negatives can get thrown which cause errors, just ignore them
         wh = np.sqrt(cu / cu_r)
@@ -190,6 +190,7 @@ def fit_rotated_ellipse(data, P):
     # print("fitting error = %.3f" % (error_sum))
 
     return (cx, cy, w, h, theta)
+
 
 def get_center_noclamp(center_xy, radius):
     center_x, center_y = center_xy
@@ -220,16 +221,18 @@ def get_center_noclamp(center_xy, radius):
 
 cct = 300
 
+
 class RANSAC(BaseAlgorithm):
     def __init__(self, eye_processor: EyeProcessor):
         self.ep = eye_processor
+
     def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
 
-           # frame = self.current_image_gray_clean
+        # frame = self.current_image_gray_clean
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 
         rng = np.random.default_rng()
-       # newFrame2 = self.current_image_gray.copy()
+        # newFrame2 = self.current_image_gray.copy()
         newFrame2 = frame.copy()
         # Convert the image to grayscale, and set up thresholding. Thresholds here are basically a
         # low-pass filter that will set any pixel < the threshold value to 0. Thresholding is user
@@ -262,13 +265,13 @@ class RANSAC(BaseAlgorithm):
         # crop 15% sqare around min_loc
         # frame_gray = frame_gray[max_loc[1] - maxloc1_hf:max_loc[1] + maxloc1_hf,
         #               max_loc[0] - maxloc0_hf:max_loc[0] + maxloc0_hf]
-#        if self.settings.gui_legacy_ransac:
- #           if self.eye_id in [EyeId.LEFT]:
-  #              threshold_value = self.settings.gui_legacy_ransac_thresh_left
-   #         else:
-    #            threshold_value = self.settings.gui_legacy_ransac_thresh_right
-     #   else:
-        threshold_value = min_val + 25  #+ self.settings.gui_thresh_add TODO: use a setting value for thresh add
+        #        if self.settings.gui_legacy_ransac:
+        #           if self.eye_id in [EyeId.LEFT]:
+        #              threshold_value = self.settings.gui_legacy_ransac_thresh_left
+        #         else:
+        #            threshold_value = self.settings.gui_legacy_ransac_thresh_right
+        #   else:
+        threshold_value = min_val + 25  # + self.settings.gui_thresh_add TODO: use a setting value for thresh add
 
         _, thresh = cv2.threshold(frame_gray, threshold_value, 255, cv2.THRESH_BINARY)
         try:
@@ -313,10 +316,7 @@ class RANSAC(BaseAlgorithm):
             ranf = True
             pass
 
-
-        cv2.circle(
-            frame, min_loc, 2, (0, 0, 255), -1
-        )  # the point of the darkest area in the image
+        cv2.circle(frame, min_loc, 2, (0, 0, 255), -1)  # the point of the darkest area in the image
 
         # However eyes are annoyingly three dimensional, so we need to take this ellipse and turn it
         # into a curve patch on the surface of a sphere (the eye itself). If it's not a sphere, see your
@@ -336,7 +336,7 @@ class RANSAC(BaseAlgorithm):
             result_2d_final["diameter"] = w
             result_2d_final["location"] = (cx, cy)
             result_2d_final["confidence"] = 0.99
-           # result_2d_final["timestamp"] = self.current_frame_number / self.current_fps
+            # result_2d_final["timestamp"] = self.current_frame_number / self.current_fps
             # Black magic happens here, but after this we have our reprojected pupil/eye, and all we had
             # to do was sell our soul to satan and/or C++.
 
@@ -346,12 +346,8 @@ class RANSAC(BaseAlgorithm):
                 focal_length=30,
                 resolution=(width, height),
             )
-            detector_3d = Detector3D(
-                camera=camera_model, long_term_mode=DetectorMode.blocking
-            )
-            result_3d = detector_3d.update_and_detect(
-                result_2d_final, frame
-            )
+            detector_3d = Detector3D(camera=camera_model, long_term_mode=DetectorMode.blocking)
+            result_3d = detector_3d.update_and_detect(result_2d_final, frame)
 
             # Now we have our pupil
             ellipse_3d = result_3d["ellipse"]
@@ -372,13 +368,13 @@ class RANSAC(BaseAlgorithm):
 
         csy = newFrame2.shape[0]
         csx = newFrame2.shape[1]
-       # if hsrac_en:
+        # if hsrac_en:
 
         #    if ranf:
-       #         cx = self.rawx
+        #         cx = self.rawx
         #        cy = self.rawy
         #    else:
-                #  print(int(cx), int(clamp(cx + ransac_lower_x, 0, csx)), ransac_lower_x, csx, "y", int(cy), int(clamp(cy + ransac_lower_y, 0, csy)), ransac_lower_y, csy)
+        #  print(int(cx), int(clamp(cx + ransac_lower_x, 0, csx)), ransac_lower_x, csx, "y", int(cy), int(clamp(cy + ransac_lower_y, 0, csy)), ransac_lower_y, csy)
         #        cx = int(
         #            clamp(cx + ransac_lower_x, 0, csx)
         #        )  # dunno why this is being weird
@@ -393,50 +389,48 @@ class RANSAC(BaseAlgorithm):
             # if abs(perscalarw-perscalarh) >= 0.2: # TODO setting
             #    blink = 0.0
 
-    #        if self.settings.gui_RANSACBLINK:
+        #        if self.settings.gui_RANSACBLINK:
 
-     #           if self.ran_blink_check_for_file:
-      #              if self.eye_id in [EyeId.LEFT]:
+        #           if self.ran_blink_check_for_file:
+        #              if self.eye_id in [EyeId.LEFT]:
         #                file_path = "RANSAC_blink_LEFT.cfg"
-       #             if self.eye_id in [EyeId.RIGHT]:
-         #               file_path = "RANSAC_blink_RIGHT.cfg"
-          #          else:
-           #             file_path = "RANSAC_blink_RIGHT.cfg"
+        #             if self.eye_id in [EyeId.RIGHT]:
+        #               file_path = "RANSAC_blink_RIGHT.cfg"
+        #          else:
+        #             file_path = "RANSAC_blink_RIGHT.cfg"
 
         #            if os.path.exists(file_path):
         #                with open(file_path, "r") as file:
         #                    self.blink_list = [float(line.strip()) for line in file]
         #            else:
-         #               print(
-          #                  f"\033[93m[INFO] RANSAC Blink Config '{file_path}' not found. Waiting for calibration.\033[0m"
-           #             )
-                   # self.ran_blink_check_for_file = False
+        #               print(
+        #                  f"\033[93m[INFO] RANSAC Blink Config '{file_path}' not found. Waiting for calibration.\033[0m"
+        #             )
+        # self.ran_blink_check_for_file = False
 
-          #      if len(self.blink_list) == 10000:  # self calibrate ransac blink IN TESTING
-         #           if self.eye_id in [EyeId.LEFT]:
+        #      if len(self.blink_list) == 10000:  # self calibrate ransac blink IN TESTING
+        #           if self.eye_id in [EyeId.LEFT]:
         #                with open("RANSAC_BLINK_LEFT.cfg", "w") as file:
         #                    for item in self.blink_list:
         #                        file.write(str(item) + "\n")
 
         #            if self.eye_id in [EyeId.RIGHT]:
-         #               with open("RANSAC_BLINK_RIGHT.cfg", "w") as file:
-         #                   for item in self.blink_list:
-         #                       file.write(str(item) + "\n")
-                    # print("SAVE")
+        #               with open("RANSAC_BLINK_RIGHT.cfg", "w") as file:
+        #                   for item in self.blink_list:
+        #                       file.write(str(item) + "\n")
+        # print("SAVE")
 
-                    # self.blink_list.pop(0)
-       #             self.blink_list.append(abs(perscalarw - perscalarh))
+        # self.blink_list.pop(0)
+        #             self.blink_list.append(abs(perscalarw - perscalarh))
 
         #        elif len(self.blink_list) < 10000:
         #            self.blink_list.append(abs(perscalarw - perscalarh))
 
-         #       if abs(perscalarw - perscalarh) >= np.percentile(self.blink_list, 92):
-         #           blink = 0.0
+        #       if abs(perscalarw - perscalarh) >= np.percentile(self.blink_list, 92):
+        #           blink = 0.0
 
         try:
-            cv2.drawContours(
-                frame, contours, -1, (255, 0, 0), 1
-            )  # TODO: fix visualizations with HSRAC
+            cv2.drawContours(frame, contours, -1, (255, 0, 0), 1)  # TODO: fix visualizations with HSRAC
             cv2.circle(frame, (int(cx), int(cy)), 2, (0, 0, 255), -1)
         except:
             pass
@@ -479,7 +473,7 @@ class RANSAC(BaseAlgorithm):
         except:
             pass
 
-       # self.current_image_gray = newFrame2
+        # self.current_image_gray = newFrame2
         y, x = frame.shape
         thresh = cv2.resize(thresh, (x, y))
 
@@ -487,8 +481,8 @@ class RANSAC(BaseAlgorithm):
         try:
             self.failed = 0  # we have succeded, continue with this
             return EyeData(cx, cy, 1, tracker_position)
-           # return cx, cy, angle, thresh, blink, w, h
+        # return cx, cy, angle, thresh, blink, w, h
         except:
             self.failed = self.failed + 1  # we have failed, move onto next algo
-            #return 0, 0, 0, thresh, blink, 0, 0
+            # return 0, 0, 0, thresh, blink, 0, 0
             return TRACKING_FAILED

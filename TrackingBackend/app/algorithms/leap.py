@@ -27,7 +27,8 @@ This project is licensed under the MIT License. See LICENSE for more details.
 ------------------------------------------------------------------------------------------------------
 """
 import os
-os.environ["OMP_NUM_THREADS"] = "1"
+
+os.environ["OMP_NUM_THREADS"] = "1"  # type: ignore
 
 import cv2
 import math
