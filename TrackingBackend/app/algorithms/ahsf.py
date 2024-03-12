@@ -85,8 +85,8 @@ class AHSF(BaseAlgorithm):
             "mu_inner": 50,  # aprroximatly how much pupil should be in the inner rect
             "ratio_outer": 1.0,  # rectangular ratio. 1 means square (LIKE REGULAR HSF)
             "kf": 2,  # noise filter. May lose tracking if too high (or even never start)
-            "width_min": frame.shape[1] * 0.5,  # Minimum width of the pupil
-            "width_max": frame.shape[1] * 0.08,  # Maximum width of the pupil
+            "width_min": frame.shape[1] * 0.08,  # Minimum width of the pupil
+            "width_max": frame.shape[1] * 0.5,  # Maximum width of the pupil
             "wh_step": 5,  # Pupil width and height step search size
             "xy_step": 10,  # Kernel movement step search size
             "roi": (0, 0, frame.shape[1], frame.shape[0]),
