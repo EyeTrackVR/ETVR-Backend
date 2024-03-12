@@ -28,7 +28,6 @@ This project is licensed under the MIT License. See LICENSE for more details.
 """
 import os
 
-os.environ["OMP_NUM_THREADS"] = "1"  # type: ignore
 
 import cv2
 import math
@@ -41,6 +40,7 @@ from app.types import EyeData, TrackerPosition
 from app.utils import BaseAlgorithm, OneEuroFilter
 
 rt.disable_telemetry_events()
+os.environ["OMP_NUM_THREADS"] = "1"
 ONNX_OPTIONS = rt.SessionOptions()
 ONNX_OPTIONS.inter_op_num_threads = 1
 ONNX_OPTIONS.intra_op_num_threads = 1
