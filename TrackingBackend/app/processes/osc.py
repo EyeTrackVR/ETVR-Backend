@@ -75,6 +75,8 @@ class VRChatOSC(WorkerProcess):
 
     def on_config_update(self, config: EyeTrackConfig) -> None:
         self.config = config
+        # The address and port may have changed, so we need to update the client
+        self.client = SimpleUDPClient(self.config.osc.address, self.config.osc.sending_port)
 
     def smooth(self, data: EyeData) -> EyeData:
         original = deepcopy(data)
