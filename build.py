@@ -20,12 +20,12 @@ def install():
 
 
 def lint():
-    print("Running ruff for linting...")
-    os.system(f"poetry run ruff TrackingBackend{os.path.sep}")
-    print("-" * 80)
-
     print("Running black for code formatting...")
     os.system(f"poetry run black TrackingBackend{os.path.sep}")
+    print("-" * 80)
+
+    print("Running ruff for linting...")
+    os.system(f"poetry run ruff TrackingBackend{os.path.sep}")
     print("-" * 80)
 
     print("Running mypy for type checking...")
