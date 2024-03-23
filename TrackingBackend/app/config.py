@@ -36,6 +36,7 @@ IP_ADDRESS_REGEX: Final = (
     r"(?::\d{1,5})?\b|localhost(?::\d{1,5})?|http:\/\/localhost(?::\d{1,5})?|[\w-]+\.local(?::\d{1,5})?)"
 )
 
+
 # TODO: move algorithm configs into the same file as the algorithms they control
 class BlobConfig(BaseModel):
     threshold: int = 65
@@ -53,6 +54,15 @@ class LeapConfig(BaseModel):
         return value
 
 
+class HSFConfig(BaseModel):
+    skip_autoradius: bool = False
+    skip_blink_detection: bool = False
+    # amount of frames to use for blink baseline
+    blink_stat_frames: int = 60 * 3
+    # bigger step = faster tracking, but less accurate
+    default_step: tuple[int, int] = (5, 5)
+
+
 class AlgorithmConfig(BaseModel):
     algorithm_order: list[Algorithms] = [
         Algorithms.LEAP,
@@ -64,6 +74,7 @@ class AlgorithmConfig(BaseModel):
     ]
     blob: BlobConfig = BlobConfig()
     leap: LeapConfig = LeapConfig()
+    hsf: HSFConfig = HSFConfig()
 
     @field_validator("algorithm_order")
     def algorithm_order_validator(cls, value: list[Algorithms]) -> list[Algorithms]:
