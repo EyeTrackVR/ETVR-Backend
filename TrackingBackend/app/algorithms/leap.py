@@ -26,9 +26,8 @@ Copyright (c) 2023 EyeTrackVR <3
 This project is licensed under the MIT License. See LICENSE for more details.
 ------------------------------------------------------------------------------------------------------
 """
+
 import os
-
-
 import cv2
 import math
 import numpy as np

@@ -25,6 +25,7 @@ Algorithm App Implementations By: Prohurtz, qdot (Initial App Creator)
 Copyright (c) 2023 EyeTrackVR <3
 ------------------------------------------------------------------------------------------------------
 """
+
 import cv2
 import numpy as np
 from enum import IntEnum
