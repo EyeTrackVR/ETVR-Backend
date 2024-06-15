@@ -72,7 +72,7 @@ class HSF(BaseAlgorithm):
         self.cvparam = CvParameters(default_radius, self.ep.config.hsf.default_step)
 
     # TODO: i would like to split this into smaller functions
-    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
+    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> tuple[EyeData, MatLike]:
         # adjustment of radius
         if self.mode == CVMode.RADIUS_ADJUST:
             self.cvparam.radius = self.auto_radius_calc.get_radius()
@@ -142,7 +142,7 @@ class HSF(BaseAlgorithm):
         cropped_image = safe_crop(frame, lower_x, lower_y, upper_x, upper_y)
         if 0 in cropped_image.shape:
             self.ep.logger.error("Cropped image has bad dimensions, skipping frame.")
-            return TRACKING_FAILED
+            return TRACKING_FAILED, frame
 
         blink = 1
         match self.mode:
@@ -210,7 +210,7 @@ class HSF(BaseAlgorithm):
         x = center_x / frame.shape[1]
         y = center_y / frame.shape[0]
 
-        return EyeData(x, y, blink, tracker_position)
+        return EyeData(x, y, blink, tracker_position), frame
 
 
 # If you want to update response_max. it may be more cost-effective to rewrite response_list in the following way

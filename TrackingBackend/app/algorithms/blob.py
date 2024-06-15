@@ -38,7 +38,7 @@ class Blob(BaseAlgorithm):
     def __init__(self, eye_processor: EyeProcessor):
         self.ep = eye_processor
 
-    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
+    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> tuple[EyeData, MatLike]:
         _, larger_threshold = cv2.threshold(frame, self.ep.config.blob.threshold, 255, cv2.THRESH_BINARY)
 
         try:
@@ -49,10 +49,10 @@ class Blob(BaseAlgorithm):
             # If we have no contours, we have nothing to blob track. Fail here.
             if len(contours) == 0:
                 self.ep.logger.warning(f"Failed to find any contours for {self.ep.tracker_position.name}")
-                return TRACKING_FAILED
+                return TRACKING_FAILED, frame
         except (cv2.error, Exception):
             self.ep.logger.exception("Something went wrong!")
-            return TRACKING_FAILED
+            return TRACKING_FAILED, frame
 
         for cnt in contours:
             (x, y, w, h) = cv2.boundingRect(cnt)
@@ -71,6 +71,6 @@ class Blob(BaseAlgorithm):
             cv2.drawContours(frame, [cnt], -1, (0, 255, 0), 3)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
-            return EyeData(x, y, 1, tracker_position)
+            return EyeData(x, y, 1, tracker_position), frame
 
-        return TRACKING_FAILED
+        return TRACKING_FAILED, frame

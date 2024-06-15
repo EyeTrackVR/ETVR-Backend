@@ -1,6 +1,7 @@
 # This file exists purely because circular imports are a thing and im too lazy to come up with a better
 # solution that doesnt involve a bunch of refactoring.
 import logging
+import numpy as np
 from typing import Final
 from enum import Enum, StrEnum
 from dataclasses import dataclass
@@ -46,4 +47,5 @@ class EyeData:
 
 
 DEBUG_FLAG: Final = "ETVR_DEBUG"
+EMPTY_FRAME: Final = np.zeros((1, 1), dtype=np.uint8)
 TRACKING_FAILED: Final = EyeData(0, 0, 0, TrackerPosition.UNDEFINED)

@@ -62,7 +62,7 @@ class AHSF(BaseAlgorithm):
         )
         cv2.drawMarker(frame, center_fitting, (255, 255, 255), cv2.MARKER_CROSS, 15, 1)
 
-    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
+    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> tuple[EyeData, MatLike]:
         average_color = np.mean(frame)
         # Get the dimensions of the rotated image
         height, width = frame.shape
@@ -78,6 +78,7 @@ class AHSF(BaseAlgorithm):
         square_background[y_offset : y_offset + height, x_offset : x_offset + width] = frame
         frame = square_background
 
+        # TODO: replace params with a dataclass
         params = {  # these can be tuned more
             "ratio_downsample": 0.5,
             "use_init_rect": False,
@@ -103,7 +104,7 @@ class AHSF(BaseAlgorithm):
             ) = coarse_detection(frame, params)
             ellipse_rect, center_fitting = fine_detection(frame, pupil_rect_coarse)
         except TypeError:
-            return TRACKING_FAILED
+            return TRACKING_FAILED, frame
 
         # x = outer_rect_coarse[0] + outer_rect_coarse[2] / 2
         # y = outer_rect_coarse[1] + outer_rect_coarse[3] / 2
@@ -111,12 +112,10 @@ class AHSF(BaseAlgorithm):
         y = center_fitting[1]
         self.draw_coarse(frame, pupil_rect_coarse, outer_rect_coarse, center_fitting)
 
-        self.ep.window.imshow("cuck", frame)
-        # TODO: fix visualization?
         x = x / frame.shape[1]
         y = y / frame.shape[0]
 
-        return EyeData(x, y, 1, tracker_position)
+        return EyeData(x, y, 1, tracker_position), frame
 
 
 @lru_cache(maxsize=lru_maxsize_vvs)

@@ -55,7 +55,7 @@ class Leap(BaseAlgorithm):
         self.session = rt.InferenceSession(MODEL_PATH, ONNX_OPTIONS, ["CPUExecutionProvider"])
         self.ep.logger.debug(f"Created Inference Session with `{MODEL_PATH}`")
 
-    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
+    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> tuple[EyeData, MatLike]:
         pre_landmark = self.filter(self.run_model(frame.copy()))
         self.draw_landmarks(frame, pre_landmark)
 
@@ -80,7 +80,7 @@ class Leap(BaseAlgorithm):
         x = pre_landmark[6][0]
         y = pre_landmark[6][1]
 
-        return EyeData(x, y, blink, tracker_position)
+        return EyeData(x, y, blink, tracker_position), frame
 
     def run_model(self, frame: MatLike) -> np.ndarray:
         frame = cv2.resize(frame, (112, 112))
