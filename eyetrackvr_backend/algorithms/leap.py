@@ -34,9 +34,12 @@ import numpy as np
 import onnxruntime as rt
 from typing import Final
 from cv2.typing import MatLike
-from app.processes import EyeProcessor
-from app.types import EyeData, TrackerPosition
-from app.utils import BaseAlgorithm, OneEuroFilter
+
+from eyetrackvr_backend.assets import MODELS_DIR
+
+from ..processes import EyeProcessor
+from ..types import EyeData, TrackerPosition
+from ..utils import BaseAlgorithm, OneEuroFilter
 
 rt.disable_telemetry_events()
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -44,7 +47,7 @@ ONNX_OPTIONS = rt.SessionOptions()
 ONNX_OPTIONS.inter_op_num_threads = 1
 ONNX_OPTIONS.intra_op_num_threads = 1
 ONNX_OPTIONS.graph_optimization_level = rt.GraphOptimizationLevel.ORT_ENABLE_ALL
-MODEL_PATH: Final = "assets/models/leap.onnx"
+MODEL_PATH: Final = os.path.join(MODELS_DIR, "leap.onnx")
 
 
 class Leap(BaseAlgorithm):

@@ -1,6 +1,6 @@
-from app.types import EyeData, Algorithms, TRACKING_FAILED
-from app.config import AlgorithmConfig, TrackerConfig
-from app.utils import WorkerProcess, BaseAlgorithm
+from ..types import EyeData, Algorithms, TRACKING_FAILED
+from ..config import AlgorithmConfig, TrackerConfig
+from ..utils import WorkerProcess, BaseAlgorithm
 from cv2.typing import MatLike
 from queue import Queue, Full
 from copy import deepcopy
@@ -77,7 +77,7 @@ class EyeProcessor(WorkerProcess):
         self.setup_algorithms()
 
     def setup_algorithms(self) -> None:
-        from app.algorithms import Blob, HSF, HSRAC, Leap, AHSF
+        from ..algorithms import Blob, HSF, HSRAC, Leap, AHSF
 
         self.algorithms.clear()
         for algorithm in self.config.algorithm_order:

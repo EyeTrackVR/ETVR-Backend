@@ -1,4 +1,4 @@
-from app.config import IP_ADDRESS_REGEX, EyeTrackConfig, TrackerConfig, ConfigManager, CONFIG_FILE
+from eyetrackvr_backend.config import IP_ADDRESS_REGEX, EyeTrackConfig, TrackerConfig, ConfigManager, CONFIG_FILE
 import pytest
 import json
 import re

@@ -1,4 +1,4 @@
-from app.types import EyeData, TrackerPosition, TRACKING_FAILED, EMPTY_FRAME
+from ..types import EyeData, TrackerPosition, TRACKING_FAILED, EMPTY_FRAME
 from queue import Queue, Empty
 from cv2.typing import MatLike
 

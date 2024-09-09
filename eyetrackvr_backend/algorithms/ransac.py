@@ -29,9 +29,9 @@ Copyright (c) 2023 EyeTrackVR <3
 import cv2
 import numpy as np
 from enum import IntEnum
-from app.utils import safe_crop
-from app.utils import clamp
-from app.utils import clamp
+from ..utils import safe_crop
+from ..utils import clamp
+from ..utils import clamp
 
 import os
 import psutil
@@ -42,9 +42,9 @@ import cv2
 import numpy as np
 from cv2.typing import MatLike
 from functools import lru_cache
-from app.processes import EyeProcessor
-from app.utils import BaseAlgorithm, safe_crop
-from app.types import EyeData, TrackerPosition, TRACKING_FAILED
+from ..processes import EyeProcessor
+from ..utils import BaseAlgorithm, safe_crop
+from ..types import EyeData, TrackerPosition, TRACKING_FAILED
 from pye3d.camera import CameraModel
 from pye3d.detector_3d import Detector3D, DetectorMode
 

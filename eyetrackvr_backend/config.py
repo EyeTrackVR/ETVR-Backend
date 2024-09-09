@@ -9,13 +9,13 @@ import random
 import os.path
 import multiprocessing
 from copy import deepcopy
-from app.logger import get_logger
+from .logger import get_logger
 from typing import Callable, Final
-from app.utils import mask_to_cpu_list
+from .utils import mask_to_cpu_list
 from watchdog.observers import Observer
 from fastapi import Request, HTTPException
 from watchdog.observers.api import BaseObserver
-from app.types import Algorithms, TrackerPosition
+from .types import Algorithms, TrackerPosition
 from pydantic import BaseModel, ValidationError, field_validator
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 

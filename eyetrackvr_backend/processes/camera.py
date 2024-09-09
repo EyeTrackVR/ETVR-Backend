@@ -1,6 +1,6 @@
-from app.utils import WorkerProcess, mat_crop, mat_rotate, clear_queue, is_serial
-from app.config import CameraConfig, TrackerConfig
-from app.types import CameraState
+from ..utils import WorkerProcess, mat_crop, mat_rotate, clear_queue, is_serial
+from ..config import CameraConfig, TrackerConfig
+from ..types import CameraState
 from multiprocessing import Value
 import serial.tools.list_ports
 from cv2.typing import MatLike

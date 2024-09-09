@@ -1,12 +1,12 @@
 from queue import Queue
 from fastapi import APIRouter
-from app.types import EyeData
+from .types import EyeData
 from cv2.typing import MatLike
-from app.utils import clear_queue
-from app.config import EyeTrackConfig
-from app.visualizer import Visualizer
+from .utils import clear_queue
+from .config import EyeTrackConfig
+from .visualizer import Visualizer
 from multiprocessing.managers import SyncManager
-from app.processes import EyeProcessor, Camera, VRChatOSC
+from .processes import EyeProcessor, Camera, VRChatOSC
 
 
 # TODO: when we start to integrate babble this should become a common interface that eye trackers and mouth trackers inherit from

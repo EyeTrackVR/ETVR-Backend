@@ -39,9 +39,9 @@ from enum import Enum
 from copy import deepcopy
 from functools import lru_cache
 from cv2.typing import MatLike, Point
-from app.processes import EyeProcessor
-from app.utils import BaseAlgorithm, safe_crop
-from app.types import EyeData, TrackerPosition, TRACKING_FAILED
+from ..processes import EyeProcessor
+from ..utils import BaseAlgorithm, safe_crop
+from ..types import EyeData, TrackerPosition, TRACKING_FAILED
 
 
 # cache param

@@ -1,10 +1,10 @@
 import time
 import psutil
-from app.window import Window
+from ..window import Window
 from multiprocessing import Process, Event
-from app.logger import get_logger, setup_logger
-from app.utils.misc_utils import mask_to_cpu_list
-from app.config import EyeTrackConfig, ConfigManager, TrackerConfig
+from ..logger import get_logger, setup_logger
+from ..utils.misc_utils import mask_to_cpu_list
+from ..config import EyeTrackConfig, ConfigManager, TrackerConfig
 
 # Welcome to assassin's multiprocessing realm
 # To not repeat the same mistakes I made, here are some tips:

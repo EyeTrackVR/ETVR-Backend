@@ -1,9 +1,11 @@
 import cv2
+import os.path
 from typing import Any
 from queue import Queue
 from fastapi.responses import StreamingResponse
+from .assets import IMAGES_DIR
 
-OFLINE_IMAGE = cv2.imread("assets/images/camera_offline.png")
+OFLINE_IMAGE = cv2.imread(os.path.join(IMAGES_DIR, "camera_offline.png"))
 
 
 class Visualizer:

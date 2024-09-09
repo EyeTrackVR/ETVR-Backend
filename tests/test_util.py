@@ -1,4 +1,4 @@
-from app.utils import clamp
+from eyetrackvr_backend.utils import clamp
 import pytest
 
 

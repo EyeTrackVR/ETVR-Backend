@@ -1,7 +1,7 @@
-from app.utils import WorkerProcess, OneEuroFilter
-from app.config import EyeTrackConfig, OSCConfig
-from app.types import EyeData, TrackerPosition
-from app.logger import get_logger
+from ..utils import WorkerProcess, OneEuroFilter
+from ..config import EyeTrackConfig, OSCConfig
+from ..types import EyeData, TrackerPosition
+from ..logger import get_logger
 from queue import Queue, Empty
 from copy import deepcopy
 from typing import Final

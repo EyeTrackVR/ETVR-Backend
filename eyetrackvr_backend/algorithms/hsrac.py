@@ -1,5 +1,5 @@
-from app.processes import EyeProcessor
-from app.utils import BaseAlgorithm
+from ..processes import EyeProcessor
+from ..utils import BaseAlgorithm
 
 
 class HSRAC(BaseAlgorithm):

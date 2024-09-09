@@ -29,9 +29,9 @@ This project is licensed under the MIT License. See LICENSE for more details.
 
 import cv2
 from cv2.typing import MatLike
-from app.utils import BaseAlgorithm
-from app.processes import EyeProcessor
-from app.types import EyeData, TrackerPosition, TRACKING_FAILED
+from ..utils import BaseAlgorithm
+from ..processes import EyeProcessor
+from ..types import EyeData, TrackerPosition, TRACKING_FAILED
 
 
 class Blob(BaseAlgorithm):

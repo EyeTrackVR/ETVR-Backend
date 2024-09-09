@@ -1,9 +1,9 @@
-from app.processes import VRChatOSCReceiver
-from app.config import ConfigManager
+from .processes import VRChatOSCReceiver
+from .config import ConfigManager
 from multiprocessing import Manager
-from app.logger import get_logger
+from .logger import get_logger
 from fastapi import APIRouter
-from app.tracker import Tracker
+from .tracker import Tracker
 
 logger = get_logger()
 

@@ -31,9 +31,9 @@ import cv2
 import numpy as np
 from cv2.typing import MatLike
 from functools import lru_cache
-from app.utils import BaseAlgorithm
-from app.processes import EyeProcessor
-from app.types import EyeData, TrackerPosition, TRACKING_FAILED
+from ..utils import BaseAlgorithm
+from ..processes import EyeProcessor
+from ..types import EyeData, TrackerPosition, TRACKING_FAILED
 
 # cache param
 lru_maxsize_vvs = 16

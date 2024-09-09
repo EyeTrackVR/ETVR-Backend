@@ -1,5 +1,5 @@
-from app.logger import get_logger, set_log_level
-from app.types import LogLevel
+from eyetrackvr_backend.logger import get_logger, set_log_level
+from eyetrackvr_backend.types import LogLevel
 import logging
 
 
