@@ -37,7 +37,7 @@ viztracer = "^0.15.6"
 black = "^24.3.0"
 pytest = "^7.2.0"
 mypy = "^1.4.1"
-ruff = "^0.1.5"
+ruff = "^0.6.1"
 
 [tool.black]
 line-length = 135
@@ -45,7 +45,7 @@ exclude = "(.git|.env|venv|.venv|build|dist|.vscode|.idea|__pycache__|.ruff_cach
 target-version = ["py310", "py311"]
 
 [tool.ruff]
-select = ["E", "F", "W", "Q"]
+lint.select = ["E", "F", "W", "Q"]
 src = ["eyetrackvr-backend", "test"]
 respect-gitignore = true
 target-version = "py311"
@@ -54,7 +54,7 @@ indent-width = 4
 exclude = ["__pycache__", ".ruff_cache", ".vscode", ".idea", ".venv", "build", "dist", ".git", ".env", "venv"]
 line-length = 135
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 
 
