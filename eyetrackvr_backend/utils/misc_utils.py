@@ -4,7 +4,7 @@ from cv2.typing import MatLike
 
 
 def is_serial(source: str) -> bool:
-    serial_prefixes = ["com", "/dev/tty"]
+    serial_prefixes = ["com", "/dev/tty", "/dev/serial"]
     return any(source.lower().startswith(prefix) for prefix in serial_prefixes)
 
 

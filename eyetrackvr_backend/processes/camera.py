@@ -122,24 +122,28 @@ class Camera(WorkerProcess):
 
     # region: Serial camera implementation
     def connect_serial_camera(self) -> None:
-        self.logger.info(f"Connecting to serial capture source {self.current_capture_source}")
-        if not any(p for p in serial.tools.list_ports.comports() if self.config.capture_source in p):
-            self.logger.warning(f"Serial port `{self.current_capture_source}` not found, waiting for reconnect.")
+        # Resolve actual path
+        capture_source = self.config.capture_source
+        if os.path.islink(capture_source):
+            capture_source = os.path.realpath(capture_source)
+        self.logger.info(f"Connecting to serial capture source {self.current_capture_source} ({capture_source})")
+        if not any(p for p in serial.tools.list_ports.comports() if capture_source in p):
+            self.logger.warning(f"Serial port `{self.current_capture_source}` (`{capture_source}`) not found, waiting for reconnect.")
             self.set_state(CameraState.DISCONNECTED)
             time.sleep(COM_PORT_NOT_FOUND_TIMEOUT)
             return
 
         try:
             self.serial_camera = serial.Serial(
-                port=self.current_capture_source, baudrate=3000000, xonxoff=False, dsrdtr=False, rtscts=False
+                port=capture_source, baudrate=3000000, xonxoff=False, dsrdtr=False, rtscts=False
             )
             # The `set_buffer_size` method is only available on Windows
             if os.name == "nt":
                 self.serial_camera.set_buffer_size(rx_size=32768, tx_size=32768)
-            self.logger.info(f"Serial camera connected to `{self.current_capture_source}`")
+            self.logger.info(f"Serial camera connected to `{self.current_capture_source}` (`{capture_source}`)")
             self.set_state(CameraState.CONNECTED)
         except Exception:
-            self.logger.exception(f"Failed to connect to serial port `{self.current_capture_source}`")
+            self.logger.exception(f"Failed to connect to serial port `{self.current_capture_source}` (`{capture_source}`)")
             self.set_state(CameraState.DISCONNECTED)
 
     # TODO: maybe move this into `get_serial_image`?
