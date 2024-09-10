@@ -5,11 +5,20 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v3
-            - name: Lint with Ruff
-              uses: chartboost/ruff-action@v1
+            - name: Setup Python
+              uses: actions/setup-python@v4
               with:
-                  version: 0.6.1
-                  args: --select E,F --ignore E501,F401,F541
+                  python-version: 3.11
+            - name: Setup Poetry
+              uses: snok/install-poetry@v1
+              with:
+                  virtualenvs-create: true
+                  virtualenvs-in-project: true
+                  installer-parallel: true
+            - name: Install dependencies
+              run: poetry install
+            - name: Lint with ruff
+              run: poetry run ruff check eyetrackvr_backend/
 
     pytest:
         runs-on: ubuntu-latest
