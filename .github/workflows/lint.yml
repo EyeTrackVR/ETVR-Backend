@@ -8,6 +8,7 @@ jobs:
             - name: Lint with Ruff
               uses: chartboost/ruff-action@v1
               with:
+                  version: 0.6.1
                   args: --select E,F --ignore E501,F401,F541
 
     pytest:
