@@ -26,6 +26,9 @@ Copyright (c) 2023 EyeTrackVR <3
 ------------------------------------------------------------------------------------------------------
 """
 
+# ruff: noqa: F841
+# TODO: remove this noqa once unused variables have been cleaned up
+
 import cv2
 import numpy as np
 from enum import IntEnum
@@ -61,7 +64,8 @@ class EyeId(IntEnum):
 def ellipse_model(data, y, f):
     """
     There is no need to make this process a function, since making the process a function will slow it down a little by calling it.
-    The results may be slightly different from the lambda version due to calculation errors derived from float types, but the calculation results are virtually the same.
+    The results may be slightly different from the lambda version due to calculation errors derived from float types, but the
+    calculation results are virtually the same.
     a = 1.0,b = P[0],c = P[1],d = P[2],e = P[3],f = P[4]
     :param data:
     :param y: np.c_[d, e, a, c, b]
@@ -93,7 +97,8 @@ def fit_rotated_ellipse_ransac(
     # Type of calculation result
     ret_dtype = np.float64
 
-    # Sorts a random number array of size (iter,len_data). After sorting, returns the index of sample_num random numbers before sorting.
+    # Sorts a random number array of size (iter,len_data). After sorting, returns the index of sample_num random numbers before
+    # sorting.
     # If the array size is less than about 100, this is faster than rng.choice.
     rng_sample = rng.random((iter, len_data)).argsort()[:, :sample_num]
     # or
@@ -271,7 +276,8 @@ class RANSAC(BaseAlgorithm):
             opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
             closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
             th_frame = 255 - closing
-        except:
+        except Exception as e:
+            print(e)
             # I want to eliminate try here because try tends to be slow in execution.
             th_frame = 255 - frame_gray
 
@@ -305,7 +311,8 @@ class RANSAC(BaseAlgorithm):
         # cv2.ellipse(self.current_image_gray, (cx, cy), (w, h), theta * 180.0 / np.pi, 0.0, 360.0, (50, 250, 200), 1, )
 
         # img = newImage2[y1:y2, x1:x2]
-        except:
+        except Exception as e:
+            print(e)
             ranf = True
             pass
 
@@ -356,7 +363,8 @@ class RANSAC(BaseAlgorithm):
             xc = int(float(lkg_projected_sphere["center"][0]))
             yc = int(float(lkg_projected_sphere["center"][1]))
 
-        except:
+        except Exception as e:
+            print(e)
             f = True
 
         csy = newFrame2.shape[0]
@@ -367,7 +375,8 @@ class RANSAC(BaseAlgorithm):
         #         cx = self.rawx
         #        cy = self.rawy
         #    else:
-        #  print(int(cx), int(clamp(cx + ransac_lower_x, 0, csx)), ransac_lower_x, csx, "y", int(cy), int(clamp(cy + ransac_lower_y, 0, csy)), ransac_lower_y, csy)
+        #  print(int(cx), int(clamp(cx + ransac_lower_x, 0, csx)), ransac_lower_x, csx, "y", int(cy), int(clamp(cy + ransac_lower_y, \
+        #    0, csy)), ransac_lower_y, csy)
         #        cx = int(
         #            clamp(cx + ransac_lower_x, 0, csx)
         #        )  # dunno why this is being weird
@@ -425,8 +434,8 @@ class RANSAC(BaseAlgorithm):
         try:
             cv2.drawContours(frame, contours, -1, (255, 0, 0), 1)  # TODO: fix visualizations with HSRAC
             cv2.circle(frame, (int(cx), int(cy)), 2, (0, 0, 255), -1)
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
         # try:  #for some reason the pye3d visualizations are wack, im going to just not visualize it for now..
         #   cv2.ellipse(
@@ -463,8 +472,8 @@ class RANSAC(BaseAlgorithm):
                 (0, 255, 0),  # color (BGR): red
             )
 
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
         # self.current_image_gray = newFrame2
         y, x = frame.shape
@@ -475,7 +484,8 @@ class RANSAC(BaseAlgorithm):
             self.failed = 0  # we have succeded, continue with this
             return EyeData(cx, cy, 1, tracker_position)
         # return cx, cy, angle, thresh, blink, w, h
-        except:
+        except Exception as e:
+            print(e)
             self.failed = self.failed + 1  # we have failed, move onto next algo
             # return 0, 0, 0, thresh, blink, 0, 0
             return TRACKING_FAILED
