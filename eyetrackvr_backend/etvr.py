@@ -4,6 +4,7 @@ from multiprocessing import Manager
 from .logger import get_logger
 from fastapi import APIRouter
 from .tracker import Tracker
+import sys
 
 logger = get_logger()
 
@@ -74,6 +75,13 @@ class ETVR:
         self.stop()
         self.start()
 
+    def shutdown(self) -> None:
+        # NOTE: in theory this should eventually stop all child processes once they receive the stop signal
+        # but it's not guaranteed to work, so we should probably find a better way to handle this as sys.exit(0)
+        # is not a good way to handle this and doesnt work in all cases but should be good enough for now...
+        self.stop()
+        sys.exit(0)
+
     def add_routes(self) -> None:
         logger.debug("Adding routes to ETVR")
         # region: Image streaming endpoints
@@ -111,6 +119,16 @@ class ETVR:
             tags=["default"],
             description="""
             Stop the ETVR backend, this will stop all trackers and the OSC sender / receiver.
+            """,
+        )
+        self.router.add_api_route(
+            name="Shutdown the ETVR backend",
+            path="/etvr/shutdown",
+            endpoint=self.shutdown,
+            methods=["GET"],
+            tags=["default"],
+            description="""
+            Shutdown the ETVR backend, this will stop all trackers and the OSC sender / receiver and exit the program.
             """,
         )
         self.router.add_api_route(
