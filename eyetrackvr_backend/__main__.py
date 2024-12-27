@@ -4,6 +4,7 @@ from eyetrackvr_backend import main as real_main
 import multiprocessing
 import sys
 
+
 def main():
     # check if we are running directly, if so, warn the user
     if not (getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")):

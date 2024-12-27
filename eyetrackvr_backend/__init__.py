@@ -5,6 +5,7 @@ from .assets import ASSETS_DIR, IMAGES_DIR
 from .etvr import ETVR
 from .logger import setup_logger
 
+
 def setup_app():
     setup_logger()
     etvr_app = ETVR()

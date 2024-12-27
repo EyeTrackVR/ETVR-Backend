@@ -134,9 +134,7 @@ class Camera(WorkerProcess):
             return
 
         try:
-            self.serial_camera = serial.Serial(
-                port=capture_source, baudrate=3000000, xonxoff=False, dsrdtr=False, rtscts=False
-            )
+            self.serial_camera = serial.Serial(port=capture_source, baudrate=3000000, xonxoff=False, dsrdtr=False, rtscts=False)
             # The `set_buffer_size` method is only available on Windows
             if os.name == "nt":
                 self.serial_camera.set_buffer_size(rx_size=32768, tx_size=32768)

@@ -3,7 +3,7 @@
 name = "eyetrackvr_backend"
 version = "1.6.1"
 description = "Opensource, affordable VR eye tracker for VRChat"
-authors = ["ShyAssassin <49711232+ShyAssassin@users.noreply.github.com>", "RedHawk989 <48768484+RedHawk989@users.noreply.github.com>"]
+authors = ["ShyAssassin <ShyAssassin@assassin.dev>", "RedHawk989 <48768484+RedHawk989@users.noreply.github.com>"]
 license = "MIT"
 repository = "https://github.com/RedHawk989/EyeTrackVR"
 packages = [

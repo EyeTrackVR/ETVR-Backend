@@ -25,7 +25,7 @@ def lint():
     print("-" * 80)
 
     print("Running ruff for linting...")
-    os.system(f"poetry run ruff eyetrackvr_backend{os.path.sep}")
+    os.system(f"poetry run ruff check eyetrackvr_backend{os.path.sep}")
     print("-" * 80)
 
     print("Running mypy for type checking...")
