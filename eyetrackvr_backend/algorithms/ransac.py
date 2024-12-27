@@ -224,7 +224,7 @@ class RANSAC(BaseAlgorithm):
     def __init__(self, eye_processor: EyeProcessor):
         self.ep = eye_processor
 
-    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> EyeData:
+    def run(self, frame: MatLike, tracker_position: TrackerPosition) -> tuple[EyeData, MatLike]:
 
         # frame = self.current_image_gray_clean
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
@@ -250,7 +250,6 @@ class RANSAC(BaseAlgorithm):
         # To reduce the processing data, blur.
         if frame is None:
             print("[WARN] Frame is empty")
-            self.failed = self.failed + 1  # we have failed, move onto next algo
             return TRACKING_FAILED
         else:
             frame_gray = cv2.GaussianBlur(frame, (5, 5), 0)
@@ -275,11 +274,11 @@ class RANSAC(BaseAlgorithm):
         try:
             opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
             closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
-            th_frame = 255 - closing
+            th_frame = 255 - closing.astype(np.float32)
         except Exception as e:
             print(e)
             # I want to eliminate try here because try tends to be slow in execution.
-            th_frame = 255 - frame_gray
+            th_frame = 255 - frame_gray.astype(np.float32)
 
         contours, _ = cv2.findContours(th_frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         hull = []
@@ -301,7 +300,7 @@ class RANSAC(BaseAlgorithm):
                 # go to next loop
                 pass
 
-            cx, cy, w, h, theta = ransac_data
+            cx, cy, w, h, theta = ransac_data  # type: ignore[reportArgumentType]
             # print(cx, cy)
             # cxi, cyi, wi, hi = int(cx), int(cy), int(w), int(h)
 
@@ -334,8 +333,8 @@ class RANSAC(BaseAlgorithm):
             angle = result_2d["angle"]
             result_2d_final["ellipse"] = result_2d
             result_2d_final["diameter"] = w
-            result_2d_final["location"] = (cx, cy)
-            result_2d_final["confidence"] = 0.99
+            result_2d_final["location"] = (cx, cy)  # type: ignore[assignment]
+            result_2d_final["confidence"] = 0.99  # type: ignore[assignment]
             # result_2d_final["timestamp"] = self.current_frame_number / self.current_fps
             # Black magic happens here, but after this we have our reprojected pupil/eye, and all we had
             # to do was sell our soul to satan and/or C++.
@@ -481,11 +480,9 @@ class RANSAC(BaseAlgorithm):
 
         print(cx)
         try:
-            self.failed = 0  # we have succeded, continue with this
-            return EyeData(cx, cy, 1, tracker_position)
+            return (EyeData(cx, cy, 1, tracker_position), newFrame2)
         # return cx, cy, angle, thresh, blink, w, h
         except Exception as e:
             print(e)
-            self.failed = self.failed + 1  # we have failed, move onto next algo
             # return 0, 0, 0, thresh, blink, 0, 0
-            return TRACKING_FAILED
+            return (TRACKING_FAILED, newFrame2)

@@ -63,7 +63,7 @@ class AHSF(BaseAlgorithm):
         cv2.drawMarker(frame, center_fitting, (255, 255, 255), cv2.MARKER_CROSS, 15, 1)
 
     def run(self, frame: MatLike, tracker_position: TrackerPosition) -> tuple[EyeData, MatLike]:
-        average_color = np.mean(frame)
+        average_color = np.mean(frame)  # type: ignore[arg-type]
         # Get the dimensions of the rotated image
         height, width = frame.shape
         # Determine the size of the square background (choose the larger dimension)
@@ -196,7 +196,7 @@ def get_empty_array(frame_shape, width_min, width_max, wh_step, xy_step, roi, ra
 
     wh_in_arr = 1 / wh_in_arr  # .astype(np.float32)
     # wh_out_arr=wh_out_arr.astype(np.float64)
-    mu_outer_rect = 1 / mu_outer_rect  # .astype(np.float32)
+    mu_outer_rect = 1 / mu_outer_rect.astype(np.float32)
     mu_outer_rect2 = -1.0 * mu_outer_rect  # cv2.merge([mu_outer_rect,-1.0*mu_outer_rect])
 
     # 1/wh_in_arr == wh_in_arr_mul
@@ -343,7 +343,7 @@ def coarse_detection(img_gray, params):
         in_w[min_loc[1]],
         in_h[min_loc[0]],
     )
-    max_response_coarse = -min_response
+    max_response_coarse = -min_response  # type: ignore[assignment]
     pupil_rect_coarse = rec_in
     outer_rect_coarse = rec_o
 
