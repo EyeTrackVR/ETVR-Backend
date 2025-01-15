@@ -1,11 +1,17 @@
 [tool]
 [tool.poetry]
-name = "EyeTrackVR"
+name = "eyetrackvr_backend"
 version = "1.6.1"
 description = "Opensource, affordable VR eye tracker for VRChat"
-authors = ["ShyAssassin <49711232+ShyAssassin@users.noreply.github.com>", "RedHawk989 <48768484+RedHawk989@users.noreply.github.com>"]
+authors = ["ShyAssassin <ShyAssassin@assassin.dev>", "RedHawk989 <48768484+RedHawk989@users.noreply.github.com>"]
 license = "MIT"
 repository = "https://github.com/RedHawk989/EyeTrackVR"
+packages = [
+  { include = "eyetrackvr_backend" }
+]
+
+[tool.poetry.scripts]
+eyetrackvr-backend = 'eyetrackvr_backend.__main__:main'
 
 [tool.poetry.dependencies]
 python = "~3.11.0"
@@ -13,7 +19,7 @@ python-osc = "^1.8.1"
 opencv-python = "^4.8.0.74"
 numpy = "^1.23.5"
 pydantic = "^2.0.3"
-fastapi = "^0.100.0"
+fastapi = "^0.110.0"
 uvicorn = "^0.20.0"
 coloredlogs = "^15.0.1"
 colorama = "^0.4.6"
@@ -21,15 +27,16 @@ watchdog = "^3.0.0"
 onnxruntime = "^1.16.0"
 pyserial = "^3.5"
 psutil = "^5.9.7"
+pye3d = "^0.3.1.post1"
 
 [tool.poetry.group.dev.dependencies]
 pytest-asyncio = "^0.21.1"
 pyinstaller = "^5.6.2"
 viztracer = "^0.15.6"
-black = "^22.10.0"
+black = "^24.3.0"
 pytest = "^7.2.0"
 mypy = "^1.4.1"
-ruff = "^0.1.5"
+ruff = "^0.6.1"
 
 [tool.black]
 line-length = 135
@@ -37,8 +44,8 @@ exclude = "(.git|.env|venv|.venv|build|dist|.vscode|.idea|__pycache__|.ruff_cach
 target-version = ["py310", "py311"]
 
 [tool.ruff]
-select = ["E", "F", "W", "Q"]
-src = ["TrackingBackend", "test"]
+lint.select = ["E", "F", "W", "Q"]
+src = ["eyetrackvr-backend", "test"]
 respect-gitignore = true
 target-version = "py311"
 output-format = "grouped"
@@ -46,8 +53,9 @@ indent-width = 4
 exclude = ["__pycache__", ".ruff_cache", ".vscode", ".idea", ".venv", "build", "dist", ".git", ".env", "venv"]
 line-length = 135
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

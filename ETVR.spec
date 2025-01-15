@@ -5,14 +5,11 @@ block_cipher = None
 
 
 a = Analysis(
-    ['TrackingBackend/main.py'],
+    ["eyetrackvr_backend/__main__.py"],
     pathex=[],
     binaries=[],
-    # WTF, wildcard doesnt apply to sub folders???
     datas=[
-        ("TrackingBackend/assets/*", "assets/"),
-        ("TrackingBackend/assets/models/*", "assets/models/"),
-        ("TrackingBackend/assets/images/*", "assets/images/")
+      ("eyetrackvr_backend/assets", "eyetrackvr_backend/assets")
     ],
     hiddenimports=["cv2", "numpy"],
     hookspath=[],
@@ -46,5 +43,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon="TrackingBackend/assets/images/logo.ico"
+    icon="eyetrackvr_backend/assets/images/logo.ico"
 )

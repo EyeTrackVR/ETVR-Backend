@@ -20,20 +20,20 @@ def install():
 
 
 def lint():
-    print("Running ruff for linting...")
-    os.system(f"poetry run ruff TrackingBackend{os.path.sep}")
+    print("Running black for code formatting...")
+    os.system(f"poetry run black eyetrackvr_backend{os.path.sep}")
     print("-" * 80)
 
-    print("Running black for code formatting...")
-    os.system(f"poetry run black TrackingBackend{os.path.sep}")
+    print("Running ruff for linting...")
+    os.system(f"poetry run ruff check eyetrackvr_backend{os.path.sep}")
     print("-" * 80)
 
     print("Running mypy for type checking...")
-    os.system(f"poetry run mypy --ignore-missing-imports --check-untyped-defs TrackingBackend{os.path.sep}")
+    os.system(f"poetry run mypy --ignore-missing-imports --check-untyped-defs eyetrackvr_backend{os.path.sep}")
     print("-" * 80)
 
     print("Running pytest for unit testing...")
-    os.system(f"poetry run pytest TrackingBackend{os.path.sep}")
+    os.system(f"poetry run pytest eyetrackvr_backend{os.path.sep}")
     print("-" * 80)
 
 
@@ -53,20 +53,18 @@ def clean():
 
 
 def build():
-    os.system("poetry run pyinstaller ETVR.spec TrackingBackend/main.py")
+    os.system("poetry run pyinstaller ETVR.spec")
 
 
 def profile():
-    os.chdir(f"{os.path.dirname(os.path.abspath(__file__))}{os.path.sep}TrackingBackend")
     try:
-        os.system("poetry run viztracer main.py")
+        os.system("poetry run viztracer -m eyetrackvr_backend.__main__")
     except KeyboardInterrupt:
         exit(0)
 
 
 def run():
-    os.chdir(f"{os.path.dirname(os.path.abspath(__file__))}{os.path.sep}TrackingBackend")
-    os.system("poetry run uvicorn --factory main:setup_app --reload --port 8000")
+    os.system("poetry run uvicorn --factory eyetrackvr_backend:setup_app --reload --port 8000")
 
 
 def emulate():

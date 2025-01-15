@@ -87,7 +87,7 @@ To start the local development server run either of the following commands.
 python build.py run
 ```
 ```bash
-cd TrackingBackend/ && poetry run uvicorn --factory main:setup_app --reload --port 8000
+poetry run uvicorn --factory eyetrackvr_backend:setup_app --reload --port 8000
 ```
 
 ### The build script
@@ -115,7 +115,7 @@ python build.py build
 ```
 If you want to build the backend manually you can do so with the following command.
 ```bash
-poetry run pyinstaller ETVR.spec TrackingBackend/main.py
+poetry run pyinstaller ETVR.spec
 ```
 
 ### Profiling
@@ -124,9 +124,9 @@ To start profiling run the following command, this will start the backend and ge
 If you dont like viztracer you can use almost any other profiler (multi-processing and multi-threading support is required)\
 *currently using the build script to start profiling is broken!*
 ```bash
-cd TrackingBackend/ && poetry run viztracer main.py
+poetry run viztracer -m eyetrackvr_backend:main
 ```
 
 
 ## License
-Unless explicitly stated otherwise all code contained within this repository is under the [MIT License](./LICENSE)
+Unless explicitly stated otherwise all code contained within this repository is under the [MIT License](./LICENSE-MIT)
