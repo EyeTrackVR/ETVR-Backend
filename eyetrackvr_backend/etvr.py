@@ -1,13 +1,14 @@
+import os
+import signal
+
 from .processes import VRChatOSCReceiver
 from .config import ConfigManager
 from multiprocessing import Manager
 from .logger import get_logger
 from fastapi import APIRouter
 from .tracker import Tracker
-import sys
 
 logger = get_logger()
-
 
 class ETVR:
     def __init__(self):
@@ -76,11 +77,17 @@ class ETVR:
         self.start()
 
     def shutdown(self) -> None:
-        # NOTE: in theory this should eventually stop all child processes once they receive the stop signal
-        # but it's not guaranteed to work, so we should probably find a better way to handle this as sys.exit(0)
-        # is not a good way to handle this and doesnt work in all cases but should be good enough for now...
+        # This is a crime, I don't like this either, but I have no idea how to do it better.
+        # The problem here is that we're starting the server with uvicorn, it handles all of our requests
+        # and communicates them down to starlette / fastapi, never exposing itself to our API.
+        # So we have no control over the lifetime of the server.
+        # But we have to have it, we need to kill the backend when the app-proper exits.
+        # sys.exit() doesn't really do the job. Our process exits, yes, but the server one is still alive and kicking
+        # so, we have to kill it instead.
+
         self.stop()
-        sys.exit(0)
+        self.config.stop()
+        os.kill(os.getpid(), signal.SIGTERM)
 
     def add_routes(self) -> None:
         logger.debug("Adding routes to ETVR")
