@@ -29,13 +29,13 @@ Copyright (c) 2023 EyeTrackVR <3
 # ruff: noqa: F841
 # TODO: remove this noqa once unused variables have been cleaned up
 
+import platform
 import cv2
 import numpy as np
 from enum import IntEnum
 
 import os
 import psutil
-import sys
 from cv2.typing import MatLike
 from ..processes import EyeProcessor
 from ..utils import BaseAlgorithm
@@ -44,13 +44,12 @@ from pye3d.camera import CameraModel
 from pye3d.detector_3d import Detector3D, DetectorMode
 
 process = psutil.Process(os.getpid())  # set process priority to low
-try:  # medium chance this does absolutely nothing but eh
-    sys.getwindowsversion()
-except AttributeError:
-    process.nice(0)  # UNIX: 0 low 10 high
+if platform.system() == "Windows":
+    # Ignoring type error appearing on Linux as this is a Windows variable
+    process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)  # type: ignore[attr-defined]
     process.nice()
 else:
-    process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)  # Windows
+    process.nice(0)  # UNIX: 0 low 10 high
     process.nice()
 
 
@@ -284,14 +283,13 @@ class RANSAC(BaseAlgorithm):
         hull = []
 
         for cnt in contours:
-            hull.append(cv2.convexHull(cnt, False))
+            hull.append(cv2.convexHull(cnt, clockwise=False))
         if not hull:
             # If empty, go to next loop
             pass
         try:
-
-            cnt = sorted(hull, key=cv2.contourArea)
-            maxcnt = cnt[-1]
+            contour = sorted(hull, key=cv2.contourArea)
+            maxcnt = contour[-1]
             # ellipse = cv2.fitEllipse(maxcnt)
             ransac_data = fit_rotated_ellipse_ransac(maxcnt.reshape(-1, 2), rng)
             print(ransac_data)

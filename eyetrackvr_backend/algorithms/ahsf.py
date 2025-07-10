@@ -350,7 +350,7 @@ def coarse_detection(img_gray, params):
     return pupil_rect_coarse, outer_rect_coarse, max_response_coarse, mu_inner, mu_outer
 
 
-def fine_detection(frame, pupil_rect_coarse):
+def fine_detection(frame: MatLike, pupil_rect_coarse):
     valid_ratio = 1.2
     boundary = (0, 0, frame.shape[1], frame.shape[0])
     valid_rect = intersect_rect(rect_scale(pupil_rect_coarse, valid_ratio), boundary)
@@ -358,7 +358,7 @@ def fine_detection(frame, pupil_rect_coarse):
         valid_rect[1] : valid_rect[1] + valid_rect[3],
         valid_rect[0] : valid_rect[0] + valid_rect[2],
     ]
-    img_pupil_blur = cv2.GaussianBlur(img_pupil, (5, 5), 0, 0)
+    img_pupil_blur = cv2.GaussianBlur(img_pupil, (5, 5), sigmaX=0, sigmaY=0)
     edges_filter = detect_edges(img_pupil_blur)
     # fit ellipse to edges
     contours, hierarchy = cv2.findContours(edges_filter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -399,12 +399,14 @@ def fine_detection(frame, pupil_rect_coarse):
         return pupil_rect_coarse, center
 
 
-def detect_edges(img_pupil_blur):
+def detect_edges(img_pupil_blur: MatLike):
     edges = cv2.Canny(img_pupil_blur, 64, 128)
 
     # img_bw = np.zeros_like(img_pupil_blur)
     # img_bw[img_pupil_blur > 100] = 255
-    img_bw = cv2.compare(img_pupil_blur, 100, cv2.CMP_GT)
+
+    # The usage is valid, the typing in opencv-python is wrong, see https://github.com/opencv/opencv-python/issues/1008
+    img_bw = cv2.compare(img_pupil_blur, 100, cv2.CMP_GT) # type: ignore[call-overload]
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     img_bw = cv2.dilate(img_bw, kernel)
 
